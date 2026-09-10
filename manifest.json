@@ -1,7 +1,7 @@
 {
   "name": "オーラコネクト・バトル",
   "short_name": "オーラコネクト",
-  "description": "パズドラ操作×ぷよぷよ消しのオーブバトルRPG",
+  "description": "オーブバトルRPG",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
