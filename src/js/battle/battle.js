@@ -13,7 +13,7 @@ import {
 import { COLS, ROWS, genBoard, findGroups, applyGravityNoRefill, refillBoard } from './board.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 
-const DRAG_TIME = 12000;   // オーブを動かせる制限時間(ms)
+const DRAG_TIME = 60000;   // オーブを動かせる制限時間(ms)
 
 let canvas;
 let board = [];
