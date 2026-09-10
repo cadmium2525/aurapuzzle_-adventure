@@ -3,8 +3,8 @@
  * =======================================================*/
 import { COLORS } from '../data/gamedata.js';
 
-export const COLS = 6;
-export const ROWS = 5;
+export const COLS = 7;
+export const ROWS = 8;
 /** 消滅に必要な同色連結数 */
 export const MATCH_MIN = 4;
 

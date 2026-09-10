@@ -7,22 +7,15 @@ import { COLORS, COLOR_HEX, COLOR_DARK, HEAL_COLOR } from '../data/gamedata.js';
 import { COLS, ROWS } from './board.js';
 
 let canvas, ctx;
-export let CELL = 52;
+export let CELL = 44;
 
 export function initRenderer(canvasEl) {
   canvas = canvasEl;
   ctx = canvas.getContext('2d');
 }
 
-/** 画面サイズに合わせてセルサイズを決め、Canvasを再構成する */
-export function resizeBoard() {
-  const wrap = canvas.parentElement;
-  const availW = (wrap.clientWidth || 360) - 16;
-  // 盤面より上のUI(敵/味方/タイマー)ぶんを差し引いた高さ予算
-  const availH = Math.max(180, window.innerHeight * 0.40);
-  CELL = Math.floor(Math.min(availW / COLS, availH / ROWS));
-  CELL = Math.max(38, Math.min(72, CELL));
-
+/** 現在の CELL で Canvas を再構成する */
+function applyCellSize() {
   const dpr = window.devicePixelRatio || 1;
   const w = CELL * COLS, h = CELL * ROWS;
   canvas.style.width = w + 'px';
@@ -30,6 +23,35 @@ export function resizeBoard() {
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/**
+ * 画面サイズに合わせてセルサイズを決める。
+ * まず横幅から仮決めし、縦にはみ出す場合は実測して縮める。
+ * (盤面自身の幅から逆算すると循環するため、アプリ幅を基準にする)
+ */
+export function resizeBoard() {
+  const appEl = document.getElementById('app');
+  const appW = appEl.clientWidth || Math.min(420, window.innerWidth);
+  // main の左右padding 28px + boardWrap の padding/border 18px を差し引く
+  const availW = appW - 28 - 18;
+  CELL = Math.max(24, Math.min(72, Math.floor(availW / COLS)));
+  applyCellSize();
+
+  // バトル画面が表示されている時のみ、実際の位置を測って調整する
+  const mainEl = canvas.closest('main');
+  const padBottom = (parseFloat(getComputedStyle(appEl).paddingBottom) || 0)
+    + (mainEl ? parseFloat(getComputedStyle(mainEl).paddingBottom) || 0 : 0);
+  for (let i = 0; i < 4; i++) {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    if (rect.height === 0) break;
+    const overflow = rect.bottom - (window.innerHeight - padBottom);
+    if (overflow <= 0.5) break;
+    const next = Math.floor((CELL * ROWS - overflow) / ROWS);
+    if (next >= CELL || next < 24) break;
+    CELL = next;
+    applyCellSize();
+  }
 }
 
 export function cellCenter(r, c) { return { x: c * CELL + CELL / 2, y: r * CELL + CELL / 2 }; }

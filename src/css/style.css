@@ -119,36 +119,38 @@ button{font-family:inherit;}
 .clearbadge{font-size:10px;color:var(--accent);font-weight:700;}
 
 /* ===================== バトル ===================== */
-#screen-battle{gap:8px;flex:1;}
+#screen-battle{gap:6px;flex:1;}
 #floorIndicator{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);padding:0 2px;}
 
 /* 敵を大きく表示 */
 #enemyStage{
   position:relative;justify-content:center;
+  flex:0 1 auto;min-height:0;
   background:radial-gradient(ellipse at 50% 30%, rgba(255,107,107,0.16), transparent 65%), var(--panel);
   border:1px solid var(--panel-border);border-radius:16px;
   padding:10px 12px 12px;
   display:flex;flex-direction:column;align-items:center;gap:6px;
 }
-#enemyEmoji{font-size:clamp(56px, 15vh, 112px);line-height:1;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.45));animation:idleFloat 3.2s ease-in-out infinite;}
+#enemyEmoji{font-size:clamp(44px, 10.5vh, 96px);line-height:1;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.45));animation:idleFloat 3.2s ease-in-out infinite;}
 @keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
 #enemyMeta{width:100%;display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:var(--ink-dim);}
 #enemyMeta b{color:var(--ink);font-size:12.5px;}
 #enemyTurn{color:#FFB4B4;font-weight:700;}
 #enemyStage .hpbar{width:100%;}
+#enemyStage{padding:8px 12px 10px;}
 
 /* 味方4体 */
 #partyBox{display:flex;flex-direction:column;gap:6px;}
 #partyRow{display:flex;gap:6px;}
 .party-unit{
-  flex:1;aspect-ratio:1/0.9;border-radius:12px;
+  flex:1;aspect-ratio:1/0.66;border-radius:12px;
   background:rgba(255,255,255,0.05);
   border:1px solid var(--panel-border);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   box-shadow:inset 0 0 14px -6px var(--unit-color);
 }
 .party-unit.leader{border-color:var(--accent);}
-.party-unit .unit-icon{font-size:22px;line-height:1;}
+.party-unit .unit-icon{font-size:20px;line-height:1;}
 .party-unit .unit-atk{font-size:9.5px;color:var(--ink-dim);}
 #playerHPRow{display:flex;align-items:center;gap:8px;}
 #playerHPRow .hpbar{flex:1;}
@@ -166,7 +168,15 @@ button{font-family:inherit;}
 #timerFill{height:100%;width:0%;border-radius:5px;background:linear-gradient(90deg,var(--c1),var(--accent));}
 #timerNum{font-size:11px;color:var(--ink-dim);width:38px;text-align:right;font-variant-numeric:tabular-nums;}
 
-#banner{min-height:20px;font-size:13px;font-weight:700;text-align:center;opacity:0;transform:translateY(4px);transition:opacity .18s ease, transform .18s ease;}
+/* ダメージ表示は敵エリアに重ねる(縦幅を消費しない) */
+#banner{
+  position:absolute;left:8px;right:8px;bottom:6px;
+  font-size:13px;font-weight:700;text-align:center;
+  padding:4px 6px;border-radius:10px;
+  background:rgba(10,6,20,0.72);
+  opacity:0;transform:translateY(4px);transition:opacity .18s ease, transform .18s ease;
+  pointer-events:none;
+}
 #banner.show{opacity:1;transform:translateY(0);}
 #banner .chain{color:var(--accent);}
 #banner .dmg{color:#FFD9A8;}
@@ -177,7 +187,7 @@ button{font-family:inherit;}
 #boardWrap{
   /* 盤面は画面下寄せ(親指が届きやすい位置) */
   margin-top:auto;
-  position:relative;align-self:center;padding:8px;border-radius:20px;
+  position:relative;align-self:center;padding:8px;flex-shrink:0;border-radius:20px;
   background:var(--panel);border:1px solid var(--panel-border);
   box-shadow:0 18px 40px rgba(0,0,0,0.35);
 }
@@ -263,6 +273,15 @@ input[type=range]{accent-color:var(--accent);}
 .toast.show{opacity:1;}
 
 /* 小さい端末では敵の表示を少し詰める */
-@media (max-height:700px){
+/* 縦が短い端末では盤面を優先し、敵・味方の表示を詰める */
+@media (max-height:740px){
   #homeHero h1{font-size:20px;}
+  #enemyEmoji{font-size:clamp(40px, 8vh, 64px);}
+  #enemyStage{padding:6px 10px 8px;gap:4px;}
+  #enemyMeta{font-size:10px;}
+  .party-unit{aspect-ratio:1/0.5;}
+  .party-unit .unit-icon{font-size:17px;}
+  .party-unit .unit-atk{font-size:9px;}
+  #screen-battle{gap:5px;}
+  main{padding:8px 14px 4px;}
 }
