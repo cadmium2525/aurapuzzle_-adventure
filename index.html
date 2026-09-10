@@ -6,190 +6,41 @@
 <title>オーラコネクト・バトル</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#150F27">
-<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<style>
-  :root{
-    --bg-top:#150F27;--bg-bottom:#26193F;
-    --panel:rgba(255,255,255,0.045);--panel-border:rgba(255,255,255,0.09);
-    --ink:#EFE9FF;--ink-dim:#A79BC9;--accent:#F2B84B;
-    --hp-enemy1:#FF6B6B;--hp-enemy2:#B0233A;
-    --hp-player1:#63E6BE;--hp-player2:#1E9E77;
-    --c0:#FF6B57;--c1:#3FC6E8;--c2:#4CD97B;--c3:#FFD24C;--c4:#C77DFF;
-    --c0d:#c94a3a;--c1d:#1e8fae;--c2d:#26a75c;--c3d:#d9a41f;--c4d:#9550d6;
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;}
-  body{
-    min-height:100vh;
-    background:radial-gradient(ellipse at 20% -10%, rgba(199,125,255,0.20), transparent 55%),
-      radial-gradient(ellipse at 90% 10%, rgba(63,198,232,0.14), transparent 50%),
-      linear-gradient(180deg, var(--bg-top), var(--bg-bottom) 70%);
-    font-family:"Hiragino Maru Gothic ProN","Yu Gothic Medium","BIZ UDPGothic","Meiryo",sans-serif;
-    color:var(--ink);
-    display:flex;justify-content:center;
-  }
-  #app{width:100%;max-width:400px;min-height:100vh;display:flex;flex-direction:column;padding-bottom:24px;}
-
-  #topbar{
-    position:sticky;top:0;z-index:20;
-    display:flex;align-items:center;gap:8px;
-    padding:10px 12px;
-    background:rgba(21,15,39,0.85);backdrop-filter:blur(6px);
-    border-bottom:1px solid var(--panel-border);
-  }
-  #backBtn{
-    width:30px;height:30px;border-radius:50%;
-    background:rgba(255,255,255,0.08);color:var(--ink);
-    border:1px solid var(--panel-border);font-size:15px;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  }
-  #backBtn.hidden{visibility:hidden;}
-  #screenTitle{font-weight:800;font-size:15px;flex-shrink:0;}
-  #currencyBar{flex:1;display:flex;justify-content:flex-end;gap:8px;font-size:11px;color:var(--ink-dim);}
-  #currencyBar b{color:var(--accent);font-variant-numeric:tabular-nums;margin-left:2px;}
-  #currencyBar.hidden{display:none;}
-
-  main{flex:1;padding:14px 14px 4px;display:flex;flex-direction:column;gap:12px;}
-  .screen{display:none;flex-direction:column;gap:12px;}
-  .screen.active{display:flex;}
-
-  .card{background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;padding:12px 14px;}
-  .cardtitle{font-size:12px;color:var(--ink-dim);margin-bottom:8px;}
-
-  /* HOME */
-  #homeHero{text-align:center;padding:10px 4px 2px;}
-  #homeHero h1{
-    margin:0 0 4px;font-size:22px;font-weight:800;
-    background:linear-gradient(90deg,var(--c4),var(--accent) 55%,var(--c1));
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-  }
-  #homeHero p{margin:0;font-size:11px;color:var(--ink-dim);}
-  .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .menu-tile{
-    background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;
-    padding:16px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;
-    font-size:12px;font-weight:700;color:var(--ink);
-  }
-  .menu-tile .emoji{font-size:26px;}
-  .menu-tile:active{transform:translateY(1px);}
-
-  /* generic buttons */
-  button{font-family:inherit;}
-  .btn{
-    font-size:13px;font-weight:700;color:#241735;
-    background:linear-gradient(180deg,#FFD98A,var(--accent));
-    border:none;padding:10px 18px;border-radius:999px;
-    box-shadow:0 8px 18px rgba(242,184,75,0.28);
-  }
-  .btn.secondary{color:var(--ink);background:rgba(255,255,255,0.08);box-shadow:none;border:1px solid var(--panel-border);}
-  .btn.block{width:100%;}
-  .btn:disabled{opacity:.4;}
-  .btn:active{transform:translateY(1px);}
-
-  /* DUNGEON */
-  .difftoggle{display:flex;gap:6px;background:rgba(255,255,255,0.05);border-radius:999px;padding:3px;border:1px solid var(--panel-border);}
-  .difftoggle button{flex:1;border:none;background:transparent;color:var(--ink-dim);font-size:12px;font-weight:700;padding:8px 0;border-radius:999px;}
-  .difftoggle button.active{background:var(--accent);color:#241735;}
-  .stage-card{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;padding:12px 14px;}
-  .stage-card .semoji{font-size:26px;width:40px;text-align:center;}
-  .stage-card .sinfo{flex:1;min-width:0;}
-  .stage-card .sname{font-weight:800;font-size:13.5px;}
-  .stage-card .ssub{font-size:11px;color:var(--ink-dim);margin-top:2px;}
-  .stage-card.locked{opacity:.4;}
-  .clearbadge{font-size:10px;color:var(--accent);font-weight:700;}
-
-  /* BATTLE */
-  .fighter{display:flex;align-items:center;gap:10px;}
-  .fighter .avatar{font-size:26px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.06);flex-shrink:0;}
-  .fighter .info{flex:1;min-width:0;}
-  .fighter .namerow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-dim);margin-bottom:3px;}
-  .fighter .namerow b{color:var(--ink);font-size:12px;}
-  .hpbar{height:9px;border-radius:6px;background:rgba(255,255,255,0.08);overflow:hidden;}
-  .hpbar .fill{height:100%;border-radius:6px;transition:width .35s ease;}
-  .fill.enemy{background:linear-gradient(90deg,var(--hp-enemy2),var(--hp-enemy1));}
-  .fill.player{background:linear-gradient(90deg,var(--hp-player2),var(--hp-player1));}
-  .flash{animation:flashHit .35s ease;}
-  @keyframes flashHit{0%{filter:brightness(2.6);}100%{filter:brightness(1);}}
-  .statline{display:flex;justify-content:space-between;width:100%;padding:0 2px;font-size:11px;color:var(--ink-dim);}
-  .statline b{color:var(--accent);font-size:12.5px;}
-  #timerRow{width:100%;display:flex;align-items:center;gap:8px;}
-  #timerTrack{flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,0.08);overflow:hidden;border:1px solid var(--panel-border);}
-  #timerFill{height:100%;width:0%;border-radius:5px;background:linear-gradient(90deg,var(--c1),var(--accent));}
-  #timerNum{font-size:11px;color:var(--ink-dim);width:32px;text-align:right;font-variant-numeric:tabular-nums;}
-  #banner{min-height:22px;font-size:13px;font-weight:700;text-align:center;opacity:0;transform:translateY(4px);transition:opacity .18s ease, transform .18s ease;}
-  #banner.show{opacity:1;transform:translateY(0);}
-  #banner .chain{color:var(--accent);}
-  #banner .simul{color:var(--c1);}
-  #banner .miss{color:#FF8A8A;}
-  #boardWrap{position:relative;align-self:center;padding:10px;border-radius:20px;background:var(--panel);border:1px solid var(--panel-border);box-shadow:0 18px 40px rgba(0,0,0,0.35);}
-  canvas{display:block;border-radius:12px;touch-action:none;}
-  #overlay{position:absolute;inset:10px;border-radius:12px;background:rgba(10,6,20,0.9);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px;}
-  #overlay.show{display:flex;}
-  #overlay .otitle{font-size:20px;font-weight:800;}
-  #overlay .otitle.win{color:var(--accent);}
-  #overlay .otitle.lose{color:#FF8A8A;}
-  #overlay .odesc{font-size:12px;color:var(--ink-dim);line-height:1.6;}
-
-  /* MONSTER */
-  .tabs{display:flex;gap:6px;background:rgba(255,255,255,0.05);border-radius:999px;padding:3px;border:1px solid var(--panel-border);}
-  .tabs button{flex:1;border:none;background:transparent;color:var(--ink-dim);font-size:12px;font-weight:700;padding:8px 0;border-radius:999px;}
-  .tabs button.active{background:var(--accent);color:#241735;}
-  .teamslots{display:flex;gap:8px;}
-  .teamslot{flex:1;aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,0.05);border:1px dashed var(--panel-border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;position:relative;}
-  .teamslot .lbl{position:absolute;top:3px;left:5px;font-size:9px;color:var(--ink-dim);}
-  .teamslot.filled{border-style:solid;border-color:var(--accent);}
-  .mon-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:9px 12px;}
-  .mon-row .elemicon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-  .mon-row .minfo{flex:1;min-width:0;}
-  .mon-row .mname{font-size:12.5px;font-weight:700;}
-  .mon-row .mstats{font-size:10.5px;color:var(--ink-dim);}
-  .stars{color:var(--accent);font-size:10px;letter-spacing:1px;}
-  .mon-row.locked{opacity:.35;}
-  .mon-row .selbtn{font-size:11px;padding:6px 10px;}
-
-  /* GACHA */
-  .gacha-card{background:linear-gradient(160deg, rgba(199,125,255,0.14), rgba(63,198,232,0.08));border:1px solid var(--panel-border);border-radius:16px;padding:16px;text-align:center;}
-  .gacha-card .gtitle{font-size:15px;font-weight:800;margin-bottom:4px;}
-  .gacha-card .gcost{font-size:11px;color:var(--ink-dim);margin-bottom:10px;}
-  #pullOverlay{position:fixed;inset:0;background:rgba(8,5,16,0.92);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
-  #pullOverlay.show{display:flex;}
-  #pullCard{background:var(--panel);border:1px solid var(--panel-border);border-radius:18px;padding:26px 20px;text-align:center;max-width:280px;width:100%;}
-  #pullCard .pemoji{font-size:52px;margin-bottom:8px;}
-  #pullCard .pname{font-size:16px;font-weight:800;margin-bottom:4px;}
-  #pullCard .pstars{font-size:14px;margin-bottom:6px;}
-  #pullCard .pstats{font-size:11.5px;color:var(--ink-dim);margin-bottom:16px;}
-
-  /* SHOP */
-  .shop-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:10px 12px;}
-  .shop-row .semoji2{font-size:24px;width:34px;text-align:center;}
-  .shop-row .sinfo2{flex:1;min-width:0;}
-  .shop-row .sname2{font-size:12.5px;font-weight:700;}
-  .shop-row .sprice{font-size:11px;color:var(--ink-dim);}
-
-  /* SETTINGS */
-  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--panel-border);}
-  .setting-row:last-child{border-bottom:none;}
-  .setting-row label{font-size:12.5px;}
-  .setting-row input[type=range]{width:130px;}
-  .idbox{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border-radius:10px;padding:8px 10px;font-size:12px;font-variant-numeric:tabular-nums;}
-
-  .placeholder-card{text-align:center;padding:40px 16px;color:var(--ink-dim);font-size:13px;}
-  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(20,14,36,0.95);border:1px solid var(--panel-border);color:var(--ink);font-size:12px;padding:10px 16px;border-radius:999px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;}
-  .toast.show{opacity:1;}
-</style>
+<link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
 <div id="app">
-  <div id="topbar">
-    <button id="backBtn" class="hidden">←</button>
-    <div id="screenTitle">ホーム</div>
-    <div id="currencyBar"><span>💰<b id="curCoin">0</b></span><span>🎗️<b id="curFrepo">0</b></span><span>💎<b id="curOrb">0</b></span></div>
-  </div>
+  <!-- ===================== トップバー ===================== -->
+  <header id="topbar">
+    <div id="topRow">
+      <button id="backBtn" class="hidden" aria-label="戻る">←</button>
+      <div id="screenTitle">ホーム</div>
+      <button id="sysBtn" aria-label="システムメニュー">⚙</button>
+    </div>
+    <div id="statusBar">
+      <div id="staminaRow">
+        <span class="slabel">⚡スタミナ</span><b id="curStamina">0/0</b>
+        <span id="staminaTimer">MAX</span>
+      </div>
+      <div id="rankBox">
+        <span>Rank <b id="curRank">1</b></span>
+        <div id="rankExpTrack"><div id="rankExpFill"></div></div>
+      </div>
+      <div id="currencyRow">
+        <span>💰<b id="curCoin">0</b></span>
+        <span>🎗️<b id="curFrepo">0</b></span>
+        <span>💎<b id="curOrb">0</b></span>
+      </div>
+    </div>
+  </header>
 
   <main>
-    <!-- HOME -->
+    <!-- ===================== ホーム ===================== -->
     <section class="screen active" id="screen-home">
       <div id="homeHero">
         <h1>オーラコネクト・バトル</h1>
@@ -209,7 +60,7 @@
       </div>
     </section>
 
-    <!-- DUNGEON -->
+    <!-- ===================== ダンジョン ===================== -->
     <section class="screen" id="screen-dungeon">
       <div class="difftoggle">
         <button id="diffNormalBtn" class="active">ノーマル</button>
@@ -218,48 +69,44 @@
       <div id="stageList" style="display:flex;flex-direction:column;gap:10px;"></div>
     </section>
 
-    <!-- DUNGEON RUN (battle) -->
+    <!-- ===================== バトル ===================== -->
     <section class="screen" id="screen-battle">
-      <div class="card" style="padding:8px 12px;">
-        <div id="floorIndicator" class="statline"><span>ステージ1 ノーマル</span><span>フロア 1/5</span></div>
-      </div>
-      <div class="card fighter">
-        <div class="avatar" id="enemyAvatar">👹</div>
-        <div class="info">
-          <div class="namerow"><b id="enemyName">エネミー</b><span id="enemyHPText">0 / 0</span></div>
-          <div class="hpbar"><div class="fill enemy" id="enemyHPFill"></div></div>
+      <div id="floorIndicator"></div>
+
+      <!-- 敵(大きく表示) -->
+      <div id="enemyStage">
+        <div id="enemyEmoji">👹</div>
+        <div id="enemyMeta">
+          <b id="enemyName">エネミー</b>
+          <span id="enemyTurn">攻撃まで <span id="enemyTurnCount">2</span></span>
+          <span id="enemyHPText">0 / 0</span>
         </div>
+        <div class="hpbar"><div class="fill enemy" id="enemyHPFill"></div></div>
       </div>
-      <div class="card fighter">
-        <div class="avatar">🧙</div>
-        <div class="info">
-          <div class="namerow"><b>あなた</b><span id="playerHPText">0 / 0</span></div>
+
+      <!-- 味方4体 -->
+      <div id="partyBox">
+        <div id="partyRow"></div>
+        <div id="playerHPRow">
           <div class="hpbar"><div class="fill player" id="playerHPFill"></div></div>
+          <span id="playerHPText">0 / 0</span>
         </div>
       </div>
-      <div class="statline"><span>前回の連鎖 <b id="lastChainVal">0</b></span><span>ATK倍率 <b id="atkMultVal">x1.0</b></span></div>
-      <div id="timerRow"><div id="timerTrack"><div id="timerFill"></div></div><div id="timerNum">60s</div></div>
+
+      <div id="timerRow">
+        <div id="timerTrack"><div id="timerFill"></div></div>
+        <div id="timerNum">12.0s</div>
+      </div>
       <div id="banner"></div>
-      <div id="boardWrap">
-        <canvas id="board"></canvas>
-        <div id="overlay">
-          <div class="otitle" id="overlayTitle">VICTORY</div>
-          <div class="odesc" id="overlayDesc"></div>
-          <button class="btn" id="overlayBtn">つぎへ</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn secondary block" id="mixBtn">オーラを混ぜる (HP-5)</button>
-        <button class="btn secondary" id="retreatBtn">リタイア</button>
-      </div>
+      <div id="boardWrap"><canvas id="board"></canvas></div>
     </section>
 
-    <!-- EVENT -->
+    <!-- ===================== イベント ===================== -->
     <section class="screen" id="screen-event">
       <div class="card placeholder-card">🎉<br><br>イベントは近日公開予定です。<br>お楽しみに!</div>
     </section>
 
-    <!-- MONSTER -->
+    <!-- ===================== モンスター ===================== -->
     <section class="screen" id="screen-monster">
       <div class="tabs">
         <button id="tabTeamBtn" class="active">編成</button>
@@ -267,7 +114,7 @@
       </div>
       <div id="monsterTeamPane">
         <div class="card">
-          <div class="cardtitle">編成中のチーム(先頭がリーダー)</div>
+          <div class="cardtitle">編成中のチーム(先頭がリーダー / 最大4体)</div>
           <div class="teamslots" id="teamSlots"></div>
         </div>
         <div class="card">
@@ -283,7 +130,7 @@
       </div>
     </section>
 
-    <!-- GACHA -->
+    <!-- ===================== ガチャ ===================== -->
     <section class="screen" id="screen-gacha">
       <div class="gacha-card">
         <div class="gtitle">🎗️ フレポガチャ</div>
@@ -297,7 +144,7 @@
       </div>
     </section>
 
-    <!-- SHOP -->
+    <!-- ===================== ショップ ===================== -->
     <section class="screen" id="screen-shop">
       <div class="card">
         <div class="cardtitle">コインショップ</div>
@@ -305,8 +152,13 @@
       </div>
     </section>
 
-    <!-- SETTINGS -->
+    <!-- ===================== 設定 ===================== -->
     <section class="screen" id="screen-settings">
+      <div class="card">
+        <div class="cardtitle">プレイヤー</div>
+        <div class="setting-row"><label>ランク</label><span class="val" id="settingsRank">-</span></div>
+        <div class="setting-row"><label>スタミナ</label><span class="val" id="settingsStamina">-</span></div>
+      </div>
       <div class="card">
         <div class="cardtitle">サウンド</div>
         <div class="setting-row"><label>BGM音量</label><input type="range" id="bgmRange" min="0" max="100"></div>
@@ -323,8 +175,38 @@
     </section>
   </main>
 </div>
-<div id="pullOverlay">
-  <div id="pullCard">
+
+<!-- ===================== システムモーダル(⚙) ===================== -->
+<div class="modal" id="sysModal">
+  <div class="modal-card">
+    <h3>システム</h3>
+    <div class="modal-sec">
+      <div class="cardtitle">サウンド</div>
+      <div class="setting-row"><label>BGM音量</label><input type="range" id="sysBgm" min="0" max="100"></div>
+      <div class="setting-row"><label>SE音量</label><input type="range" id="sysSe" min="0" max="100"></div>
+    </div>
+    <div class="modal-sec" id="sysRetreatBox" style="display:none;">
+      <div class="cardtitle">ダンジョン</div>
+      <button class="btn danger block" id="sysRetreatBtn">リタイア</button>
+    </div>
+    <button class="btn secondary block" id="sysCloseBtn">閉じる</button>
+  </div>
+</div>
+
+<!-- ===================== リザルト ===================== -->
+<div class="modal" id="resultModal">
+  <div class="modal-card" id="resultCard">
+    <div id="resultTitle">STAGE CLEAR</div>
+    <div id="resultRank"></div>
+    <div id="resultStats"></div>
+    <div id="resultRewards"></div>
+    <button class="btn block" id="resultBtn">ダンジョンへ戻る</button>
+  </div>
+</div>
+
+<!-- ===================== ガチャ結果 ===================== -->
+<div class="modal" id="pullOverlay">
+  <div class="modal-card" id="pullCard">
     <div class="pemoji" id="pullEmoji">✨</div>
     <div class="pname" id="pullName">?</div>
     <div class="pstars" id="pullStars">★</div>
@@ -332,670 +214,8 @@
     <button class="btn block" id="pullCloseBtn">受け取る</button>
   </div>
 </div>
+
 <div class="toast" id="toast"></div>
-
-<script>
-(function(){
-  /* ===================== STORAGE ===================== */
-  const Store=(function(){
-    let mem={}; let ok=true;
-    try{ localStorage.setItem('__t__','1'); localStorage.removeItem('__t__'); }catch(e){ ok=false; }
-    return {
-      get(k,def){ try{ if(ok){ const v=localStorage.getItem(k); return v!==null?JSON.parse(v):def; } }catch(e){} return mem[k]!==undefined?mem[k]:def; },
-      set(k,v){ try{ if(ok){ localStorage.setItem(k, JSON.stringify(v)); return; } }catch(e){} mem[k]=v; }
-    };
-  })();
-
-  function randInt(a,b){return Math.floor(a+Math.random()*(b-a+1));}
-  function uid(){return 'AC-'+Math.random().toString(36).slice(2,6).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();}
-  function toast(msg){
-    const t=document.getElementById('toast');
-    t.textContent=msg; t.classList.add('show');
-    clearTimeout(toast._t);
-    toast._t=setTimeout(()=>t.classList.remove('show'),1600);
-  }
-
-  /* ===================== GAME DATA ===================== */
-  const ELEMENTS=[
-    {key:'c0',name:'火',emoji:'🔥'},
-    {key:'c1',name:'水',emoji:'💧'},
-    {key:'c2',name:'木',emoji:'🌿'},
-    {key:'c3',name:'光',emoji:'✨'},
-    {key:'c4',name:'闇',emoji:'🌑'}
-  ];
-  const COLOR_HEX={c0:'#FF6B57',c1:'#3FC6E8',c2:'#4CD97B',c3:'#FFD24C',c4:'#C77DFF'};
-  const COLOR_DARK={c0:'#c94a3a',c1:'#1e8fae',c2:'#26a75c',c3:'#d9a41f',c4:'#9550d6'};
-  const RARITY_TITLE={1:'見習い',2:'戦士',3:'精鋭',4:'英雄',5:'伝説'};
-  const RARITY_STATS={1:{atk:5,hp:9},2:{atk:10,hp:15},3:{atk:17,hp:24},4:{atk:26,hp:35},5:{atk:40,hp:52}};
-
-  const MONSTER_POOL=[];
-  ELEMENTS.forEach((el,ei)=>{
-    for(let r=1;r<=5;r++){
-      const base=RARITY_STATS[r];
-      MONSTER_POOL.push({
-        id: el.key+'_'+r,
-        name: `${RARITY_TITLE[r]}の${el.name}霊`,
-        element: ei,
-        rarity: r,
-        atk: base.atk,
-        hp: base.hp
-      });
-    }
-  });
-  function monsterById(id){return MONSTER_POOL.find(m=>m.id===id);}
-
-  const ENEMY_EMOJIS=['👹','🐉','👻','🧟','🦂','🕷️','🐍','💀','🦑','👺','🐺','🦁','🐲','🧌','👽'];
-  const STAGES=(function(){
-    const list=[];
-    for(let s=1;s<=5;s++){
-      const floors=[];
-      for(let f=1;f<=5;f++){
-        floors.push({
-          hp: 150+(s-1)*220+(f-1)*70,
-          name:`フロア${f}`,
-          emoji: ENEMY_EMOJIS[(s*5+f)%ENEMY_EMOJIS.length]
-        });
-      }
-      list.push({id:s,name:`ステージ${s}`,floors,coinReward:150*s,frepoReward:80*s,orbReward:(s>=3?2:0)});
-    }
-    return list;
-  })();
-  const HARD_HP_MULT=1.8, HARD_REWARD_MULT=1.6;
-
-  const SHOP_ITEMS=[
-    {id:'sh_m2',type:'monster',monsterId:'c0_2',emoji:'🔥',price:800},
-    {id:'sh_m3',type:'monster',monsterId:'c1_3',emoji:'💧',price:2200},
-    {id:'sh_m4',type:'monster',monsterId:'c3_3',emoji:'✨',price:2200},
-    {id:'sh_orb',type:'orb',amount:3,emoji:'💎',price:5000},
-    {id:'sh_frepo',type:'frepo',amount:1000,emoji:'🎗️',price:1200}
-  ];
-
-  /* ===================== STATE ===================== */
-  let state=Store.get('acb_state', null);
-  if(!state){
-    const starterMonsters={};
-    ELEMENTS.forEach(el=>{ starterMonsters[el.key+'_1']=1; });
-    state={
-      coin:800, frepo:0, orb:15,
-      monsters: starterMonsters,
-      team: [ELEMENTS[0].key+'_1', ELEMENTS[1].key+'_1', ELEMENTS[2].key+'_1'],
-      progress: {}, // {stageId:{normal:bool,hard:bool}}
-      settings: {bgm:60, se:80, playerId: uid()}
-    };
-    saveState();
-  }
-  function saveState(){ Store.set('acb_state', state); }
-
-  function getTeamStats(){
-    const ids=state.team.filter(id=>state.monsters[id]);
-    const mons=ids.map(monsterById).filter(Boolean);
-    const maxHP=100+mons.reduce((s,m)=>s+m.hp,0);
-    const atkMult=1+mons.reduce((s,m)=>s+m.atk,0)/100;
-    const leaderElement= mons.length? mons[0].element : null;
-    return {maxHP, atkMult, leaderElement, mons};
-  }
-
-  function addMonster(id){
-    state.monsters[id]=(state.monsters[id]||0)+1;
-    saveState();
-  }
-
-  function pullFrom(pool, rarityWeights){
-    const byRarity={};
-    pool.forEach(m=>{(byRarity[m.rarity]=byRarity[m.rarity]||[]).push(m);});
-    const rarities=Object.keys(byRarity).map(Number);
-    const total=rarities.reduce((s,r)=>s+(rarityWeights[r]||0),0);
-    let roll=Math.random()*total;
-    let chosen=rarities[0];
-    for(const r of rarities){
-      const w=rarityWeights[r]||0;
-      if(roll<w){chosen=r;break;}
-      roll-=w;
-    }
-    const cands=byRarity[chosen];
-    return cands[Math.floor(Math.random()*cands.length)];
-  }
-
-  /* ===================== NAV ===================== */
-  const TITLES={home:'ホーム',dungeon:'ダンジョン',battle:'バトル',event:'イベント',monster:'モンスター',gacha:'ガチャ',shop:'ショップ',settings:'設定'};
-  let currentScreen='home';
-  let navStack=[];
-  function showScreen(name, push){
-    if(push!==false && currentScreen!==name) navStack.push(currentScreen);
-    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    document.getElementById('screen-'+name).classList.add('active');
-    document.getElementById('screenTitle').textContent=TITLES[name]||'';
-    document.getElementById('backBtn').classList.toggle('hidden', name==='home');
-    document.getElementById('currencyBar').classList.toggle('hidden', name==='battle');
-    currentScreen=name;
-    if(name==='home')renderHome();
-    if(name==='dungeon')renderDungeon();
-    if(name==='monster')renderMonsterScreen();
-    if(name==='shop')renderShop();
-    if(name==='settings')renderSettings();
-    updateCurrencyBar();
-  }
-  document.getElementById('backBtn').addEventListener('click',()=>{
-    const prev=navStack.pop()||'home';
-    showScreen(prev,false);
-  });
-  document.querySelectorAll('[data-nav]').forEach(el=>{
-    el.addEventListener('click',()=>showScreen(el.getAttribute('data-nav')));
-  });
-
-  function updateCurrencyBar(){
-    document.getElementById('curCoin').textContent=state.coin;
-    document.getElementById('curFrepo').textContent=state.frepo;
-    document.getElementById('curOrb').textContent=state.orb;
-  }
-
-  /* ===================== HOME ===================== */
-  function monRowHTML(m, count, opts){
-    opts=opts||{};
-    const el=ELEMENTS[m.element];
-    const stars='★'.repeat(m.rarity);
-    return `<div class="elemicon" style="background:${COLOR_HEX[el.key]}33;color:${COLOR_HEX[el.key]}">${el.emoji}</div>
-      <div class="minfo">
-        <div class="mname">${m.name}${count!==undefined?` <span style="color:var(--ink-dim);font-weight:400;">x${count}</span>`:''}</div>
-        <div class="stars">${stars}</div>
-        <div class="mstats">ATK ${m.atk} / HP ${m.hp}</div>
-      </div>`;
-  }
-
-  function renderHome(){
-    const {mons}=getTeamStats();
-    const box=document.getElementById('homeLeaderBox');
-    if(mons.length){
-      box.innerHTML=monRowHTML(mons[0]);
-    }else{
-      box.innerHTML=`<div class="minfo mstats">編成が空です。モンスター画面で設定しましょう。</div>`;
-    }
-  }
-
-  /* ===================== DUNGEON ===================== */
-  let dungeonHard=false;
-  document.getElementById('diffNormalBtn').addEventListener('click',()=>{dungeonHard=false;renderDungeon();});
-  document.getElementById('diffHardBtn').addEventListener('click',()=>{dungeonHard=true;renderDungeon();});
-
-  function renderDungeon(){
-    document.getElementById('diffNormalBtn').classList.toggle('active',!dungeonHard);
-    document.getElementById('diffHardBtn').classList.toggle('active',dungeonHard);
-    const list=document.getElementById('stageList');
-    list.innerHTML='';
-    STAGES.forEach((stage,i)=>{
-      const prog=state.progress[stage.id]||{};
-      const unlockedNormal = i===0 || (state.progress[STAGES[i-1].id]||{}).normal;
-      const unlockedHard = prog.normal===true;
-      const isLocked = dungeonHard? !unlockedHard : !unlockedNormal;
-      const cleared = dungeonHard? prog.hard : prog.normal;
-      const div=document.createElement('div');
-      div.className='stage-card'+(isLocked?' locked':'');
-      const rewardCoin=Math.round(stage.coinReward*(dungeonHard?HARD_REWARD_MULT:1));
-      const rewardFrepo=Math.round(stage.frepoReward*(dungeonHard?HARD_REWARD_MULT:1));
-      div.innerHTML=`
-        <div class="semoji">${stage.floors[0].emoji}</div>
-        <div class="sinfo">
-          <div class="sname">${stage.name} ${dungeonHard?'(ハード)':''} ${cleared?'<span class="clearbadge">CLEAR</span>':''}</div>
-          <div class="ssub">全5フロア ・ 報酬 💰${rewardCoin} 🎗️${rewardFrepo}${stage.orbReward?` 💎${dungeonHard?Math.round(stage.orbReward*HARD_REWARD_MULT):stage.orbReward}`:''}</div>
-        </div>
-        <div style="font-size:18px;color:var(--ink-dim);">${isLocked?'🔒':'▶'}</div>`;
-      if(!isLocked){
-        div.addEventListener('click',()=>startDungeonRun(stage, dungeonHard));
-      }
-      list.appendChild(div);
-    });
-  }
-
-  /* ===================== BATTLE ENGINE ===================== */
-  const COLS=7, ROWS=8; let CELL=44; const DRAG_TIME=60000;
-  const COLORS=['c0','c1','c2','c3','c4'];
-  const canvas=document.getElementById('board'); const ctx=canvas.getContext('2d');
-  const timerFill=document.getElementById('timerFill'), timerNum=document.getElementById('timerNum');
-  const banner=document.getElementById('banner');
-  const overlay=document.getElementById('overlay'), overlayTitle=document.getElementById('overlayTitle'), overlayDesc=document.getElementById('overlayDesc'), overlayBtn=document.getElementById('overlayBtn');
-  const mixBtn=document.getElementById('mixBtn'), retreatBtn=document.getElementById('retreatBtn');
-  const enemyHPFill=document.getElementById('enemyHPFill'), enemyHPText=document.getElementById('enemyHPText');
-  const playerHPFill=document.getElementById('playerHPFill'), playerHPText=document.getElementById('playerHPText');
-  const lastChainVal=document.getElementById('lastChainVal'), atkMultVal=document.getElementById('atkMultVal');
-  const enemyAvatar=document.getElementById('enemyAvatar'), enemyNameEl=document.getElementById('enemyName');
-  const floorIndicator=document.getElementById('floorIndicator');
-  const fighterCards=document.querySelectorAll('#screen-battle .fighter');
-  const enemyCard=fighterCards[0], playerCard=fighterCards[1];
-  const MIX_COST=5;
-
-  let board=[];
-  let bstate='idle'; // idle|dragging|resolving|over
-  let selected=null, floatPos=null, dragStart=0, autoReleased=false, clearingCells=[];
-
-  let run=null; // {stage,hard,floorIndex,playerHP,maxHP,atkMult,leaderElement,enemyHP,enemyMaxHP}
-
-  function setupCanvas(){
-    const dpr=window.devicePixelRatio||1;
-    const w=CELL*COLS,h=CELL*ROWS;
-    canvas.style.width=w+'px'; canvas.style.height=h+'px';
-    canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  function randColor(){return Math.floor(Math.random()*COLORS.length);}
-
-  function findGroups(bd){
-    const visited=Array.from({length:ROWS},()=>Array(COLS).fill(false));
-    const groups=[];
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      if(bd[r][c]===-1||visited[r][c])continue;
-      const color=bd[r][c]; const stack=[[r,c]]; visited[r][c]=true; const cells=[];
-      while(stack.length){
-        const [cr,cc]=stack.pop(); cells.push([cr,cc]);
-        for(const [nr,nc] of [[cr-1,cc],[cr+1,cc],[cr,cc-1],[cr,cc+1]]){
-          if(nr<0||nr>=ROWS||nc<0||nc>=COLS||visited[nr][nc]||bd[nr][nc]!==color)continue;
-          visited[nr][nc]=true; stack.push([nr,nc]);
-        }
-      }
-      if(cells.length>=4)groups.push({cells,color});
-    }
-    return groups;
-  }
-  function applyGravityNoRefill(bd){
-    for(let c=0;c<COLS;c++){
-      let write=ROWS-1;
-      for(let r=ROWS-1;r>=0;r--){
-        if(bd[r][c]!==-1){ bd[write][c]=bd[r][c]; if(write!==r)bd[r][c]=-1; write--; }
-      }
-      for(let r=write;r>=0;r--) bd[r][c]=-1;
-    }
-  }
-  function genBoard(){
-    let bd,tries=0;
-    do{
-      bd=[];
-      for(let r=0;r<ROWS;r++){
-        bd.push([]);
-        for(let c=0;c<COLS;c++){
-          let color,guard=0;
-          do{ color=randColor(); guard++; }while(guard<20 && (
-            (c>=2&&bd[r][c-1]===color&&bd[r][c-2]===color)||
-            (r>=2&&bd[r-1][c]===color&&bd[r-2][c]===color)
-          ));
-          bd[r][c]=color;
-        }
-      }
-      tries++;
-    }while(findGroups(bd).length>0 && tries<30);
-    return bd;
-  }
-  function cellCenter(r,c){return {x:c*CELL+CELL/2,y:r*CELL+CELL/2};}
-  function drawOrb(x,y,radius,colorKey,glow){
-    const hex=COLOR_HEX[colorKey],dark=COLOR_DARK[colorKey];
-    ctx.save();
-    if(glow){ctx.shadowColor=hex;ctx.shadowBlur=18;}
-    const grad=ctx.createRadialGradient(x-radius*0.35,y-radius*0.4,radius*0.15,x,y,radius);
-    grad.addColorStop(0,'#ffffff'); grad.addColorStop(0.18,hex); grad.addColorStop(1,dark);
-    ctx.beginPath(); ctx.arc(x,y,radius,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill(); ctx.restore();
-    ctx.beginPath(); ctx.ellipse(x-radius*0.32,y-radius*0.42,radius*0.28,radius*0.16,-0.5,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fill();
-  }
-  function drawLinks(t){
-    const radius=CELL*0.40; const pulse=0.35+0.35*(0.5+0.5*Math.sin(t/420));
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const val=board[r][c]; if(val===-1)continue;
-      const isDraggedCell=(bstate==='dragging'&&selected&&selected.r===r&&selected.c===c);
-      for(const [nr,nc] of [[r,c+1],[r+1,c]]){
-        if(nr>=ROWS||nc>=COLS)continue;
-        if(board[nr][nc]!==val)continue;
-        const isDraggedNeighbor=(bstate==='dragging'&&selected&&selected.r===nr&&selected.c===nc);
-        let p1=cellCenter(r,c),p2=cellCenter(nr,nc);
-        if(isDraggedCell&&floatPos)p1=floatPos;
-        if(isDraggedNeighbor&&floatPos)p2=floatPos;
-        const dist=Math.hypot(p2.x-p1.x,p2.y-p1.y); if(dist<1)continue;
-        const w=radius*0.34*pulse+radius*0.18; const hex=COLOR_HEX[val];
-        ctx.save(); ctx.globalAlpha=0.55*pulse+0.25; ctx.strokeStyle=hex; ctx.lineWidth=w; ctx.lineCap='round';
-        ctx.shadowColor=hex; ctx.shadowBlur=10;
-        ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); ctx.restore();
-      }
-    }
-  }
-  function render(t){
-    if(currentScreen!=='battle')return;
-    ctx.clearRect(0,0,CELL*COLS,CELL*ROWS);
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const x=c*CELL,y=r*CELL;
-      ctx.fillStyle=((r+c)%2===0)?'rgba(255,255,255,0.035)':'rgba(255,255,255,0.015)';
-      ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
-    }
-    drawLinks(t);
-    const radius=CELL*0.40;
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const val=board[r][c]; if(val===-1)continue;
-      if(selected&&selected.r===r&&selected.c===c&&bstate==='dragging')continue;
-      const {x,y}=cellCenter(r,c);
-      const isClearing=clearingCells.some(([cr,cc])=>cr===r&&cc===c);
-      if(isClearing){
-        drawOrb(x,y,radius*1.1,COLORS[val],false);
-        ctx.beginPath(); ctx.arc(x,y,radius*1.12,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fill();
-      }else drawOrb(x,y,radius,COLORS[val],false);
-    }
-    if(bstate==='dragging'&&selected&&floatPos){
-      const val=board[selected.r][selected.c];
-      ctx.beginPath(); ctx.arc(floatPos.x,floatPos.y,radius*1.18,0,Math.PI*2);
-      ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2; ctx.stroke();
-      drawOrb(floatPos.x,floatPos.y,radius*1.1,COLORS[val],true);
-    }
-    if(bstate==='dragging'&&!autoReleased){
-      const elapsed=t-dragStart; const remain=Math.max(0,DRAG_TIME-elapsed);
-      timerFill.style.width=(remain/DRAG_TIME*100)+'%';
-      timerNum.textContent=Math.ceil(remain/1000)+'s';
-      if(remain<=0){ autoReleased=true; selected=null; floatPos=null; resolveTurn(); }
-    }
-  }
-  function loop(t){ render(t); requestAnimationFrame(loop); }
-
-  function sleep(ms){return new Promise(res=>setTimeout(res,ms));}
-  function showBanner(html){banner.innerHTML=html;banner.classList.add('show');}
-  function hideBanner(){banner.classList.remove('show');}
-
-  function updateHPUI(flashEnemy,flashPlayer){
-    enemyHPFill.style.width=Math.max(0,run.enemyHP/run.enemyMaxHP*100)+'%';
-    enemyHPText.textContent=Math.max(0,run.enemyHP)+' / '+run.enemyMaxHP;
-    playerHPFill.style.width=Math.max(0,run.playerHP/run.maxHP*100)+'%';
-    playerHPText.textContent=Math.max(0,run.playerHP)+' / '+run.maxHP;
-    if(flashEnemy){enemyCard.classList.remove('flash');void enemyCard.offsetWidth;enemyCard.classList.add('flash');}
-    if(flashPlayer){playerCard.classList.remove('flash');void playerCard.offsetWidth;playerCard.classList.add('flash');}
-  }
-
-  function startDungeonRun(stage, hard){
-    const ts=getTeamStats();
-    if(!ts.mons.length){ toast('チームにモンスターを編成してください'); showScreen('monster'); return; }
-    run={
-      stage, hard, floorIndex:0,
-      maxHP: ts.maxHP, atkMult: ts.atkMult, leaderElement: ts.leaderElement,
-      playerHP: ts.maxHP
-    };
-    atkMultVal.textContent='x'+ts.atkMult.toFixed(1);
-    loadFloor();
-    showScreen('battle');
-  }
-  function loadFloor(){
-    const floor=run.stage.floors[run.floorIndex];
-    run.enemyMaxHP=Math.round(floor.hp*(run.hard?HARD_HP_MULT:1));
-    run.enemyHP=run.enemyMaxHP;
-    enemyAvatar.textContent=floor.emoji;
-    enemyNameEl.textContent=run.stage.name+' '+floor.name;
-    floorIndicator.innerHTML=`<span>${run.stage.name} ${run.hard?'(ハード)':''}</span><span>フロア ${run.floorIndex+1}/5</span>`;
-    lastChainVal.textContent='0';
-    board=genBoard();
-    bstate='idle'; overlay.classList.remove('show'); hideBanner();
-    timerFill.style.width='0%'; timerNum.textContent='60s';
-    updateHPUI(false,false);
-  }
-
-  async function resolveTurn(){
-    bstate='resolving'; timerFill.style.width='0%'; timerNum.textContent='60s';
-    let chain=0, turnDamage=0;
-    while(true){
-      const groups=findGroups(board);
-      if(groups.length===0)break;
-      chain++;
-      const simulBonus=1+0.3*(groups.length-1);
-      const chainMult=1+(chain-1)*1.5;
-      let stepBase=0;
-      groups.forEach(g=>{
-        let d=g.cells.length*10;
-        if(run.leaderElement!==null && COLORS[g.color]===COLORS[run.leaderElement]) d*=1.3;
-        stepBase+=d;
-      });
-      const stepDamage=Math.round(stepBase*simulBonus*chainMult*run.atkMult);
-      turnDamage+=stepDamage;
-      let html=`<span class="chain">${chain}コンボ</span> ${stepDamage}ダメージ!`;
-      if(groups.length>1)html+=` <span class="simul">(同時${groups.length}消し)</span>`;
-      showBanner(html);
-      clearingCells=groups.flatMap(g=>g.cells);
-      await sleep(260);
-      groups.forEach(g=>g.cells.forEach(([r,c])=>{board[r][c]=-1;}));
-      clearingCells=[];
-      await sleep(120);
-      applyGravityNoRefill(board);
-      await sleep(220);
-    }
-    lastChainVal.textContent=chain;
-    if(chain===0){
-      const dmg=randInt(15,24);
-      run.playerHP=Math.max(0,run.playerHP-dmg);
-      showBanner(`<span class="miss">不発...</span> 反撃で ${dmg} ダメージ!`);
-      updateHPUI(false,true);
-      await sleep(650); hideBanner();
-      if(run.playerHP<=0){ battleDefeat(); return; }
-      bstate='idle'; return;
-    }
-    run.enemyHP=Math.max(0,run.enemyHP-turnDamage);
-    updateHPUI(true,false);
-    await sleep(300); hideBanner();
-    if(run.enemyHP<=0){ floorClear(); return; }
-    bstate='idle';
-  }
-
-  function floorClear(){
-    bstate='over'; overlay.classList.add('show');
-    const lastFloor = run.floorIndex>=4;
-    overlayTitle.textContent = lastFloor? 'STAGE CLEAR' : 'FLOOR CLEAR';
-    overlayTitle.className='otitle win';
-    overlayDesc.textContent = lastFloor? 'ステージを踏破した!' : `フロア${run.floorIndex+1}を突破!体力を回復して次へ。`;
-    overlayBtn.textContent = lastFloor? '報酬を受け取る':'つぎのフロアへ';
-    overlayBtn.onclick=()=>{
-      if(lastFloor){
-        const stage=run.stage, hard=run.hard;
-        const prog=state.progress[stage.id]=state.progress[stage.id]||{};
-        if(hard) prog.hard=true; else prog.normal=true;
-        const coin=Math.round(stage.coinReward*(hard?HARD_REWARD_MULT:1));
-        const frepo=Math.round(stage.frepoReward*(hard?HARD_REWARD_MULT:1));
-        const orb=hard? Math.round(stage.orbReward*HARD_REWARD_MULT) : stage.orbReward;
-        state.coin+=coin; state.frepo+=frepo; state.orb+=orb;
-        saveState();
-        toast(`クリア報酬 💰${coin} 🎗️${frepo}${orb?` 💎${orb}`:''}`);
-        showScreen('dungeon',false);
-      }else{
-        run.floorIndex++;
-        run.playerHP=run.maxHP;
-        loadFloor();
-      }
-    };
-  }
-  function battleDefeat(){
-    bstate='over'; overlay.classList.add('show');
-    overlayTitle.textContent='DEFEAT'; overlayTitle.className='otitle lose';
-    overlayDesc.textContent='HPが尽きた…ダンジョンから撤退した。';
-    overlayBtn.textContent='ダンジョンへ戻る';
-    overlayBtn.onclick=()=>showScreen('dungeon',false);
-  }
-
-  function getPos(e){ const rect=canvas.getBoundingClientRect(); return {x:e.clientX-rect.left,y:e.clientY-rect.top}; }
-  function onPointerDown(e){
-    if(bstate!=='idle')return;
-    const {x,y}=getPos(e); const c=Math.floor(x/CELL), r=Math.floor(y/CELL);
-    if(r<0||r>=ROWS||c<0||c>=COLS)return;
-    if(board[r][c]===-1)return;
-    bstate='dragging'; selected={r,c}; floatPos={x,y}; dragStart=performance.now(); autoReleased=false;
-    try{canvas.setPointerCapture(e.pointerId);}catch(err){}
-  }
-  function onPointerMove(e){
-    if(bstate!=='dragging'||!selected)return;
-    let {x,y}=getPos(e); const half=CELL*0.5;
-    x=Math.max(half-1,Math.min(CELL*COLS-half+1,x)); y=Math.max(half-1,Math.min(CELL*ROWS-half+1,y));
-    floatPos={x,y};
-    const c=Math.max(0,Math.min(COLS-1,Math.floor(x/CELL))), r=Math.max(0,Math.min(ROWS-1,Math.floor(y/CELL)));
-    if(r!==selected.r||c!==selected.c){
-      const tmp=board[r][c]; board[r][c]=board[selected.r][selected.c]; board[selected.r][selected.c]=tmp;
-      selected={r,c};
-    }
-  }
-  function onPointerUp(){
-    if(bstate!=='dragging'||autoReleased)return;
-    autoReleased=true; selected=null; floatPos=null; resolveTurn();
-  }
-  canvas.addEventListener('pointerdown',onPointerDown);
-  window.addEventListener('pointermove',onPointerMove);
-  window.addEventListener('pointerup',onPointerUp);
-  mixBtn.addEventListener('click',()=>{
-    if(bstate!=='idle')return;
-    if(run.playerHP<=MIX_COST){ showBanner(`<span class="miss">HPが足りない!</span>`); setTimeout(hideBanner,700); return; }
-    run.playerHP-=MIX_COST; board=genBoard(); updateHPUI(false,true);
-    showBanner('オーラをかき混ぜた…'); setTimeout(hideBanner,700);
-  });
-  retreatBtn.addEventListener('click',()=>{ if(bstate==='resolving')return; showScreen('dungeon',false); });
-
-  /* ===================== MONSTER SCREEN ===================== */
-  let monsterTab='team';
-  document.getElementById('tabTeamBtn').addEventListener('click',()=>{monsterTab='team';renderMonsterScreen();});
-  document.getElementById('tabListBtn').addEventListener('click',()=>{monsterTab='list';renderMonsterScreen();});
-
-  function renderMonsterScreen(){
-    document.getElementById('tabTeamBtn').classList.toggle('active',monsterTab==='team');
-    document.getElementById('tabListBtn').classList.toggle('active',monsterTab==='list');
-    document.getElementById('monsterTeamPane').style.display=monsterTab==='team'?'flex':'none';
-    document.getElementById('monsterListPane').style.display=monsterTab==='list'?'block':'none';
-    document.getElementById('monsterTeamPane').style.flexDirection='column';
-    document.getElementById('monsterTeamPane').style.gap='12px';
-    if(monsterTab==='team') renderTeamPane(); else renderListPane();
-  }
-
-  function renderTeamPane(){
-    const slotsEl=document.getElementById('teamSlots');
-    slotsEl.innerHTML='';
-    for(let i=0;i<3;i++){
-      const id=state.team[i];
-      const div=document.createElement('div');
-      div.className='teamslot'+(id?' filled':'');
-      if(id && state.monsters[id]){
-        const m=monsterById(id); const el=ELEMENTS[m.element];
-        div.innerHTML=`<div class="lbl">${i===0?'リーダー':'サブ'}</div>${el.emoji}`;
-      }else{
-        div.innerHTML=`<div class="lbl">${i===0?'リーダー':'サブ'}</div>➕`;
-      }
-      slotsEl.appendChild(div);
-    }
-    const ownedEl=document.getElementById('ownedList');
-    ownedEl.innerHTML='';
-    const owned=Object.keys(state.monsters).filter(id=>state.monsters[id]>0)
-      .map(monsterById).filter(Boolean).sort((a,b)=>b.rarity-a.rarity);
-    if(!owned.length){ ownedEl.innerHTML='<div class="mstats">まだモンスターを持っていません。ガチャやショップで仲間を増やそう。</div>'; }
-    owned.forEach(m=>{
-      const inTeam=state.team.includes(m.id);
-      const row=document.createElement('div'); row.className='mon-row';
-      row.innerHTML=monRowHTML(m, state.monsters[m.id]) + `<button class="btn ${inTeam?'secondary':''} selbtn">${inTeam?'外す':'編成'}</button>`;
-      row.querySelector('button').addEventListener('click',()=>{
-        if(inTeam){
-          state.team=state.team.filter(x=>x!==m.id);
-        }else{
-          if(state.team.filter(Boolean).length>=3){ toast('編成は最大3体までです'); return; }
-          state.team=state.team.filter(Boolean);
-          state.team.push(m.id);
-        }
-        while(state.team.length<3) state.team.push(null);
-        saveState(); renderTeamPane();
-      });
-      ownedEl.appendChild(row);
-    });
-  }
-  function renderListPane(){
-    const el=document.getElementById('allMonsterList');
-    el.innerHTML='';
-    MONSTER_POOL.slice().sort((a,b)=>a.element-b.element||a.rarity-b.rarity).forEach(m=>{
-      const count=state.monsters[m.id]||0;
-      const row=document.createElement('div');
-      row.className='mon-row'+(count?'':' locked');
-      row.innerHTML=monRowHTML(m, count);
-      el.appendChild(row);
-    });
-  }
-
-  /* ===================== GACHA ===================== */
-  const frepoPool=MONSTER_POOL.filter(m=>m.rarity<=3);
-  const FREPO_WEIGHTS={1:60,2:30,3:10};
-  const ORB_WEIGHTS={1:35,2:30,3:20,4:10,5:5};
-  const FREPO_COST=300, ORB_COST=5;
-
-  document.getElementById('frepoGachaBtn').addEventListener('click',()=>{
-    if(state.frepo<FREPO_COST){ toast('フレポが足りません'); return; }
-    state.frepo-=FREPO_COST;
-    const m=pullFrom(frepoPool, FREPO_WEIGHTS);
-    addMonster(m.id); saveState();
-    showPullResult(m);
-  });
-  document.getElementById('orbGachaBtn').addEventListener('click',()=>{
-    if(state.orb<ORB_COST){ toast('オーブが足りません'); return; }
-    state.orb-=ORB_COST;
-    const m=pullFrom(MONSTER_POOL, ORB_WEIGHTS);
-    addMonster(m.id); saveState();
-    showPullResult(m);
-  });
-  function showPullResult(m){
-    const el=ELEMENTS[m.element];
-    document.getElementById('pullEmoji').textContent=el.emoji;
-    document.getElementById('pullName').textContent=m.name;
-    document.getElementById('pullStars').textContent='★'.repeat(m.rarity);
-    document.getElementById('pullStats').textContent=`${el.name}属性 / ATK ${m.atk} / HP ${m.hp}`;
-    document.getElementById('pullOverlay').classList.add('show');
-    updateCurrencyBar();
-  }
-  document.getElementById('pullCloseBtn').addEventListener('click',()=>{
-    document.getElementById('pullOverlay').classList.remove('show');
-  });
-
-  /* ===================== SHOP ===================== */
-  function renderShop(){
-    const list=document.getElementById('shopList');
-    list.innerHTML='';
-    SHOP_ITEMS.forEach(item=>{
-      const row=document.createElement('div'); row.className='shop-row';
-      let name='', desc='';
-      if(item.type==='monster'){ const m=monsterById(item.monsterId); name=m.name; desc=`${ELEMENTS[m.element].name}属性 / ATK ${m.atk} / HP ${m.hp}`; }
-      if(item.type==='orb'){ name='オーブ小袋'; desc=`オーブ +${item.amount}`; }
-      if(item.type==='frepo'){ name='フレンドポイント袋'; desc=`フレポ +${item.amount}`; }
-      row.innerHTML=`<div class="semoji2">${item.emoji}</div>
-        <div class="sinfo2"><div class="sname2">${name}</div><div class="sprice">${desc} ・ 💰${item.price}</div></div>
-        <button class="btn" style="padding:8px 14px;font-size:11.5px;">購入</button>`;
-      row.querySelector('button').addEventListener('click',()=>{
-        if(state.coin<item.price){ toast('コインが足りません'); return; }
-        state.coin-=item.price;
-        if(item.type==='monster') addMonster(item.monsterId);
-        if(item.type==='orb') state.orb+=item.amount;
-        if(item.type==='frepo') state.frepo+=item.amount;
-        saveState(); updateCurrencyBar();
-        toast('購入しました');
-      });
-      list.appendChild(row);
-    });
-  }
-
-  /* ===================== SETTINGS ===================== */
-  function renderSettings(){
-    document.getElementById('bgmRange').value=state.settings.bgm;
-    document.getElementById('seRange').value=state.settings.se;
-    document.getElementById('playerIdText').textContent=state.settings.playerId;
-  }
-  document.getElementById('bgmRange').addEventListener('input',e=>{state.settings.bgm=Number(e.target.value);saveState();});
-  document.getElementById('seRange').addEventListener('input',e=>{state.settings.se=Number(e.target.value);saveState();});
-  document.getElementById('copyIdBtn').addEventListener('click',async()=>{
-    try{ await navigator.clipboard.writeText(state.settings.playerId); toast('コピーしました'); }
-    catch(e){ toast(state.settings.playerId); }
-  });
-  document.getElementById('resetDataBtn').addEventListener('click',()=>{
-    if(!confirm('すべてのデータを初期化します。よろしいですか?'))return;
-    Store.set('acb_state', null);
-    location.reload();
-  });
-
-  /* ===================== BOOT ===================== */
-  setupCanvas();
-  updateCurrencyBar();
-  renderHome();
-  requestAnimationFrame(loop);
-
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('./sw.js').catch(()=>{});
-    });
-  }
-})();
-</script>
+<script type="module" src="./src/js/main.js"></script>
 </body>
 </html>
