@@ -2,18 +2,71 @@
 import { $, toast } from '../core/ui.js';
 import { state, hasStamina, spendStamina } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
-import { STAGES, FLOORS_PER_STAGE, HARD_REWARD_MULT, HARD_STAMINA_MULT } from '../data/gamedata.js';
+import { STAGES, FLOORS_PER_STAGE, HARD_REWARD_MULT, HARD_STAMINA_MULT, ELEMENTS, COLOR_HEX, monsterById } from '../data/gamedata.js';
 import { startDungeonRun } from '../battle/battle.js';
+import { fetchFriendRentals } from '../core/friends.js';
 
 let dungeonHard = false;
+let pendingStage = null, pendingHard = false;
 
 export function initDungeon() {
   $('diffNormalBtn').addEventListener('click', () => { dungeonHard = false; renderDungeon(); });
   $('diffHardBtn').addEventListener('click', () => { dungeonHard = true; renderDungeon(); });
+  $('friendPickSkipBtn').addEventListener('click', () => confirmAndStart(null));
+  $('friendPickCloseBtn').addEventListener('click', closeFriendPick);
 }
 
 export function staminaCost(stage, hard) {
   return hard ? Math.round(stage.stamina * HARD_STAMINA_MULT) : stage.stamina;
+}
+
+function closeFriendPick() {
+  $('friendPickModal').classList.remove('show');
+  pendingStage = null;
+}
+
+/** ダンジョン出発前にフレンドモンスターを選ばせるモーダルを開く */
+async function openFriendPick(stage, hard) {
+  pendingStage = stage; pendingHard = hard;
+  $('friendPickModal').classList.add('show');
+  const box = $('friendPickList');
+  box.innerHTML = '<div class="mstats">読み込み中…</div>';
+  const rentals = await fetchFriendRentals();
+  if (pendingStage !== stage) return; // モーダルを閉じた後に返ってきた場合は無視
+  box.innerHTML = '';
+  if (!rentals.length) {
+    box.innerHTML = '<div class="mstats">貸し出し中のフレンドモンスターがありません。フレンドに「マイページ」でレンタルモンスターを設定してもらいましょう。</div>';
+    return;
+  }
+  rentals.forEach(f => {
+    const m = monsterById(f.monsterId);
+    if (!m) return;
+    const el = ELEMENTS[m.element];
+    const row = document.createElement('div');
+    row.className = 'mon-row';
+    row.innerHTML = `<div class="elemicon" style="background:${COLOR_HEX[el.key]}33;color:${COLOR_HEX[el.key]}">${el.emoji}</div>
+      <div class="minfo">
+        <div class="mname">${m.name}</div>
+        <div class="mstats">${f.icon || '🙂'} ${f.name} の貸し出し / ATK ${m.atk} / HP ${m.hp}</div>
+      </div>
+      <button class="btn selbtn" style="padding:7px 12px;font-size:11px;">選ぶ</button>`;
+    row.querySelector('button').addEventListener('click', () => {
+      confirmAndStart({ ...m, isFriend: true, friendName: f.name, friendIcon: f.icon });
+    });
+    box.appendChild(row);
+  });
+}
+
+function confirmAndStart(friendMonster) {
+  const stage = pendingStage, hard = pendingHard;
+  if (!stage) return;
+  $('friendPickModal').classList.remove('show');
+  pendingStage = null;
+  const cost = staminaCost(stage, hard);
+  if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
+  if (!spendStamina(cost)) { updateStatusBar(); return; }
+  updateStatusBar();
+  startDungeonRun(stage, hard, friendMonster);
 }
 
 export function renderDungeon() {
@@ -49,9 +102,7 @@ export function renderDungeon() {
     if (!isLocked) {
       div.addEventListener('click', () => {
         if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
-        if (!spendStamina(cost)) { updateStatusBar(); return; }
-        updateStatusBar();
-        startDungeonRun(stage, dungeonHard);
+        openFriendPick(stage, dungeonHard);
       });
     }
     list.appendChild(div);

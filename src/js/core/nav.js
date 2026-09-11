@@ -7,7 +7,8 @@ import { expToNextRank } from '../data/gamedata.js';
 
 const TITLES = {
   home: 'ホーム', dungeon: 'ダンジョン', battle: 'バトル', event: 'イベント',
-  monster: 'モンスター', gacha: 'ガチャ', shop: 'ショップ', settings: '設定'
+  monster: 'モンスター', gacha: 'ガチャ', shop: 'ショップ',
+  mypage: 'マイページ', friends: 'フレンド'
 };
 
 const renderers = {};

@@ -57,3 +57,64 @@ python3 -m http.server 8000
 
 セーブデータは `localStorage` の `acb_state` キー。旧フォーマット(5属性・3体編成)は
 起動時に自動で移行される(旧 光/闇 はピンクへ集約)。
+
+## 追加機能(2026-09更新)
+
+### 1. オーラ操作60秒フリー移動
+バトル中、最初にオーブへ触れてから60秒間は、指を離しても手番が終了しません。
+60秒以内であれば何度でも好きなオーブを掴み直して移動できます。60秒経過すると
+自動的に手番が確定します(`src/js/battle/battle.js` の `DRAG_TIME`)。
+
+### 2. フレンドシステム
+マイページで発行される「フレンドコード」を交換して友達を登録できます。
+- フレンド登録時: 自分+300フレポ、相手+300フレポ
+- 毎日1回の「あいさつ」: 自分+20フレポ、相手+10フレポ(フレンドポイントを稼げるルート)
+「フレンド」画面から登録・あいさつができます。
+
+### 3. マイページ
+ホームの「設定」タブを「マイページ」に変更しました。ユーザー名・アイコンの設定、
+フレンドコードの確認/コピーができます(旧設定機能はすべて維持しています)。
+
+## Firebase セットアップ(フレンド機能・クラウド保存に必要)
+
+`src/js/core/firebase.js` の `firebaseConfig` を、ご自身の Firebase プロジェクトの
+設定値に置き換えてください(未設定のままでもゲーム本体はローカル保存のみで遊べます)。
+
+1. Firebase コンソールでプロジェクトを作成
+2. Authentication → Sign-in method で「匿名」を有効化
+3. Firestore Database を作成(本番モードでOK)
+4. 下記のセキュリティルールを設定(簡易的な公開ルールです。運用時は要調整)
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      match /friends/{friendId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
+      match /save/{doc} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    match /friendCodes/{code} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
+5. `firebaseConfig` にプロジェクトの設定値(apiKey等)を貼り付け
+
+## 追加機能(2026-09更新 その2): 編成4体=自分3体+フレンドレンタル1体
+
+- 編成画面の枠は自分の3体(先頭がリーダー)。4体目は固定編成せず、ダンジョン出発時に選択します。
+- マイページの「レンタルモンスター」でフレンドに貸し出す1体を指定できます(Firestoreの
+  `users/{uid}.rentalMonsterId` に保存)。
+- ダンジョンのステージをタップすると「フレンドモンスターを選択」モーダルが開き、
+  フレンドが貸し出し中のモンスターから1体選んで出発できます(フレンドがいない/
+  レンタル未設定の場合は「フレンドなしで挑戦(3体)」で進行可能)。

@@ -33,6 +33,11 @@ function renderTeamPane() {
       : `<div class="lbl">${label}</div>➕`;
     slotsEl.appendChild(div);
   }
+  // 4体目はダンジョン出発時に選ぶフレンドレンタル枠(ここでは編成不可の案内のみ)
+  const friendSlot = document.createElement('div');
+  friendSlot.className = 'teamslot friend-slot';
+  friendSlot.innerHTML = `<div class="lbl">フレンド</div>🤝`;
+  slotsEl.appendChild(friendSlot);
 
   const ownedEl = $('ownedList');
   ownedEl.innerHTML = '';

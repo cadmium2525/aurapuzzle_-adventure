@@ -19,6 +19,7 @@ let canvas;
 let board = [];
 let bstate = 'idle';       // idle | dragging | resolving | over
 let selected = null, floatPos = null, dragStart = 0, autoReleased = false;
+let grabbed = false;       // 60秒枠内で「今まさに指がオーブを掴んでいるか」
 let clearingCells = [];
 let run = null;
 
@@ -47,16 +48,20 @@ function loop(t) {
       const remain = Math.max(0, DRAG_TIME - (t - dragStart));
       $('timerFill').style.width = (remain / DRAG_TIME * 100) + '%';
       $('timerNum').textContent = (remain / 1000).toFixed(1) + 's';
-      if (remain <= 0) { autoReleased = true; selected = null; floatPos = null; resolveTurn(); }
+      // 60秒間は指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる。
+      // 60秒経過した時点で自動的に手番を確定する。
+      if (remain <= 0) {
+        autoReleased = true; grabbed = false; selected = null; floatPos = null; resolveTurn();
+      }
     }
   }
   requestAnimationFrame(loop);
 }
 
 /* ===================== ラン開始 ===================== */
-export function startDungeonRun(stage, hard) {
-  const ts = getTeamStats();
-  if (!ts.mons.length) { toast('チームにモンスターを編成してください'); showScreen('monster'); return; }
+export function startDungeonRun(stage, hard, friendMonster) {
+  const ts = getTeamStats(friendMonster);
+  if (!ts.ownMons.length) { toast('チームにモンスターを編成してください'); showScreen('monster'); return; }
   run = {
     stage, hard, floorIndex: 0,
     maxHP: ts.maxHP, atkMult: ts.atkMult, leaderElement: ts.leaderElement, mons: ts.mons,
@@ -75,10 +80,11 @@ function renderParty() {
   run.mons.forEach((m, i) => {
     const el = ELEMENTS[m.element];
     const div = document.createElement('div');
-    div.className = 'party-unit' + (i === 0 ? ' leader' : '');
+    div.className = 'party-unit' + (i === 0 ? ' leader' : '') + (m.isFriend ? ' friend' : '');
     div.style.setProperty('--unit-color', COLOR_HEX[el.key]);
     div.innerHTML = `<div class="unit-icon">${el.emoji}</div>
-      <div class="unit-atk">${m.atk}</div>`;
+      <div class="unit-atk">${m.atk}</div>`
+      + (m.isFriend ? `<div class="unit-friend-badge" title="${(m.friendName || 'フレンド')}からのレンタル">🤝</div>` : '');
     row.appendChild(div);
   });
 }
@@ -98,6 +104,7 @@ function loadFloor() {
     `<span>フロア ${run.floorIndex + 1}/${FLOORS_PER_STAGE}</span>`;
   board = genBoard();
   bstate = 'idle';
+  grabbed = false;
   clearingCells = [];
   hideBanner();
   $('timerFill').style.width = '0%';
@@ -282,20 +289,27 @@ function getPos(e) {
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 function onPointerDown(e) {
-  if (bstate !== 'idle' || !run) return;
+  if (!run) return;
+  // まだ手番を開始していなければ新規開始、開始済みで60秒以内かつ
+  // 今どのオーブも掴んでいなければ、別のオーブを掴み直して操作を継続できる。
+  if (bstate === 'idle') {
+    bstate = 'dragging';
+    dragStart = performance.now();
+    autoReleased = false;
+  } else if (!(bstate === 'dragging' && !autoReleased && !grabbed)) {
+    return;
+  }
   const { x, y } = getPos(e);
   const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
   if (board[r][c] === -1) return;
-  bstate = 'dragging';
+  grabbed = true;
   selected = { r, c };
   floatPos = { x, y };
-  dragStart = performance.now();
-  autoReleased = false;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
 }
 function onPointerMove(e) {
-  if (bstate !== 'dragging' || !selected) return;
+  if (bstate !== 'dragging' || !grabbed || !selected) return;
   let { x, y } = getPos(e);
   const half = CELL * 0.5;
   x = Math.max(half - 1, Math.min(CELL * COLS - half + 1, x));
@@ -311,9 +325,9 @@ function onPointerMove(e) {
   }
 }
 function onPointerUp() {
-  if (bstate !== 'dragging' || autoReleased) return;
-  autoReleased = true;
+  if (bstate !== 'dragging' || autoReleased || !grabbed) return;
+  // 指を離しても60秒枠内なら手番は終わらせず、掴みを解除するだけにする。
+  grabbed = false;
   selected = null;
   floatPos = null;
-  resolveTurn();
 }

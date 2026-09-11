@@ -52,7 +52,8 @@
         <div class="menu-tile" data-nav="monster"><span class="emoji">🐲</span>モンスター</div>
         <div class="menu-tile" data-nav="gacha"><span class="emoji">🎰</span>ガチャ</div>
         <div class="menu-tile" data-nav="shop"><span class="emoji">🛒</span>ショップ</div>
-        <div class="menu-tile" data-nav="settings"><span class="emoji">⚙️</span>設定</div>
+        <div class="menu-tile" data-nav="friends"><span class="emoji">🤝</span>フレンド</div>
+        <div class="menu-tile" data-nav="mypage"><span class="emoji">👤</span>マイページ</div>
       </div>
       <div class="card">
         <div class="cardtitle">編成リーダー</div>
@@ -114,7 +115,7 @@
       </div>
       <div id="monsterTeamPane">
         <div class="card">
-          <div class="cardtitle">編成中のチーム(先頭がリーダー / 最大4体)</div>
+          <div class="cardtitle">編成中のチーム(先頭がリーダー / 自分3体+フレンド1体の計4体)</div>
           <div class="teamslots" id="teamSlots"></div>
         </div>
         <div class="card">
@@ -152,12 +153,32 @@
       </div>
     </section>
 
-    <!-- ===================== 設定 ===================== -->
-    <section class="screen" id="screen-settings">
+    <!-- ===================== マイページ ===================== -->
+    <section class="screen" id="screen-mypage">
+      <div class="card">
+        <div class="cardtitle">プロフィール</div>
+        <div id="iconGrid" class="icon-grid"></div>
+        <div class="setting-row" style="border-bottom:none;padding-top:10px;">
+          <label>ユーザー名</label>
+          <input type="text" id="profileNameInput" maxlength="12" placeholder="プレイヤー" style="flex:1;margin-left:10px;background:rgba(255,255,255,0.06);border:1px solid var(--panel-border);border-radius:8px;color:var(--ink);padding:7px 10px;font-size:12.5px;">
+        </div>
+        <button class="btn block" id="saveProfileBtn" style="margin-top:8px;">プロフィールを保存</button>
+      </div>
+      <div class="card">
+        <div class="cardtitle">フレンドコード</div>
+        <div class="idbox"><span id="playerIdText">-</span><button class="btn secondary" id="copyIdBtn" style="padding:6px 10px;font-size:11px;">コピー</button></div>
+        <div class="mstats" style="margin-top:6px;">このコードを友達に教えてフレンド登録してもらいましょう。</div>
+        <div class="mstats" id="cloudStatusText" style="margin-top:4px;"></div>
+      </div>
+      <div class="card">
+        <div class="cardtitle">レンタルモンスター(フレンドに貸し出す)</div>
+        <div class="mstats" style="margin-bottom:8px;">選んだ1体がフレンドのダンジョン挑戦時、4体目として借りられます。</div>
+        <div id="rentalList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
       <div class="card">
         <div class="cardtitle">プレイヤー</div>
-        <div class="setting-row"><label>ランク</label><span class="val" id="settingsRank">-</span></div>
-        <div class="setting-row"><label>スタミナ</label><span class="val" id="settingsStamina">-</span></div>
+        <div class="setting-row"><label>ランク</label><span class="val" id="mypageRank">-</span></div>
+        <div class="setting-row"><label>スタミナ</label><span class="val" id="mypageStamina">-</span></div>
       </div>
       <div class="card">
         <div class="cardtitle">サウンド</div>
@@ -165,12 +186,27 @@
         <div class="setting-row"><label>SE音量</label><input type="range" id="seRange" min="0" max="100"></div>
       </div>
       <div class="card">
-        <div class="cardtitle">プレイヤーID</div>
-        <div class="idbox"><span id="playerIdText">-</span><button class="btn secondary" id="copyIdBtn" style="padding:6px 10px;font-size:11px;">コピー</button></div>
-      </div>
-      <div class="card">
         <div class="cardtitle">データ管理</div>
         <button class="btn secondary block" id="resetDataBtn">データを初期化する</button>
+      </div>
+    </section>
+
+    <!-- ===================== フレンド ===================== -->
+    <section class="screen" id="screen-friends">
+      <div class="card" id="friendCloudNotice" style="display:none;">
+        <div class="mstats">フレンド機能はFirebase未設定のため現在利用できません。src/js/core/firebase.js に設定値を入力してください。</div>
+      </div>
+      <div class="card">
+        <div class="cardtitle">フレンドを追加</div>
+        <div class="idbox">
+          <input type="text" id="friendCodeInput" placeholder="フレンドコードを入力(例 AC-XXXXXXXX)" style="flex:1;background:transparent;border:none;color:var(--ink);font-size:12px;">
+        </div>
+        <button class="btn block" id="addFriendBtn" style="margin-top:8px;">コードで登録する</button>
+      </div>
+      <div class="card">
+        <div class="cardtitle">フレンド一覧(<span id="friendCountText">0 / 30 人</span>)</div>
+        <button class="btn secondary block" id="greetAllBtn" style="margin-bottom:8px;">まとめてあいさつ(フレポ獲得)</button>
+        <div id="friendList" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
     </section>
   </main>
@@ -190,6 +226,17 @@
       <button class="btn danger block" id="sysRetreatBtn">リタイア</button>
     </div>
     <button class="btn secondary block" id="sysCloseBtn">閉じる</button>
+  </div>
+</div>
+
+<!-- ===================== フレンドモンスター選択(ダンジョン出発前) ===================== -->
+<div class="modal" id="friendPickModal">
+  <div class="modal-card">
+    <h3>フレンドモンスターを選択</h3>
+    <div class="mstats" style="margin-bottom:10px;">フレンドが貸し出しているモンスターを1体選ぶと、自分の3体と合わせて4体で挑戦できます。</div>
+    <div id="friendPickList" style="display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow:auto;"></div>
+    <button class="btn secondary block" id="friendPickSkipBtn" style="margin-top:10px;">フレンドなしで挑戦(3体)</button>
+    <button class="btn block" id="friendPickCloseBtn" style="margin-top:8px;">キャンセル</button>
   </div>
 </div>
 

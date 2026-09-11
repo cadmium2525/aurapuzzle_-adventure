@@ -45,8 +45,9 @@ ELEMENTS.forEach((el, ei) => {
 });
 export function monsterById(id) { return MONSTER_POOL.find(m => m.id === id); }
 
-/* --- 編成は4体 --- */
-export const TEAM_SIZE = 4;
+/* --- 編成は自分3体+フレンドレンタル1体の計4体 --- */
+export const TEAM_SIZE = 3;
+export const FRIEND_SLOT = 1;
 
 /* --- ステージ --- */
 const ENEMY_EMOJIS = ['👹','🐉','👻','🧟','🦂','🕷️','🐍','💀','🦑','👺','🐺','🦁','🐲','🧌','👽'];
@@ -99,6 +100,13 @@ export const FREPO_WEIGHTS = { 1: 60, 2: 30, 3: 10 };
 export const ORB_WEIGHTS   = { 1: 35, 2: 30, 3: 20, 4: 10, 5: 5 };
 export const FREPO_COST = 300;
 export const ORB_COST = 5;
+
+/* --- フレンド --- */
+export const MAX_FRIENDS = 30;
+export const FRIEND_ADD_REWARD = 300;    // フレンド登録時に自分がもらえるフレポ
+export const FRIEND_ADD_REWARD_OTHER = 300; // 相手側がもらえるフレポ
+export const FRIEND_GREET_REWARD = 20;      // 毎日1回のあいさつで自分がもらえるフレポ
+export const FRIEND_GREET_REWARD_OTHER = 10; // あいさつで相手がもらえるフレポ
 
 /* --- スタミナ / ランク --- */
 export const STAMINA_REGEN_MS = 3 * 60 * 1000;  // 3分で1回復

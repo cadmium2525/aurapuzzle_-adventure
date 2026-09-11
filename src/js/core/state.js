@@ -9,7 +9,9 @@ import {
 } from '../data/gamedata.js';
 
 const SAVE_KEY = 'acb_state';
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 4;
+
+const DEFAULT_ICONS = ['🙂', '🔥', '💧', '🌿', '💗', '🐲', '🦸', '🧙', '🎩', '👑'];
 
 function createInitialState() {
   const starter = {};
@@ -24,9 +26,17 @@ function createInitialState() {
     team: ELEMENTS.slice(0, TEAM_SIZE).map(el => el.key + '_1'),
     progress: {},                      // {stageId:{normal:bool, hard:bool}}
     records: {},                       // {stageId_diff:{maxChain, turns}}
-    settings: { bgm: 60, se: 80, playerId: uid() }
+    settings: { bgm: 60, se: 80, playerId: uid() },
+    // フレンドシステム用のプロフィール(playerId=フレンドコードとして流用)
+    profile: {
+      name: 'プレイヤー',
+      icon: DEFAULT_ICONS[0],
+      friends: [],                     // [{uid, name, icon, addedAt, lastGreetDate}]
+      rentalMonsterId: null            // フレンドに貸し出すレンタルモンスター
+    }
   };
 }
+export { DEFAULT_ICONS };
 
 /**
  * 旧セーブ(5属性 / 3体編成)を現行フォーマットへ移行する。
@@ -69,6 +79,12 @@ function migrate(old) {
   s.staminaAt = old.staminaAt || Date.now();
   s.records = old.records || {};
   s.settings = Object.assign(fresh.settings, old.settings || {});
+  s.profile = Object.assign(fresh.profile, old.profile || {});
+  s.profile.friends = Array.isArray(s.profile.friends) ? s.profile.friends : [];
+  s.profile.rentalMonsterId = (old.profile && old.profile.rentalMonsterId) || null;
+  // 編成は自分3体+フレンド1体の計4体に変更。既存セーブの4体編成は先頭3体に切り詰める。
+  s.team = (s.team || []).slice(0, TEAM_SIZE);
+  while (s.team.length < TEAM_SIZE) s.team.push(null);
   return s;
 }
 
@@ -77,20 +93,33 @@ export const state = (loaded && loaded.version === SAVE_VERSION)
   ? loaded
   : (loaded ? migrate(loaded) : createInitialState());
 
-export function saveState() { Store.set(SAVE_KEY, state); }
+const saveListeners = [];
+/** state.save() が呼ばれるたびに実行するコールバックを登録する(クラウド同期用) */
+export function onSave(fn) { saveListeners.push(fn); }
+
+export function saveState() {
+  Store.set(SAVE_KEY, state);
+  saveListeners.forEach(fn => { try { fn(); } catch (e) { /* noop */ } });
+}
 export function resetState() { Store.set(SAVE_KEY, null); }
 if (!loaded || loaded.version !== SAVE_VERSION) saveState();
 
 /* ===================== チーム ===================== */
-export function getTeamStats() {
+/**
+ * @param {object|null} friendMonster フレンドから借りた4体目のモンスター(任意)
+ */
+export function getTeamStats(friendMonster) {
   const mons = state.team
     .filter(id => id && state.monsters[id])
     .map(monsterById)
     .filter(Boolean);
+  const battleMons = friendMonster ? [...mons, friendMonster] : mons.slice();
   return {
-    mons,
-    maxHP: 100 + mons.reduce((s, m) => s + m.hp, 0),
-    atkMult: 1 + mons.reduce((s, m) => s + m.atk, 0) / 100,
+    mons: battleMons,
+    ownMons: mons,
+    friendMon: friendMonster || null,
+    maxHP: 100 + battleMons.reduce((s, m) => s + m.hp, 0),
+    atkMult: 1 + battleMons.reduce((s, m) => s + m.atk, 0) / 100,
     leaderElement: mons.length ? mons[0].element : null
   };
 }
