@@ -1,0 +1,7 @@
+# 変換前の原本イラスト(リポジトリには含めない)
+assets/chars/_original/
+
+# Windows / macOS が作る余計なファイル
+Thumbs.db
+desktop.ini
+.DS_Store

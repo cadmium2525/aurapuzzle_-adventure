@@ -85,9 +85,9 @@ function mk(id, name, job, portrait, aura, rarity, role, ls, sk, extra) {
  * 無い場合は絵文字にフォールバックする(src/js/screens/parts.js)。
  */
 const KAI_ART = [
-  { star: 4, minLevel: 1,  icon: 'assets/chars/kai_1_icon.png', full: 'assets/chars/kai_1.png', label: '初期' },
-  { star: 4, minLevel: 20, icon: 'assets/chars/kai_2_icon.png', full: 'assets/chars/kai_1.png', label: '覚醒' },
-  { star: 5, minLevel: 1,  icon: 'assets/chars/kai_2_icon.png', full: 'assets/chars/kai_2.png', label: '進化' }
+  { star: 4, minLevel: 1,  icon: 'assets/chars/kai_1_icon.webp', full: 'assets/chars/kai_1.webp', label: '初期' },
+  { star: 4, minLevel: 20, icon: 'assets/chars/kai_2_icon.webp', full: 'assets/chars/kai_1.webp', label: '覚醒' },
+  { star: 5, minLevel: 1,  icon: 'assets/chars/kai_2_icon.webp', full: 'assets/chars/kai_2.webp', label: '進化' }
 ];
 
 /* --- キャラクター図鑑 --- */
