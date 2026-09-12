@@ -3,10 +3,7 @@
  * フレンドコード(= プレイヤーID)でフレンドを追加し、
  * 登録時ボーナス/毎日のあいさつでフレンドポイント(フレポ)を稼げる。
  * =======================================================*/
-import {
-  firebaseEnabled, getUid, db, doc, getDoc, setDoc, updateDoc, deleteField,
-  collection, getDocs, serverTimestamp, increment
-} from './firebase.js';
+import { FB, firebaseEnabled, initFirebase, getUid } from './firebase.js';
 import { state, saveState, onSave } from './state.js';
 import {
   FRIEND_ADD_REWARD, FRIEND_ADD_REWARD_OTHER,
@@ -29,21 +26,22 @@ export function cloudEnabled() { return firebaseEnabled(); }
  * 保留中のフレポ受け取り→フレンド一覧の取得、を行う。
  */
 export async function initCloud() {
+  await initFirebase();
   if (!firebaseEnabled()) return false;
   myUid = await getUid();
   if (!myUid) return false;
 
   const code = state.settings.playerId;
-  const myRef = doc(db, 'users', myUid);
-  const snap = await getDoc(myRef);
+  const myRef = FB.doc(FB.db, 'users', myUid);
+  const snap = await FB.getDoc(myRef);
 
   if (!snap.exists()) {
-    await setDoc(myRef, {
+    await FB.setDoc(myRef, {
       name: state.profile.name, icon: state.profile.icon,
-      friendCode: code, pendingFrepo: 0, rentalMonsterId: state.profile.rentalMonsterId || null,
-      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      friendCode: code, pendingFrepo: 0, rentalCharId: state.profile.rentalCharId || null,
+      createdAt: FB.serverTimestamp(), updatedAt: FB.serverTimestamp()
     });
-    await setDoc(doc(db, 'friendCodes', code), { uid: myUid });
+    await FB.setDoc(FB.doc(FB.db, 'friendCodes', code), { uid: myUid });
   } else {
     const data = snap.data();
     // 保留中のフレポ(他プレイヤーからのボーナス)を受け取る
@@ -51,10 +49,10 @@ export async function initCloud() {
     if (pending > 0) {
       state.frepo += pending;
       saveState();
-      await updateDoc(myRef, { pendingFrepo: 0 });
+      await FB.updateDoc(myRef, { pendingFrepo: 0 });
     }
     // プロフィール名/アイコンが未登録ならこちらの値で補完
-    if (!data.friendCode) await updateDoc(myRef, { friendCode: code });
+    if (!data.friendCode) await FB.updateDoc(myRef, { friendCode: code });
   }
 
   await pushCloudSave();
@@ -74,16 +72,16 @@ export function scheduleCloudSave() {
 async function pushCloudSave() {
   if (!firebaseEnabled() || !myUid) return;
   try {
-    await setDoc(doc(db, 'users', myUid, 'save', 'state'), {
+    await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'save', 'state'), {
       coin: state.coin, frepo: state.frepo, orb: state.orb,
       rank: state.rank, exp: state.exp,
       stamina: state.stamina, staminaAt: state.staminaAt,
-      monsters: state.monsters, team: state.team,
+      characters: state.characters, team: state.team,
       progress: state.progress, records: state.records,
-      updatedAt: serverTimestamp()
+      updatedAt: FB.serverTimestamp()
     });
-    await updateDoc(doc(db, 'users', myUid), {
-      name: state.profile.name, icon: state.profile.icon, updatedAt: serverTimestamp()
+    await FB.updateDoc(FB.doc(FB.db, 'users', myUid), {
+      name: state.profile.name, icon: state.profile.icon, updatedAt: FB.serverTimestamp()
     });
   } catch (e) { console.warn('[friends] cloud save failed', e); }
 }
@@ -94,36 +92,37 @@ export async function updateProfile(name, icon) {
   state.profile.icon = icon;
   saveState();
   if (firebaseEnabled() && myUid) {
-    try { await updateDoc(doc(db, 'users', myUid), { name, icon, updatedAt: serverTimestamp() }); }
+    try { await FB.updateDoc(FB.doc(FB.db, 'users', myUid), { name, icon, updatedAt: FB.serverTimestamp() }); }
     catch (e) { /* noop */ }
   }
 }
 
-/** フレンドに貸し出すレンタルモンスターを設定する(null で貸し出し解除) */
-export async function updateRentalMonster(monsterId) {
-  state.profile.rentalMonsterId = monsterId || null;
+/** フレンドに貸し出すキャラクターを設定する(null で貸し出し解除) */
+export async function updateRentalCharacter(charId) {
+  state.profile.rentalCharId = charId || null;
   saveState();
   if (firebaseEnabled() && myUid) {
-    try { await updateDoc(doc(db, 'users', myUid), { rentalMonsterId: monsterId || null, updatedAt: serverTimestamp() }); }
+    try { await FB.updateDoc(FB.doc(FB.db, 'users', myUid), { rentalCharId: charId || null, updatedAt: FB.serverTimestamp() }); }
     catch (e) { /* noop */ }
   }
 }
 
 /**
- * ダンジョン出発前に呼ぶ。各フレンドの最新のレンタルモンスター設定を取得する。
+ * ダンジョン出発前に呼ぶ。各フレンドの最新の貸し出しキャラ設定を取得する。
  * (フレンド一覧のローカルキャッシュは登録時点のスナップショットなので、都度取得する)
- * @returns {Promise<Array<{uid:string,name:string,icon:string,monsterId:string}>>}
+ * @returns {Promise<Array<{uid:string,name:string,icon:string,charId:string}>>}
  */
 export async function fetchFriendRentals() {
   if (!firebaseEnabled() || !myUid) return [];
   const results = [];
   for (const f of state.profile.friends) {
     try {
-      const snap = await getDoc(doc(db, 'users', f.uid));
+      const snap = await FB.getDoc(FB.doc(FB.db, 'users', f.uid));
       if (!snap.exists()) continue;
       const d = snap.data();
-      if (d.rentalMonsterId) {
-        results.push({ uid: f.uid, name: d.name || f.name, icon: d.icon || f.icon, monsterId: d.rentalMonsterId });
+      const charId = d.rentalCharId || d.rentalMonsterId;
+      if (charId) {
+        results.push({ uid: f.uid, name: d.name || f.name, icon: d.icon || f.icon, charId });
       }
     } catch (e) { /* noop */ }
   }
@@ -134,7 +133,7 @@ export async function fetchFriendRentals() {
 export async function refreshFriendsList() {
   if (!firebaseEnabled() || !myUid) return state.profile.friends;
   try {
-    const snaps = await getDocs(collection(db, 'users', myUid, 'friends'));
+    const snaps = await FB.getDocs(FB.collection(FB.db, 'users', myUid, 'friends'));
     const list = [];
     snaps.forEach(d => list.push({ uid: d.id, ...d.data() }));
     state.profile.friends = list;
@@ -155,26 +154,26 @@ export async function addFriendByCode(rawCode) {
   if (state.profile.friends.length >= MAX_FRIENDS) return { ok: false, message: `フレンドは最大${MAX_FRIENDS}人までです` };
   if (state.profile.friends.some(f => f.uid && f.code === code)) return { ok: false, message: 'すでにフレンドです' };
 
-  const codeSnap = await getDoc(doc(db, 'friendCodes', code));
+  const codeSnap = await FB.getDoc(FB.doc(FB.db, 'friendCodes', code));
   if (!codeSnap.exists()) return { ok: false, message: 'そのフレンドコードは見つかりませんでした' };
   const targetUid = codeSnap.data().uid;
   if (targetUid === myUid) return { ok: false, message: '自分のコードは登録できません' };
   if (state.profile.friends.some(f => f.uid === targetUid)) return { ok: false, message: 'すでにフレンドです' };
 
-  const targetSnap = await getDoc(doc(db, 'users', targetUid));
+  const targetSnap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
   if (!targetSnap.exists()) return { ok: false, message: 'フレンドの情報が見つかりませんでした' };
   const target = targetSnap.data();
 
   const now = Date.now();
-  await setDoc(doc(db, 'users', myUid, 'friends', targetUid), {
+  await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), {
     name: target.name || 'プレイヤー', icon: target.icon || '🙂', code,
     addedAt: now, lastGreetDate: ''
   });
-  await setDoc(doc(db, 'users', targetUid, 'friends', myUid), {
+  await FB.setDoc(FB.doc(FB.db, 'users', targetUid, 'friends', myUid), {
     name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
     addedAt: now, lastGreetDate: ''
   });
-  await updateDoc(doc(db, 'users', targetUid), { pendingFrepo: increment(FRIEND_ADD_REWARD_OTHER) });
+  await FB.updateDoc(FB.doc(FB.db, 'users', targetUid), { pendingFrepo: FB.increment(FRIEND_ADD_REWARD_OTHER) });
 
   state.frepo += FRIEND_ADD_REWARD;
   saveState();
@@ -185,7 +184,7 @@ export async function addFriendByCode(rawCode) {
 /** フレンドを削除する(片側のみ。相手側は次回一覧更新まで残るが実害はない) */
 export async function removeFriend(friendUid) {
   if (!firebaseEnabled() || !myUid) return;
-  try { await setDoc(doc(db, 'users', myUid, 'friends', friendUid), { removed: true, name: '', icon: '', lastGreetDate: '' }); }
+  try { await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', friendUid), { removed: true, name: '', icon: '', lastGreetDate: '' }); }
   catch (e) { /* noop */ }
   state.profile.friends = state.profile.friends.filter(f => f.uid !== friendUid);
   saveState();
@@ -202,8 +201,8 @@ export async function greetFriend(friendUid) {
   const today = todayStr();
   if (f.lastGreetDate === today) return { ok: false, message: '今日はすでにあいさつ済みです' };
 
-  await updateDoc(doc(db, 'users', myUid, 'friends', friendUid), { lastGreetDate: today });
-  await updateDoc(doc(db, 'users', friendUid), { pendingFrepo: increment(FRIEND_GREET_REWARD_OTHER) });
+  await FB.updateDoc(FB.doc(FB.db, 'users', myUid, 'friends', friendUid), { lastGreetDate: today });
+  await FB.updateDoc(FB.doc(FB.db, 'users', friendUid), { pendingFrepo: FB.increment(FRIEND_GREET_REWARD_OTHER) });
 
   f.lastGreetDate = today;
   state.frepo += FRIEND_GREET_REWARD;

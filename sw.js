@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v5';
+const CACHE_NAME = 'aura-connect-v6';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -14,13 +14,17 @@ const ASSETS = [
   './src/js/core/firebase.js',
   './src/js/core/friends.js',
   './src/js/data/gamedata.js',
+  './src/js/data/characters.js',
+  './src/js/data/skills.js',
   './src/js/battle/board.js',
+  './src/js/battle/party.js',
   './src/js/battle/renderer.js',
   './src/js/battle/battle.js',
   './src/js/screens/parts.js',
   './src/js/screens/home.js',
   './src/js/screens/dungeon.js',
-  './src/js/screens/monster.js',
+  './src/js/screens/character.js',
+  './src/js/screens/guide.js',
   './src/js/screens/gacha.js',
   './src/js/screens/shop.js',
   './src/js/screens/mypage.js',

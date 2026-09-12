@@ -1,57 +1,44 @@
 /* =========================================================
- * gamedata.js — 静的なゲームデータ定義
- * 属性 / モンスター / ステージ / ショップ / 各種定数
+ * gamedata.js — 静的ゲームデータのハブ
+ * オーラ/キャラクターは characters.js、スキルは skills.js に定義し、
+ * ここではステージ・ショップ・ガチャ・各種定数をまとめる。
  * =======================================================*/
+export * from './characters.js';
+export * from './skills.js';
 
-/* --- オーラ(オーブ)は4色。c3=ピンクは「回復」の役割を持つ --- */
-export const ELEMENTS = [
-  { key: 'c0', name: '火',   emoji: '🔥', role: 'attack' },
-  { key: 'c1', name: '水',   emoji: '💧', role: 'attack' },
-  { key: 'c2', name: '木',   emoji: '🌿', role: 'attack' },
-  { key: 'c3', name: '癒',   emoji: '💗', role: 'heal'   }
-];
+import { CHARACTERS } from './characters.js';
 
-/** 盤面で使う色キー(ELEMENTS と同じ並び) */
-export const COLORS = ELEMENTS.map(e => e.key);
-/** 回復オーラの色インデックス */
-export const HEAL_COLOR = ELEMENTS.findIndex(e => e.role === 'heal');
-
-export const COLOR_HEX  = { c0: '#FF6B57', c1: '#3FC6E8', c2: '#4CD97B', c3: '#FF7EB6' };
-export const COLOR_DARK = { c0: '#C94A3A', c1: '#1E8FAE', c2: '#26A75C', c3: '#C94E86' };
-
-export const RARITY_TITLE = { 1: '見習い', 2: '戦士', 3: '精鋭', 4: '英雄', 5: '伝説' };
-export const RARITY_STATS = {
-  1: { atk: 5,  hp: 9  },
-  2: { atk: 10, hp: 15 },
-  3: { atk: 17, hp: 24 },
-  4: { atk: 26, hp: 35 },
-  5: { atk: 40, hp: 52 }
-};
-
-/* --- モンスター図鑑 --- */
-export const MONSTER_POOL = [];
-ELEMENTS.forEach((el, ei) => {
-  for (let r = 1; r <= 5; r++) {
-    const base = RARITY_STATS[r];
-    MONSTER_POOL.push({
-      id: `${el.key}_${r}`,
-      name: `${RARITY_TITLE[r]}の${el.name}霊`,
-      element: ei,
-      rarity: r,
-      atk: base.atk,
-      hp: base.hp
-    });
-  }
-});
-export function monsterById(id) { return MONSTER_POOL.find(m => m.id === id); }
-
-/* --- 編成は自分3体+フレンドレンタル1体の計4体 --- */
+/* --- 編成は自分3人 + サポート1人(フレンド or NPC)の計4人 --- */
 export const TEAM_SIZE = 3;
-export const FRIEND_SLOT = 1;
+export const SUPPORT_SLOT = 1;
 
-/* --- ステージ --- */
+/* ===================== バトル定数 ===================== */
+/** オーラ操作の基本時間(ms)。リーダースキル/スキルで延長できる */
+export const BASE_DRAG_TIME = 10000;
+/** 操作時間の上限(ms)。延長を盛っても青天井にはしない */
+export const MAX_DRAG_TIME = 40000;
+/** 攻撃力 → ダメージへの換算係数 */
+export const ATTACK_SCALE = 3.0;
+/** 回復力 → 回復量への換算係数 */
+export const HEAL_SCALE = 2.4;
+/** 最低連結数を1個超えるごとの威力上昇 */
+export const ORB_BONUS = 0.35;
+/** コンボごとの倍率上昇 */
+export const COMBO_BONUS = 0.6;
+/** 同時消し1グループごとの倍率上昇 */
+export const SIMUL_BONUS = 0.15;
+/** パーティの基礎HP(キャラのHP合計に加算) */
+export const BASE_PARTY_HP = 100;
+/** 消滅に必要な同オーラの連結数(リーダースキルで緩和されることがある) */
+export const MATCH_MIN_DEFAULT = 4;
+
+/* ===================== ステージ ===================== */
 const ENEMY_EMOJIS = ['👹','🐉','👻','🧟','🦂','🕷️','🐍','💀','🦑','👺','🐺','🦁','🐲','🧌','👽'];
 export const FLOORS_PER_STAGE = 5;
+
+const STAGE_NAMES = [
+  '始まりの街道', '霧ふる湖畔', '灼熱の峡谷', '常闇の樹海', '天空回廊'
+];
 
 export const STAGES = (() => {
   const list = [];
@@ -60,18 +47,17 @@ export const STAGES = (() => {
     for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
       const isBoss = f === FLOORS_PER_STAGE;
       floors.push({
-        name: isBoss ? 'ボス' : `フロア${f}`,
+        name: isBoss ? `${STAGE_NAMES[s - 1]}の主` : `フロア${f}`,
         emoji: ENEMY_EMOJIS[(s * 5 + f) % ENEMY_EMOJIS.length],
-        hp: 150 + (s - 1) * 220 + (f - 1) * 70,
+        hp: Math.round((120 + (s - 1) * 260 + (f - 1) * 60) * (isBoss ? 1.6 : 1)),
         atk: 8 + (s - 1) * 10 + (f - 1) * 3,
         interval: isBoss ? 1 : 2   // 何ターンごとに攻撃してくるか
       });
     }
     list.push({
       id: s,
-      name: `ステージ${s}`,
+      name: `${s}. ${STAGE_NAMES[s - 1]}`,
       floors,
-      // 初期ダンジョンの消費スタミナは5
       stamina: 5 + (s - 1) * 3,
       coinReward: 150 * s,
       frepoReward: 80 * s,
@@ -86,29 +72,31 @@ export const HARD_HP_MULT = 1.8;
 export const HARD_REWARD_MULT = 1.6;
 export const HARD_STAMINA_MULT = 1.5;
 
-/* --- ショップ --- */
+/* ===================== ショップ ===================== */
 export const SHOP_ITEMS = [
-  { id: 'sh_m2',    type: 'monster', monsterId: 'c0_2', emoji: '🔥', price: 800  },
-  { id: 'sh_m3',    type: 'monster', monsterId: 'c1_3', emoji: '💧', price: 2200 },
-  { id: 'sh_m4',    type: 'monster', monsterId: 'c3_3', emoji: '💗', price: 2200 },
-  { id: 'sh_orb',   type: 'orb',     amount: 3,         emoji: '💎', price: 5000 },
-  { id: 'sh_frepo', type: 'frepo',   amount: 1000,      emoji: '🎗️', price: 1200 }
+  { id: 'sh_c1', type: 'character', charId: 'fl_gald',   emoji: '🔥', price: 800  },
+  { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200 },
+  { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200 },
+  { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200 },
+  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 },
+  { id: 'sh_frepo', type: 'frepo', amount: 1000, emoji: '🎗️', price: 1200 }
 ];
 
-/* --- ガチャ --- */
+/* ===================== ガチャ ===================== */
 export const FREPO_WEIGHTS = { 1: 60, 2: 30, 3: 10 };
-export const ORB_WEIGHTS   = { 1: 35, 2: 30, 3: 20, 4: 10, 5: 5 };
+export const ORB_WEIGHTS   = { 1: 30, 2: 30, 3: 23, 4: 12, 5: 5 };
 export const FREPO_COST = 300;
 export const ORB_COST = 5;
+export const FREPO_POOL = CHARACTERS.filter(c => c.rarity <= 3);
 
-/* --- フレンド --- */
+/* ===================== フレンド ===================== */
 export const MAX_FRIENDS = 30;
-export const FRIEND_ADD_REWARD = 300;    // フレンド登録時に自分がもらえるフレポ
-export const FRIEND_ADD_REWARD_OTHER = 300; // 相手側がもらえるフレポ
-export const FRIEND_GREET_REWARD = 20;      // 毎日1回のあいさつで自分がもらえるフレポ
-export const FRIEND_GREET_REWARD_OTHER = 10; // あいさつで相手がもらえるフレポ
+export const FRIEND_ADD_REWARD = 300;
+export const FRIEND_ADD_REWARD_OTHER = 300;
+export const FRIEND_GREET_REWARD = 20;
+export const FRIEND_GREET_REWARD_OTHER = 10;
 
-/* --- スタミナ / ランク --- */
+/* ===================== スタミナ / ランク ===================== */
 export const STAMINA_REGEN_MS = 3 * 60 * 1000;  // 3分で1回復
 export const STAMINA_BASE_MAX = 100;            // ランク1の上限
 export const STAMINA_PER_RANK = 5;              // ランクアップごとの上限増加

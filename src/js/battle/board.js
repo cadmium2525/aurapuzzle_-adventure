@@ -1,17 +1,20 @@
 /* =========================================================
- * board.js — 盤面データ操作(生成 / 連結判定 / 落下)
+ * board.js — 盤面データ操作(生成 / 連結判定 / 落下 / 補充 / 変換)
+ * 消滅に必要な連結数(min)はリーダースキルで緩和されることがあるため、
+ * どの関数も外から受け取れるようにしている。
  * =======================================================*/
-import { COLORS } from '../data/gamedata.js';
+import { COLORS, MATCH_MIN_DEFAULT } from '../data/gamedata.js';
 
 export const COLS = 7;
 export const ROWS = 8;
-/** 消滅に必要な同色連結数 */
-export const MATCH_MIN = 4;
+export const MATCH_MIN = MATCH_MIN_DEFAULT;
 
 export function randColor() { return Math.floor(Math.random() * COLORS.length); }
 
-/** 同色4つ以上の連結グループを列挙する */
-export function findGroups(bd) {
+const NEIGHBORS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+/** 同オーラが min 個以上つながっているグループを列挙する */
+export function findGroups(bd, min = MATCH_MIN) {
   const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
   const groups = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -23,14 +26,15 @@ export function findGroups(bd) {
     while (stack.length) {
       const [cr, cc] = stack.pop();
       cells.push([cr, cc]);
-      for (const [nr, nc] of [[cr - 1, cc], [cr + 1, cc], [cr, cc - 1], [cr, cc + 1]]) {
+      for (const [dr, dc] of NEIGHBORS) {
+        const nr = cr + dr, nc = cc + dc;
         if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
         if (visited[nr][nc] || bd[nr][nc] !== color) continue;
         visited[nr][nc] = true;
         stack.push([nr, nc]);
       }
     }
-    if (cells.length >= MATCH_MIN) groups.push({ cells, color });
+    if (cells.length >= min) groups.push({ cells, color });
   }
   return groups;
 }
@@ -50,8 +54,30 @@ export function applyGravityNoRefill(bd) {
   }
 }
 
+/** そのマスを起点にした同オーラの連結数 */
+function connectedSize(bd, r0, c0) {
+  const color = bd[r0][c0];
+  if (color === -1) return 0;
+  const seen = new Set([r0 + ',' + c0]);
+  const stack = [[r0, c0]];
+  let n = 0;
+  while (stack.length) {
+    const [r, c] = stack.pop();
+    n++;
+    for (const [dr, dc] of NEIGHBORS) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+      const k = nr + ',' + nc;
+      if (seen.has(k) || bd[nr][nc] !== color) continue;
+      seen.add(k);
+      stack.push([nr, nc]);
+    }
+  }
+  return n;
+}
+
 /** 初期状態で消えない盤面を生成する */
-export function genBoard() {
+export function genBoard(min = MATCH_MIN) {
   let bd, tries = 0;
   do {
     bd = [];
@@ -63,45 +89,23 @@ export function genBoard() {
           color = randColor();
           guard++;
         } while (guard < 20 && (
-          (c >= 2 && bd[r][c - 1] === color && bd[r][c - 2] === color) ||
-          (r >= 2 && bd[r - 1][c] === color && bd[r - 2][c] === color)
+          (c >= min - 2 && bd[r].slice(c - (min - 2), c).every(v => v === color)) ||
+          (r >= min - 2 && Array.from({ length: min - 2 }, (_, k) => bd[r - 1 - k][c]).every(v => v === color))
         ));
         bd[r][c] = color;
       }
     }
     tries++;
-  } while (findGroups(bd).length > 0 && tries < 30);
+  } while (findGroups(bd, min).length > 0 && tries < 30);
   return bd;
 }
 
-/** そのマスを起点にした同色連結数 */
-function connectedSize(bd, r0, c0) {
-  const color = bd[r0][c0];
-  if (color === -1) return 0;
-  const seen = new Set([r0 + ',' + c0]);
-  const stack = [[r0, c0]];
-  let n = 0;
-  while (stack.length) {
-    const [r, c] = stack.pop();
-    n++;
-    for (const [nr, nc] of [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]]) {
-      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
-      const k = nr + ',' + nc;
-      if (seen.has(k) || bd[nr][nc] !== color) continue;
-      seen.add(k);
-      stack.push([nr, nc]);
-    }
-  }
-  return n;
-}
-
 /**
- * 空きマスを上から補充する。
- * 「オーラを混ぜる」ボタンを廃止したため、盤面が枯れて詰むのを防ぐ。
- * 補充直後に勝手に消えないよう、連結4以上になる色は避ける。
+ * 空きマスを補充する。補充直後に勝手に消えないよう、
+ * min 個以上の連結になる色は避ける。
  * @returns {number} 補充した個数
  */
-export function refillBoard(bd) {
+export function refillBoard(bd, min = MATCH_MIN) {
   let filled = 0;
   for (let c = 0; c < COLS; c++) {
     for (let r = ROWS - 1; r >= 0; r--) {
@@ -110,11 +114,59 @@ export function refillBoard(bd) {
       let placed = false;
       for (const color of order) {
         bd[r][c] = color;
-        if (connectedSize(bd, r, c) < MATCH_MIN) { placed = true; break; }
+        if (connectedSize(bd, r, c) < min) { placed = true; break; }
       }
       if (!placed) bd[r][c] = order[0];
       filled++;
     }
   }
   return filled;
+}
+
+/* ===================== スキルによる盤面操作 ===================== */
+
+/**
+ * 指定オーラをすべて別のオーラへ変換する。
+ * @returns {Array<[number,number]>} 変換したマス
+ */
+export function convertColor(bd, from, to) {
+  const changed = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (bd[r][c] === from) { bd[r][c] = to; changed.push([r, c]); }
+  }
+  return changed;
+}
+
+/**
+ * ランダムなマスを指定オーラへ変換する(すでにそのオーラのマスは対象外)。
+ * @returns {Array<[number,number]>} 変換したマス
+ */
+export function spawnColor(bd, to, count) {
+  const cands = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (bd[r][c] !== -1 && bd[r][c] !== to) cands.push([r, c]);
+  }
+  for (let i = cands.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cands[i], cands[j]] = [cands[j], cands[i]];
+  }
+  const picked = cands.slice(0, count);
+  picked.forEach(([r, c]) => { bd[r][c] = to; });
+  return picked;
+}
+
+/** 盤面のオーラをシャッフルする(枚数は変えずに並べ替える) */
+export function shuffleBoard(bd) {
+  const vals = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (bd[r][c] !== -1) vals.push(bd[r][c]);
+  }
+  for (let i = vals.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [vals[i], vals[j]] = [vals[j], vals[i]];
+  }
+  let k = 0;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (bd[r][c] !== -1) bd[r][c] = vals[k++];
+  }
 }

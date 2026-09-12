@@ -7,8 +7,8 @@ import { expToNextRank } from '../data/gamedata.js';
 
 const TITLES = {
   home: 'ホーム', dungeon: 'ダンジョン', battle: 'バトル', event: 'イベント',
-  monster: 'モンスター', gacha: 'ガチャ', shop: 'ショップ',
-  mypage: 'マイページ', friends: 'フレンド'
+  character: 'キャラクター', gacha: 'ガチャ', shop: 'ショップ',
+  mypage: 'マイページ', friends: 'フレンド', guide: 'あそびかた'
 };
 
 const renderers = {};
@@ -21,7 +21,9 @@ const navStack = [];
 export function showScreen(name, push) {
   if (push !== false && currentScreen !== name) navStack.push(currentScreen);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  $('screen-' + name).classList.add('active');
+  const el = $('screen-' + name);
+  if (!el) return;
+  el.classList.add('active');
   $('screenTitle').textContent = TITLES[name] || '';
   $('backBtn').classList.toggle('hidden', name === 'home' || name === 'battle');
   $('statusBar').classList.toggle('hidden', name === 'battle');
@@ -29,6 +31,8 @@ export function showScreen(name, push) {
   currentScreen = name;
   if (renderers[name]) renderers[name]();
   updateStatusBar();
+  // 画面切り替え時は先頭へ戻す
+  window.scrollTo({ top: 0 });
 }
 
 export function goBack() {
@@ -40,13 +44,20 @@ export function goBack() {
 export function updateStatusBar() {
   tickStamina();
   const max = maxStamina();
+  const over = state.stamina > max;     // ランクアップでオーバーフロー中
   $('curStamina').textContent = `${state.stamina}/${max}`;
+  $('curStamina').classList.toggle('over', over);
   const next = staminaNextInMs();
-  $('staminaTimer').textContent = next > 0 ? formatMMSS(next) : 'MAX';
+  $('staminaTimer').textContent = over ? 'OVER' : (next > 0 ? formatMMSS(next) : 'MAX');
+  const fill = $('staminaFill');
+  if (fill) {
+    fill.style.width = Math.min(100, state.stamina / max * 100) + '%';
+    fill.classList.toggle('over', over);
+  }
   $('curRank').textContent = state.rank;
-  $('curCoin').textContent = state.coin;
-  $('curFrepo').textContent = state.frepo;
-  $('curOrb').textContent = state.orb;
+  $('curCoin').textContent = state.coin.toLocaleString();
+  $('curFrepo').textContent = state.frepo.toLocaleString();
+  $('curOrb').textContent = state.orb.toLocaleString();
   const expEl = $('rankExpFill');
   if (expEl) expEl.style.width = (state.exp / expToNextRank(state.rank) * 100) + '%';
 }
