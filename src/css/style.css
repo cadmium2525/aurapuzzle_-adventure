@@ -139,13 +139,7 @@ body[data-screen="home"] #app::before{
     linear-gradient(180deg, rgba(8,4,20,.34) 0%, rgba(8,4,20,.42) 42%, rgba(8,4,20,.80) 100%),
     url('../../assets/ui/bg.webp');
 }
-/* ダンジョンはボスフロアのときだけ */
-body.in-battle.boss-floor #app::before{
-  opacity:1;
-  background-image:
-    linear-gradient(180deg, rgba(8,4,20,.62) 0%, rgba(8,4,20,.72) 45%, rgba(8,4,20,.88) 100%),
-    url('../../assets/ui/danjon_bg.webp');
-}
+
 .screen{display:none;flex-direction:column;gap:13px;}
 .screen.active{display:flex;animation:screenIn .26s ease;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
@@ -396,8 +390,12 @@ button{font-family:inherit;cursor:pointer;}
 
 #enemyStage{
   /* 盤面は縦で頭打ちになるので、敵フィールドの取り分に上限を設けて盤面へ回す */
-  position:relative;flex:1 1 auto;min-height:0;max-height:24vh;
-  background:radial-gradient(ellipse at 50% 26%, rgba(255,107,107,0.18), transparent 62%),
+  position:relative;flex:1 1 auto;min-height:0;max-height:24vh;overflow:hidden;
+  /* 敵がいる場所の背景。全フロアで出す */
+  background:
+    radial-gradient(ellipse at 50% 26%, rgba(255,107,107,0.16), transparent 62%),
+    linear-gradient(180deg, rgba(8,4,20,.30) 0%, rgba(8,4,20,.40) 55%, rgba(8,4,20,.72) 100%),
+    url('../../assets/ui/danjon_bg.webp') center 38% / cover no-repeat,
     linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
   border:1px solid var(--panel-border);border-radius:var(--r-lg);
   padding:9px 13px 11px;
@@ -412,9 +410,15 @@ button{font-family:inherit;cursor:pointer;}
 }
 #enemyEmoji{
   position:relative;margin:auto 0;font-size:clamp(50px, 15vh, 140px);line-height:1;
-  filter:drop-shadow(0 10px 18px rgba(0,0,0,0.5));
+  display:flex;align-items:center;justify-content:center;min-height:0;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,0.55));
   animation:idleFloat 3.2s ease-in-out infinite;
 }
+.enemy-img{height:clamp(70px, 17vh, 160px);width:auto;max-width:100%;object-fit:contain;display:block;}
+.enemy-emoji{font-size:inherit;line-height:1;}
+/* ダンジョン一覧のサムネ(.stage-emoji は枠側で使っているので別名にする) */
+.senemy-img{width:100%;height:100%;object-fit:contain;display:block;}
+.senemy-emoji{font-size:inherit;line-height:1;}
 @keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
 #enemyMeta{width:100%;display:flex;justify-content:flex-end;align-items:baseline;font-size:10px;color:var(--ink-dim);}
 #enemyTurn{color:#FFB4B4;font-weight:700;}

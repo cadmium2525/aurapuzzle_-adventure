@@ -12,7 +12,8 @@
 ├── sw.js                   Service Worker(アプリ本体は network-first)
 ├── assets/
 │   ├── icons/              アプリアイコン
-│   ├── ui/                 メニューアイコンのアトラスとダンジョン背景
+│   ├── ui/                 メニューアイコンのアトラスと背景
+│   ├── enemy/              敵のイラスト
 │   └── chars/              キャラクターイラスト(置くと自動で使われる)
 └── src/
     ├── css/style.css       全画面のスタイル
@@ -77,9 +78,12 @@ NPCサポートはプレイヤーランクで順次解放される。
 - 画面の背景は `#app::before` 1つで持ち回り、絵と暗幕だけを差し替えている。
   どの画面かは `nav.js` が `body[data-screen]` に入れる。
   - ホーム: `assets/ui/bg.webp`(常時)
-  - ダンジョン: `assets/ui/danjon_bg.webp`(最終フロア=ボスのときだけ)
 
-  どちらも上から暗幕のグラデーションを重ねてUIの可読性を保っている。
+  上から暗幕のグラデーションを重ねてUIの可読性を保っている。
+- ダンジョンの背景(`assets/ui/danjon_bg.webp`)は画面全体ではなく
+  **敵フィールド(`#enemyStage`)の中**に敷いている。敵がいる場所だけに出す。
+- 敵は `assets/enemy/*.webp` のイラスト。読み込めないときは絵文字に落ちる
+  (`gamedata.js` の `ENEMY_SPRITES` と `ENEMY_EMOJIS` が対になっている)。
 - アプリアイコンは `any` と `maskable` を分けて用意している。maskable は中央80%の
   円が安全領域で、その外は切り落とされるため、装飾の金枠を除いて絵が端まで届く版を
   別途置いている(`icon-maskable-*.png`)。同じ画像を使い回すと枠が中途半端に切れる。

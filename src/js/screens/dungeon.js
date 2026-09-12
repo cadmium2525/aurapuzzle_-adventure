@@ -3,7 +3,7 @@
  * サポート枠はフレンドの貸し出しキャラに加えて、いつでも選べる
  * NPCサポートを用意している(フレンドがいなくても困らない)。
  * =======================================================*/
-import { $, toast } from '../core/ui.js';
+import { $, toast, artImg } from '../core/ui.js';
 import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
@@ -229,7 +229,8 @@ function renderStageCards(list, stages) {
     const div = document.createElement('div');
     div.className = 'stage-card' + (isLocked ? ' locked' : '') + (cleared ? ' cleared' : '');
     div.innerHTML = `
-      <div class="stage-emoji">${stage.floors[FLOORS_PER_STAGE - 1].emoji}</div>
+      <div class="stage-emoji">${(() => { const b = stage.floors[FLOORS_PER_STAGE - 1];
+        return artImg(b.sprite, b.emoji, 'senemy'); })()}</div>
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
