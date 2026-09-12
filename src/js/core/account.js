@@ -30,8 +30,15 @@ export const MIN_PASSWORD = 6;
  */
 const ADMIN_IDS = ['cadmium'];
 
-/** 管理者アカウントに一度だけ配るオーブ(ダイヤ) */
-export const ADMIN_ORB_GRANT = 500;
+/**
+ * 管理者アカウントへの付与。key ごとに一度だけ適用される。
+ * 追加で配りたくなったら、新しい key の行を足すだけでよい
+ * (既存の key を書き換えると再付与されないので注意)。
+ */
+const ADMIN_GRANTS = [
+  { key: 'adminOrb',  orb: 500 },
+  { key: 'adminOrb2', orb: 500 }
+];
 
 /** 全角や大文字のゆらぎで別IDにならないように正規化する */
 export function normalizeId(raw) {
@@ -69,11 +76,16 @@ export function isAdmin() {
 export function applyAdminGrant() {
   if (!isAdmin()) return null;
   if (!state.grants) state.grants = {};
-  if (state.grants.adminOrb) return null;
-  state.orb += ADMIN_ORB_GRANT;
-  state.grants.adminOrb = true;
+  let total = 0;
+  ADMIN_GRANTS.forEach(g => {
+    if (state.grants[g.key]) return;     // 付与済みは飛ばす
+    state.orb += g.orb;
+    state.grants[g.key] = true;
+    total += g.orb;
+  });
+  if (!total) return null;
   saveState();
-  return ADMIN_ORB_GRANT;
+  return total;
 }
 
 /** 画面表示用のログイン状態 */
