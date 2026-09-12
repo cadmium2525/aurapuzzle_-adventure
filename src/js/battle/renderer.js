@@ -32,13 +32,16 @@ function applyCellSize() {
 export function resizeBoard() {
   const appEl = document.getElementById('app');
   const appW = appEl.clientWidth || Math.min(440, window.innerWidth);
-  const availW = appW - 24 - 16;
-  CELL = Math.max(24, Math.min(72, Math.floor(availW / COLS)));
+  // 余白は決め打ちせず実測する。枠やmainのpaddingを詰めたぶんが素直に盤面へ回る
+  const px = (el, side) => (el ? parseFloat(getComputedStyle(el)['padding' + side]) || 0 : 0);
+  const wrap = canvas.parentElement;
+  const mainEl = canvas.closest('main');
+  const availW = appW - px(mainEl, 'Left') - px(mainEl, 'Right') - px(wrap, 'Left') - px(wrap, 'Right');
+  CELL = Math.max(24, Math.min(96, Math.floor(availW / COLS)));
   applyCellSize();
 
-  const mainEl = canvas.closest('main');
   const padBottom = (parseFloat(getComputedStyle(appEl).paddingBottom) || 0)
-    + (mainEl ? parseFloat(getComputedStyle(mainEl).paddingBottom) || 0 : 0);
+    + px(mainEl, 'Bottom');
   for (let i = 0; i < 5; i++) {
     const rect = canvas.parentElement.getBoundingClientRect();
     if (rect.height === 0) break;

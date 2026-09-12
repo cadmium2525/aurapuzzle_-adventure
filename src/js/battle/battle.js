@@ -30,7 +30,7 @@ import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 
 let canvas;
-let board = [];
+let board = null;
 let bstate = 'idle';       // idle | dragging | resolving | over
 let selected = null, floatPos = null, dragStart = 0, autoReleased = false;
 let grabbed = false;       // 操作時間内で「今まさに指がオーブを掴んでいるか」
@@ -112,10 +112,10 @@ export function startDungeonRun(stage, hard, support) {
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
+  board = null;                 // 新しいダンジョンでは盤面を作り直す
   renderParty();
-  renderLeaderChips();
-  loadFloor();
   showScreen('battle');
+  loadFloor();
   resizeBoard();
 }
 
@@ -125,7 +125,6 @@ function unitRoleBadge(i) {
   if (sup && i === run.party.members.length - 1) {
     return `<span class="unit-badge support">${sup.ownerIcon || '🤝'}</span>`;
   }
-  if (i === 0) return '<span class="unit-badge leader">L</span>';
   return '';
 }
 
@@ -134,7 +133,6 @@ function renderParty() {
   row.innerHTML = '';
   run.party.members.forEach((m, i) => {
     const aura = AURAS[m.aura];
-    const sk = m.skill;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'unit r' + m.rarity + (m.isSupport ? ' support' : '');
@@ -146,29 +144,13 @@ function renderParty() {
       <span class="unit-face">
         <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
         <span class="unit-aura">${aura.emoji}</span>
+        <span class="unit-cd" hidden></span>
         ${unitRoleBadge(i)}
-      </span>
-      <span class="unit-name">${m.name}</span>
-      <span class="unit-skill"><span class="unit-skill-fill"></span><span class="unit-skill-text">${sk ? sk.name : '—'}</span></span>`;
+      </span>`;
     btn.addEventListener('click', () => useSkill(i));
     row.appendChild(btn);
   });
   updateSkillUI();
-}
-
-/** リーダースキル(自陣リーダー + サポート)のチップ表示 */
-function renderLeaderChips() {
-  const box = $('leaderChips');
-  box.innerHTML = '';
-  run.party.leaders.forEach((m, i) => {
-    const ls = m.leaderSkill;
-    if (!ls) return;
-    const chip = document.createElement('div');
-    chip.className = 'ls-chip';
-    chip.innerHTML = `<span class="ls-who">${i === 0 ? 'LEADER' : 'SUPPORT'}</span>
-      <span class="ls-name">${ls.name}</span>`;
-    box.appendChild(chip);
-  });
 }
 
 function updateSkillUI() {
@@ -180,11 +162,11 @@ function updateSkillUI() {
     const cd = run.cooldowns[i];
     const ready = sk && cd <= 0;
     unit.classList.toggle('ready', !!ready);
-    const fill = unit.querySelector('.unit-skill-fill');
-    const text = unit.querySelector('.unit-skill-text');
-    if (!sk) { fill.style.width = '0%'; text.textContent = '—'; return; }
-    fill.style.width = ready ? '100%' : Math.round((1 - cd / sk.cooldown) * 100) + '%';
-    text.textContent = ready ? sk.name : `${cd}ターン`;
+    // 残りターンはアイコン角のバッジで示す(使えるようになったら消す)
+    const badge = unit.querySelector('.unit-cd');
+    if (!badge) return;
+    badge.hidden = !sk || ready;
+    badge.textContent = sk ? cd : '';
   });
 }
 
@@ -211,10 +193,13 @@ function loadFloor() {
   run.enemyTurnsLeft = floor.interval;
 
   $('enemyEmoji').textContent = floor.emoji;
-  $('enemyName').textContent = floor.name;
-  $('battleStageName').textContent = run.stage.name + (run.hard ? ' / ハード' : '');
+  // ステージ名はトップバーに出す(画面上部を盤面のために空ける)
+  $('screenTitle').textContent = run.stage.name + (run.hard ? ' / ハード' : '');
   renderFloorPips();
-  board = genBoard(run.matchMin);
+  // 最初のフロアだけ盤面を作る。以降は前のフロアの盤面を残し、
+  // 消えて空いたところにだけオーラを補充する
+  if (!board) board = genBoard(run.matchMin);
+  else { applyGravityNoRefill(board); refillBoard(board, run.matchMin); }
   bstate = 'idle';
   grabbed = false;
   clearingCells = [];
@@ -257,13 +242,6 @@ function updateHPUI(flashEnemy, flashPlayer) {
 }
 
 function renderEnemyTurnPips() {
-  const box = $('enemyTurnPips');
-  box.innerHTML = '';
-  for (let i = 0; i < run.enemyInterval; i++) {
-    const pip = document.createElement('span');
-    pip.className = 'tpip' + (i < run.enemyTurnsLeft ? '' : ' spent');
-    box.appendChild(pip);
-  }
   $('enemyTurnCount').textContent = run.enemyTurnsLeft;
 }
 
@@ -447,17 +425,24 @@ async function resolveTurn() {
     groups.forEach(g => g.cells.forEach(([r, c]) => { board[r][c] = -1; }));
     clearingCells = [];
 
-    if (stepHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + stepHeal);
-    if (stepDamage > 0) {
-      run.enemyHP = Math.max(0, run.enemyHP - stepDamage);
-      shake($('enemyStage'));
-    }
-    updateHPUI(stepDamage > 0, stepHeal > 0);
-
     await sleep(110);
     applyGravityNoRefill(board);
     await sleep(190);
-    if (run.enemyHP <= 0) break;
+  }
+
+  // 連鎖が全て終わってから、合計ぶんをまとめて反映する
+  if (turnHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + turnHeal);
+  if (turnDamage > 0) {
+    run.enemyHP = Math.max(0, run.enemyHP - turnDamage);
+    shake($('enemyStage'));
+  }
+  if (turnDamage > 0 || turnHeal > 0) {
+    let html = `<span class="chain">${chain} COMBO</span>`;
+    if (turnDamage > 0) html += ` <span class="dmg">${turnDamage} ダメージ</span>`;
+    if (turnHeal > 0) html += ` <span class="heal">+${turnHeal} 回復</span>`;
+    showBanner(html);
+    updateHPUI(turnDamage > 0, turnHeal > 0);
+    await sleep(520);
   }
 
   run.stats.maxChain = Math.max(run.stats.maxChain, chain);

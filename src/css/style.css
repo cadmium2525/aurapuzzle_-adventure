@@ -118,6 +118,7 @@ body{
 .cpill b{color:var(--accent);font-variant-numeric:tabular-nums;}
 
 main{flex:1;padding:14px 14px 6px;display:flex;flex-direction:column;gap:13px;}
+body.in-battle main{padding-left:7px;padding-right:7px;}
 .screen{display:none;flex-direction:column;gap:13px;}
 .screen.active{display:flex;animation:screenIn .26s ease;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
@@ -143,39 +144,32 @@ main{flex:1;padding:14px 14px 6px;display:flex;flex-direction:column;gap:13px;}
 .notice{border-color:rgba(255,198,92,.3);background:rgba(255,198,92,.07);}
 
 /* ===================== ホーム ===================== */
-#homeHero{position:relative;text-align:center;padding:10px 4px 4px;}
-.hero-glow{position:absolute;left:50%;top:-14px;transform:translateX(-50%);
-  width:220px;height:80px;border-radius:50%;filter:blur(34px);
-  background:linear-gradient(90deg,var(--c3),var(--accent),var(--c1));opacity:.42;}
-#homeHero h1{
-  position:relative;margin:0 0 5px;font-size:27px;font-weight:900;letter-spacing:.04em;
-  background:linear-gradient(92deg,var(--c3) 0%,var(--accent) 48%,var(--c1) 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 3px 10px rgba(0,0,0,.5));
+/* ホーム: 編成中の3人を1枚絵で見せる */
+#screen-home{flex:1;min-height:0;}
+#homePartyStage{position:relative;flex:1;min-height:240px;display:flex;}
+#homeEditBtn{position:absolute;right:2px;top:0;z-index:5;}
+#homePartyArt{position:relative;flex:1;min-width:0;}
+/* 立ち絵は縦横比がまちまちなので、枠を決めて object-fit で内側に収める。
+   高さ基準だけで置くと横長のイラストがステージから溢れる。 */
+.hp-slot{
+  position:absolute;bottom:0;display:flex;align-items:flex-end;justify-content:center;
+  pointer-events:none;
 }
-#homeHero p{position:relative;margin:0;font-size:11px;color:var(--ink-dim);letter-spacing:.05em;}
-
-.leader-hero{display:flex;align-items:center;gap:13px;}
-.lh-info{flex:1;min-width:0;}
-.lh-name{font-size:16px;font-weight:800;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}
-.lh-job{font-size:10.5px;color:var(--ink-dim);font-weight:400;}
-.lh-ls{margin-top:6px;font-size:11px;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.lh-lsdesc{width:100%;font-size:10px;color:var(--ink-dim);line-height:1.5;}
-.party-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px;}
-.pm-slot{
-  position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;
-  background:var(--panel);border:1px solid var(--panel-border);
-  border-radius:var(--r-md);padding:9px 3px 7px;
+.hp-slot.lead{
+  left:50%;transform:translateX(-50%);width:92%;height:100%;z-index:3;
+  filter:drop-shadow(0 12px 26px rgba(0,0,0,.6));
 }
-.pm-slot::after{content:'';position:absolute;inset:0;border-radius:var(--r-md);
-  box-shadow:inset 0 0 18px -8px var(--aura, transparent);pointer-events:none;}
-.pm-name{font-size:9px;color:var(--ink-dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pm-badge{position:absolute;top:-5px;left:-4px;width:17px;height:17px;border-radius:50%;
-  background:linear-gradient(180deg,var(--gold-1),var(--gold-2));color:#2A1A05;
-  font-size:9.5px;font-weight:900;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 3px 8px rgba(0,0,0,.4);}
-.pm-sup{font-size:26px;line-height:1;opacity:.55;}
-.support-slot{border-style:dashed;border-color:rgba(101,224,255,.35);}
+/* 後ろの2人はリーダーの8割ほどの大きさにして、少しだけ暗く落とす */
+.hp-slot.sub{
+  width:62%;height:84%;z-index:1;
+  filter:brightness(.62) saturate(.85) drop-shadow(0 8px 18px rgba(0,0,0,.5));
+}
+.hp-slot.sub.left{left:-6%;}
+.hp-slot.sub.right{right:-6%;}
+.hp-img{width:100%;height:100%;max-width:100%;object-fit:contain;object-position:bottom center;display:block;}
+.hp-emoji{font-size:104px;line-height:1;}
+.hp-slot.sub .hp-emoji{font-size:70px;}
+#homePartyArt .empty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;}
 
 /* メニュー */
 .menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
@@ -317,24 +311,16 @@ button{font-family:inherit;cursor:pointer;}
 
 /* ===================== バトル ===================== */
 #screen-battle{gap:7px;flex:1;}
-#battleHead{display:flex;align-items:center;gap:8px;}
-.bh-left{flex-shrink:0;}
-#battleStageName{font-size:10.5px;font-weight:700;color:var(--ink-dim);}
-#floorPips{display:flex;gap:3px;margin-top:3px;}
+
+/* 進行ピンと情報ボタンは敵フィールドの角に重ねる(1行ぶん盤面に回す) */
+#floorPips{position:absolute;left:11px;top:9px;z-index:2;display:flex;gap:3px;}
 .fpip{width:13px;height:4px;border-radius:2px;background:rgba(255,255,255,0.14);}
 .fpip.done{background:var(--accent);}
 .fpip.now{background:var(--accent-3);box-shadow:0 0 8px var(--accent-3);}
 .fpip.boss{width:17px;background:rgba(255,120,120,.32);}
 .fpip.boss.done{background:var(--accent);}
 .fpip.boss.now{background:#FF8A8A;box-shadow:0 0 8px #FF8A8A;}
-#leaderChips{flex:1;min-width:0;display:flex;gap:4px;justify-content:flex-end;overflow:hidden;}
-.ls-chip{
-  display:flex;flex-direction:column;gap:1px;flex-shrink:1;min-width:0;
-  background:rgba(255,198,92,.10);border:1px solid rgba(255,198,92,.28);
-  border-radius:8px;padding:3px 7px;max-width:44%;
-}
-.ls-who{font-size:7px;font-weight:900;letter-spacing:.08em;color:var(--accent);}
-.ls-name{font-size:9.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#battleInfoBtn{position:absolute;right:8px;top:6px;z-index:2;}
 
 #enemyStage{
   position:relative;flex:1 1 auto;min-height:0;
@@ -357,15 +343,11 @@ button{font-family:inherit;cursor:pointer;}
   animation:idleFloat 3.2s ease-in-out infinite;
 }
 @keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
-#enemyMeta{width:100%;display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:var(--ink-dim);}
-#enemyMeta b{color:var(--ink);font-size:12.5px;}
+#enemyMeta{width:100%;display:flex;justify-content:flex-end;align-items:baseline;font-size:10px;color:var(--ink-dim);}
 #enemyTurn{color:#FFB4B4;font-weight:700;}
 .enemy-hp{width:100%;display:flex;align-items:center;gap:8px;}
 .enemy-hp .hpbar{flex:1;}
 #enemyHPText{font-size:10px;color:var(--ink-dim);font-variant-numeric:tabular-nums;flex-shrink:0;}
-#enemyTurnPips{display:flex;gap:4px;}
-.tpip{width:7px;height:7px;border-radius:50%;background:#FF8A8A;box-shadow:0 0 7px rgba(255,138,138,.7);}
-.tpip.spent{background:rgba(255,255,255,0.15);box-shadow:none;}
 
 #partyBox{display:flex;flex-direction:column;gap:6px;}
 #partyRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
@@ -390,15 +372,14 @@ button{font-family:inherit;cursor:pointer;}
 }
 .unit-badge.leader{background:linear-gradient(180deg,var(--gold-1),var(--gold-2));color:#2A1A05;}
 .unit-badge.support{background:linear-gradient(180deg,#B6EEFF,#2F9FD1);color:#04202E;}
-.unit-name{font-size:8.5px;color:var(--ink-dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.unit-skill{position:relative;width:100%;height:12px;border-radius:6px;overflow:hidden;
-  background:rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;}
-.unit-skill-fill{position:absolute;left:0;top:0;bottom:0;width:0%;
-  background:linear-gradient(90deg,rgba(69,200,241,.55),rgba(255,198,92,.75));transition:width .35s ease;}
-.unit.ready .unit-skill-fill{background:linear-gradient(90deg,var(--gold-2),var(--gold-1));animation:skillPulse 1.4s ease-in-out infinite;}
-@keyframes skillPulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.35);}}
-.unit-skill-text{position:relative;font-size:7.5px;font-weight:700;color:var(--ink);
-  text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;padding:0 2px;}
+.unit-cd{
+  position:absolute;right:-8px;top:-6px;min-width:17px;height:17px;padding:0 3px;
+  border-radius:9px;background:rgba(8,10,22,.92);border:1px solid rgba(255,255,255,.3);
+  color:var(--ink);font-size:9.5px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.45);
+}
+.unit.ready{animation:skillPulse 1.4s ease-in-out infinite;}
+@keyframes skillPulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.28);}}
 .unit.acting{animation:unitAct .45s ease;}
 @keyframes unitAct{0%{transform:translateY(0);}35%{transform:translateY(-7px) scale(1.06);}100%{transform:translateY(0);}}
 .unit-pops{position:absolute;left:0;right:0;top:-4px;height:0;pointer-events:none;}
@@ -460,7 +441,7 @@ button{font-family:inherit;cursor:pointer;}
 #banner .bskill{color:var(--accent-3);}
 
 #boardWrap{
-  position:relative;align-self:center;padding:8px;flex-shrink:0;
+  position:relative;align-self:center;padding:5px;flex-shrink:0;
   border-radius:24px;
   background:linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025));
   border:1px solid var(--panel-border-hi);
@@ -727,7 +708,6 @@ input[type=range]{accent-color:var(--accent);}
 
 /* ===================== 小さい端末 ===================== */
 @media (max-height:740px){
-  #homeHero h1{font-size:23px;}
   #enemyEmoji{font-size:clamp(40px, 11vh, 84px);}
   #enemyStage{padding:6px 11px 9px;gap:4px;}
   #enemyMeta{font-size:9.5px;}
@@ -753,7 +733,7 @@ input[type=range]{accent-color:var(--accent);}
 .portrait .p-face{display:flex;align-items:center;justify-content:center;
   width:100%;height:100%;border-radius:12px;overflow:hidden;}
 .portrait.big .p-face{border-radius:19px;}
-.ps-cell .p-face,.pm-slot .p-face{border-radius:9px;}
+.ps-cell .p-face{border-radius:9px;}
 .p-emoji{font-size:25px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
 .p-img{width:100%;height:100%;object-fit:cover;display:block;}
 .portrait.big .p-emoji{font-size:42px;}

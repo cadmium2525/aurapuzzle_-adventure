@@ -50,19 +50,9 @@
   <main>
     <!-- ===================== ホーム ===================== -->
     <section class="screen active" id="screen-home">
-      <div id="homeHero">
-        <div class="hero-glow"></div>
-        <h1>オーラコネクト</h1>
-        <p>オーラをつないで、仲間と共に挑め</p>
-      </div>
-
-      <div class="card leader-card" id="homeLeaderCard">
-        <div class="cardtitle">
-          <span>出撃パーティ</span>
-          <button class="linkbtn" data-nav="character">編成する ›</button>
-        </div>
-        <div id="homeLeaderBox"></div>
-        <div id="homePartyRow" class="party-mini"></div>
+      <div id="homePartyStage">
+        <button class="linkbtn" id="homeEditBtn" data-nav="character">編成する ›</button>
+        <div id="homePartyArt"></div>
       </div>
 
       <div class="menu-grid">
@@ -88,28 +78,19 @@
 
     <!-- ===================== バトル ===================== -->
     <section class="screen" id="screen-battle">
-      <div id="battleHead">
-        <div class="bh-left">
-          <div id="battleStageName">ステージ</div>
-          <div id="floorPips"></div>
-        </div>
-        <div id="leaderChips"></div>
-        <button id="battleInfoBtn" class="iconbtn small" aria-label="パーティ情報">ⓘ</button>
-      </div>
-
       <!-- 敵 -->
       <div id="enemyStage">
+        <div id="floorPips"></div>
+        <button id="battleInfoBtn" class="iconbtn small" aria-label="パーティ情報">ⓘ</button>
         <div class="enemy-ring"></div>
         <div id="enemyEmoji">👹</div>
         <div id="enemyMeta">
-          <b id="enemyName">エネミー</b>
           <span id="enemyTurn">攻撃まで <span id="enemyTurnCount">2</span></span>
         </div>
         <div class="enemy-hp">
           <div class="hpbar"><div class="fill enemy" id="enemyHPFill"></div></div>
           <span id="enemyHPText">0 / 0</span>
         </div>
-        <div id="enemyTurnPips"></div>
         <div id="banner"></div>
       </div>
 
