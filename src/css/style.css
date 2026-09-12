@@ -153,39 +153,33 @@ body.in-battle main{padding-left:3px;padding-right:3px;}
 #screen-home{flex:1;min-height:0;}
 #homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
 #homeEditBtn{position:absolute;right:2px;top:0;z-index:5;}
-#homePartyArt{position:relative;flex:1;min-width:0;perspective:1000px;transform-style:preserve-3d;}
-/* 前面の入れ替えはターンテーブルのように回して見せる */
-#homePartyArt.spin-r{animation:hpSpinR .42s cubic-bezier(.4,0,.4,1);}
-#homePartyArt.spin-l{animation:hpSpinL .42s cubic-bezier(.4,0,.4,1);}
-@keyframes hpSpinR{
-  0%{transform:rotateY(0deg);}
-  45%{transform:rotateY(-62deg) scale(.9);opacity:.55;}
-  55%{transform:rotateY(62deg) scale(.9);opacity:.55;}
-  100%{transform:rotateY(0deg);}
-}
-@keyframes hpSpinL{
-  0%{transform:rotateY(0deg);}
-  45%{transform:rotateY(62deg) scale(.9);opacity:.55;}
-  55%{transform:rotateY(-62deg) scale(.9);opacity:.55;}
-  100%{transform:rotateY(0deg);}
-}
-/* 立ち絵は縦横比がまちまちなので、枠を決めて object-fit で内側に収める。
-   高さ基準だけで置くと横長のイラストがステージから溢れる。 */
+#homePartyArt{position:relative;flex:1;min-width:0;perspective:1200px;}
+
+/* 回転台の3つの位置。位置クラスを付け替えるとここへ向かって動く。
+   要素を作り直すとトランジションが効かないので、home.js は中身を作り直さない。 */
 .hp-slot{
-  position:absolute;bottom:0;display:flex;align-items:flex-end;justify-content:center;
-  pointer-events:none;
+  position:absolute;bottom:0;left:50%;width:66%;height:86%;
+  display:flex;align-items:flex-end;justify-content:center;
+  pointer-events:none;transform-origin:bottom center;will-change:transform;
+  transition:transform .46s cubic-bezier(.32,.02,.26,1),
+             filter .46s ease, opacity .46s ease;
 }
-.hp-slot.lead{
-  left:50%;transform:translateX(-50%);width:68%;height:84%;z-index:3;
+.hp-slot.pos-front{
+  transform:translateX(-50%) rotateY(0deg) scale(1);
+  z-index:3;opacity:1;
   filter:drop-shadow(0 12px 26px rgba(0,0,0,.6));
 }
-/* 後ろの2人は前面の8割ほどの大きさにして、少しだけ暗く落とす */
-.hp-slot.sub{
-  width:54%;height:68%;z-index:1;
-  filter:brightness(.62) saturate(.85) drop-shadow(0 8px 18px rgba(0,0,0,.5));
+/* 奥の2人は内側を向かせて、円周上に置いたように見せる */
+.hp-slot.pos-left{
+  transform:translateX(-118%) translateY(-4%) rotateY(32deg) scale(.78);
+  z-index:1;opacity:.96;
+  filter:brightness(.58) saturate(.85) drop-shadow(0 8px 18px rgba(0,0,0,.5));
 }
-.hp-slot.sub.left{left:-3%;}
-.hp-slot.sub.right{right:-3%;}
+.hp-slot.pos-right{
+  transform:translateX(18%) translateY(-4%) rotateY(-32deg) scale(.78);
+  z-index:2;opacity:.96;
+  filter:brightness(.58) saturate(.85) drop-shadow(0 8px 18px rgba(0,0,0,.5));
+}
 
 /* 前面に出す人を入れ替える△(表示の切り替えだけで、リーダーは変わらない) */
 .hp-nav{
@@ -212,7 +206,7 @@ body.in-battle main{padding-left:3px;padding-right:3px;}
   filter:blur(5px);
 }
 .hp-emoji{font-size:104px;line-height:1;}
-.hp-slot.sub .hp-emoji{font-size:70px;}
+.hp-slot.pos-left .hp-emoji,.hp-slot.pos-right .hp-emoji{font-size:78px;}
 #homePartyArt .empty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;}
 
 /* メニュー */

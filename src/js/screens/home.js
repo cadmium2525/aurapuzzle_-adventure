@@ -1,9 +1,13 @@
 /* ===================== ホーム画面 =====================
  * 編成中の3人を1枚絵として見せる。
- * 1人を最前面の中央に、残り2人を左右の少し後ろへ小さく暗く重ねる。
+ * 3人を回転台(ターンテーブル)の上に並べ、前面・右奥・左奥の3つの位置を
+ * 持ち回る。切り替えは位置そのものを動かすので、キャラが円周上を移動して
+ * 入れ替わって見える。
  *
- * 左右の△で前面に出す人を入れ替えられるが、これは「見せ方」だけの操作で、
- * リーダー(編成の先頭)は変わらない。
+ * そのため要素は作り直さず、位置クラスの付け替えだけで動かしている。
+ * 作り直すとCSSトランジションが効かず、その場で切り替わるだけになる。
+ *
+ * 左右の△は「見せ方」だけの操作で、リーダー(編成の先頭)は変わらない。
  * ==================================================== */
 import { $, artImg } from '../core/ui.js';
 import { ownCharacters } from '../core/state.js';
@@ -11,20 +15,42 @@ import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 
 /** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
 let frontIndex = 0;
+/** いまDOMに並べている編成。変わったときだけ作り直す */
+let builtKey = '';
+let spinning = false;
 
-/**
- * 1人ぶんの立ち絵(イラストが無ければ絵文字にフォールバック)。
- * 前面に出す人は入れ替えられるので、リーダーは足元の光で示す。
- */
-function slotHTML(m, cls, isLeader) {
-  if (!m) return '';
-  const aura = AURAS[m.aura];
-  // イラストごとに余白の量が違うので、キャラ側の artScale で寄せ具合を補正する
-  const scale = m.artScale || 1;
-  return `<div class="hp-slot ${cls}${isLeader ? ' is-leader' : ''}"
-    style="--aura:${COLOR_HEX[aura.key]};--art-scale:${scale}">
-    ${artImg(m.art && m.art.full, m.portrait, 'hp')}
-  </div>`;
+/** 回転台の位置。前面から時計回りに割り当てる */
+const POSITIONS = ['pos-front', 'pos-right', 'pos-left'];
+
+function memberKey(m) {
+  return `${m.id}:${(m.art && m.art.full) || m.portrait}:${m.artScale || 1}`;
+}
+
+/** 3人ぶんの要素を作る。中身の作り直しはここだけ */
+function build(art, mons) {
+  art.innerHTML = '';
+  mons.forEach(m => {
+    const aura = AURAS[m.aura];
+    const el = document.createElement('div');
+    el.className = 'hp-slot';
+    // イラストごとに余白の量が違うので、キャラ側の artScale で寄せ具合を補正する
+    el.style.setProperty('--aura', COLOR_HEX[aura.key]);
+    el.style.setProperty('--art-scale', m.artScale || 1);
+    el.innerHTML = artImg(m.art && m.art.full, m.portrait, 'hp');
+    art.appendChild(el);
+  });
+}
+
+/** 誰をどの位置に置くかだけを更新する(ここが回転そのもの) */
+function applyPositions(mons) {
+  const art = $('homePartyArt');
+  const leader = mons[0];                       // 編成の先頭が常にリーダー
+  [...art.children].forEach((el, i) => {
+    const slot = (i - frontIndex + mons.length) % mons.length;
+    POSITIONS.forEach(p => el.classList.remove(p));
+    el.classList.add(POSITIONS[slot] || 'pos-left');
+    el.classList.toggle('is-leader', mons[i] === leader);
+  });
 }
 
 export function renderHome() {
@@ -34,6 +60,7 @@ export function renderHome() {
 
   if (!mons.length) {
     art.innerHTML = '<div class="empty">編成が空です。キャラクター画面で設定しましょう。</div>';
+    builtKey = '';
     navs.forEach(b => { if (b) b.hidden = true; });
     return;
   }
@@ -42,35 +69,19 @@ export function renderHome() {
   if (frontIndex >= mons.length) frontIndex = 0;
   navs.forEach(b => { if (b) b.hidden = mons.length < 2; });
 
-  const at = i => mons[(frontIndex + i) % mons.length];
-  const leader = mons[0];                       // 編成の先頭が常にリーダー
-  // 後ろの2人を先に描き、前面の1人を最後に重ねる
-  art.innerHTML = (mons.length > 1 ? slotHTML(at(1), 'sub left',  at(1) === leader) : '')
-    + (mons.length > 2 ? slotHTML(at(2), 'sub right', at(2) === leader) : '')
-    + slotHTML(at(0), 'lead', at(0) === leader);
+  const key = mons.map(memberKey).join('|');
+  if (key !== builtKey) { build(art, mons); builtKey = key; }
+  applyPositions(mons);
 }
 
-/**
- * 前面に出す人をずらす(リーダーは変わらない)。
- * ターンテーブルのように回して見せたいので、回転の中間で中身を差し替える。
- */
-let spinning = false;
+/** 前面に出す人をずらす(リーダーは変わらない) */
 function shiftFront(step) {
-  const n = ownCharacters().length;
-  if (n < 2 || spinning) return;
-  const art = $('homePartyArt');
+  const mons = ownCharacters();
+  if (mons.length < 2 || spinning) return;
   spinning = true;
-  art.classList.remove('spin-r', 'spin-l');
-  void art.offsetWidth;                       // アニメーションを確実に作り直す
-  art.classList.add(step > 0 ? 'spin-r' : 'spin-l');
-  setTimeout(() => {
-    frontIndex = (frontIndex + step + n) % n;
-    renderHome();
-  }, 190);                                    // 横を向いた瞬間に差し替える
-  setTimeout(() => {
-    art.classList.remove('spin-r', 'spin-l');
-    spinning = false;
-  }, 420);
+  frontIndex = (frontIndex + step + mons.length) % mons.length;
+  applyPositions(mons);
+  setTimeout(() => { spinning = false; }, 480);   // 回りきるまで次の操作を受けない
 }
 
 export function initHome() {
