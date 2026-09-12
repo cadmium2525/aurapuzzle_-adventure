@@ -196,6 +196,9 @@ function loadFloor() {
   run.enemyInterval = floor.interval;
   run.enemyTurnsLeft = floor.interval;
 
+  // 最終フロア(ボス)だけ背景を出す
+  document.body.classList.toggle('boss-floor', run.floorIndex === FLOORS_PER_STAGE - 1);
+
   $('enemyEmoji').textContent = floor.emoji;
   // ステージ名はトップバーに出す(画面上部を盤面のために空ける)
   $('screenTitle').textContent = run.stage.name + (run.hard ? ' / ハード' : '');

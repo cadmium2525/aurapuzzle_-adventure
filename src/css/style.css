@@ -125,13 +125,16 @@ body{
 main{flex:1;padding:14px 14px 6px;display:flex;flex-direction:column;gap:13px;}
 body.in-battle main{padding-left:3px;padding-right:3px;}
 
-/* ダンジョン内の背景。UIは半透明パネルなので、上に暗幕を重ねて可読性を保つ */
+/* ダンジョンの背景はボスフロアだけに出す。UIは半透明パネルなので、
+   上に暗幕を重ねて可読性を保つ */
 body.in-battle #app::before{
   content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  opacity:0;transition:opacity .7s ease;
   background:
     linear-gradient(180deg, rgba(8,4,20,.62) 0%, rgba(8,4,20,.72) 45%, rgba(8,4,20,.88) 100%),
     url('../../assets/ui/danjon_bg.webp') center top / cover no-repeat;
 }
+body.in-battle.boss-floor #app::before{opacity:1;}
 .screen{display:none;flex-direction:column;gap:13px;}
 .screen.active{display:flex;animation:screenIn .26s ease;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
@@ -222,23 +225,18 @@ body.in-battle #app::before{
 /* メニュー */
 .menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;flex:1 1 auto;grid-auto-rows:1fr;align-content:stretch;}
 .menu-tile{
-  position:relative;overflow:hidden;
-  background:linear-gradient(165deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035));
-  border:1px solid var(--panel-border);border-radius:var(--r-md);
-  padding:14px 2px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
-  font-size:10.5px;font-weight:700;color:var(--ink);
-  box-shadow:var(--shadow-1);
-  transition:transform .13s ease, border-color .2s ease;
+  /* イラストに文字が入っているので、枠もラベルも置かずアイコンだけを並べる */
+  position:relative;background:none;border:none;box-shadow:none;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .13s ease, filter .2s ease;
 }
-.menu-tile::before{content:'';position:absolute;left:50%;top:-22px;transform:translateX(-50%);
-  width:60px;height:44px;border-radius:50%;filter:blur(20px);opacity:.55;background:var(--tile,#7A47D9);}
 .menu-tile .emoji{position:relative;font-size:30px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));}
 /* メニューのアイコンは1枚のアトラス(4列×2行)にまとめて、リクエストを1回にしている */
 .menu-tile .tile-icon{
-  position:relative;width:44px;height:44px;flex-shrink:0;
+  position:relative;width:100%;max-width:92px;aspect-ratio:1;
   background-image:url('../../assets/ui/menu_atlas.webp');
   background-size:400% 200%;background-repeat:no-repeat;
-  filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.55));
 }
 .t-dungeon .tile-icon{background-position:0.0000% 0%;}
 .t-event .tile-icon{background-position:33.3333% 0%;}
@@ -249,7 +247,7 @@ body.in-battle #app::before{
 .t-mypage .tile-icon{background-position:66.6667% 100%;}
 .t-guide .tile-icon{background-position:100.0000% 100%;}
 .menu-tile span:last-child{position:relative;}
-.menu-tile:active{transform:translateY(2px) scale(.97);}
+.menu-tile:active{transform:scale(.92);filter:brightness(1.15);}
 .t-dungeon{--tile:#FF7A59;} .t-event{--tile:#FFC65C;} .t-char{--tile:#5BE08C;}
 .t-gacha{--tile:#FF86C8;} .t-shop{--tile:#45C8F1;} .t-friend{--tile:#9B7BFF;}
 .t-mypage{--tile:#65E0FF;} .t-guide{--tile:#B8A4FF;}
