@@ -1,7 +1,7 @@
 /* ===================== ホーム画面 ===================== */
 import { $ } from '../core/ui.js';
 import { ownCharacters } from '../core/state.js';
-import { AURAS, COLOR_HEX, leaderSkillOf } from '../data/gamedata.js';
+import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 import { portraitHTML, stars } from './parts.js';
 
 export function renderHome() {
@@ -16,14 +16,15 @@ export function renderHome() {
   }
 
   const leader = mons[0];
-  const ls = leaderSkillOf(leader);
+  const ls = leader.leaderSkill;
   const aura = AURAS[leader.aura];
   box.innerHTML = `
     <div class="leader-hero" style="--aura:${COLOR_HEX[aura.key]}">
       ${portraitHTML(leader, 'big')}
       <div class="lh-info">
         <div class="lh-name">${leader.name}<span class="lh-job">${leader.job}</span></div>
-        ${stars(leader.rarity)}
+        ${stars(leader.star)}
+        <div class="lh-lv">Lv${leader.level} / ${leader.maxLevel}</div>
         <div class="lh-ls"><span class="mini-tag ls">LS</span>${ls ? ls.name : '—'}
           <span class="lh-lsdesc">${ls ? ls.desc : ''}</span></div>
       </div>
@@ -33,6 +34,7 @@ export function renderHome() {
     <div class="pm-slot" style="--aura:${COLOR_HEX[AURAS[m.aura].key]}">
       ${portraitHTML(m)}
       <span class="pm-name">${m.name}</span>
+      <span class="pm-lv">Lv${m.level}</span>
       ${i === 0 ? '<span class="pm-badge">L</span>' : ''}
     </div>`).join('')
     + `<div class="pm-slot support-slot"><span class="pm-sup">🤝</span><span class="pm-name">サポート</span></div>`;

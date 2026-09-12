@@ -2,7 +2,7 @@
 import { $, toast } from '../core/ui.js';
 import { state, saveState, addCharacter } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
-import { AURAS, SHOP_ITEMS, RARITY_TITLE, characterById } from '../data/gamedata.js';
+import { AURAS, SHOP_ITEMS, RARITY_TITLE, resolveCharacter } from '../data/gamedata.js';
 import { portraitHTML } from './parts.js';
 
 export function renderShop() {
@@ -11,7 +11,7 @@ export function renderShop() {
   SHOP_ITEMS.forEach(item => {
     let visual = '', name = '', desc = '';
     if (item.type === 'character') {
-      const ch = characterById(item.charId);
+      const ch = resolveCharacter(item.charId, null, 1);
       visual = portraitHTML(ch);
       name = `${ch.name}<span class="shop-job">${ch.job}</span>`;
       desc = `${AURAS[ch.aura].emoji}${AURAS[ch.aura].name} ・ ${RARITY_TITLE[ch.rarity]} ・ ATK ${ch.atk} / HP ${ch.hp}`;

@@ -176,6 +176,10 @@
           <div id="teamLeaderSkill"></div>
         </div>
         <div class="card">
+          <div class="cardtitle"><span>進化素材</span><span class="hint">ダンジョンで集まる</span></div>
+          <div id="materialList" class="material-grid"></div>
+        </div>
+        <div class="card">
           <div class="cardtitle"><span>所持キャラクター</span><span class="hint" id="ownedCount"></span></div>
           <div id="ownedList" class="stack"></div>
         </div>
@@ -191,16 +195,26 @@
 
     <!-- ===================== ガチャ ===================== -->
     <section class="screen" id="screen-gacha">
-      <div class="gacha-card g-frepo">
-        <div class="gtitle">🎗️ フレポガチャ</div>
-        <div class="gcost">N〜SR中心 ・ 1回 300 フレポ</div>
-        <button class="btn" id="frepoGachaBtn">1回引く</button>
-      </div>
+      <div class="pickup-card" id="pickupBox"></div>
+
       <div class="gacha-card g-orb">
-        <div class="gtitle">💎 オーブガチャ</div>
-        <div class="gcost">全レアリティ登場(最大UR) ・ 1回 5 オーブ</div>
-        <button class="btn" id="orbGachaBtn">1回引く</button>
+        <div class="gtitle">💎 オーブ召喚</div>
+        <div class="gcost">ピックアップ開催中 ・ 最高レア SSR(★4)</div>
+        <div class="gbtns">
+          <button class="btn secondary" id="orbGacha1Btn">1回 <b id="orbCost1">5</b>💎</button>
+          <button class="btn" id="orbGacha10Btn">10連 <b id="orbCost10">45</b>💎<i>★3以上確定</i></button>
+        </div>
       </div>
+
+      <div class="gacha-card g-frepo">
+        <div class="gtitle">🎗️ フレポ召喚</div>
+        <div class="gcost">N〜SR中心 ・ 毎日のあいさつで引ける</div>
+        <div class="gbtns">
+          <button class="btn secondary" id="frepoGacha1Btn">1回 <b id="frepoCost1">300</b></button>
+          <button class="btn" id="frepoGacha10Btn">10連 <b id="frepoCost10">2700</b><i>★2以上確定</i></button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="cardtitle"><span>排出レアリティ</span></div>
         <div id="gachaRates" class="stack"></div>
@@ -327,10 +341,21 @@
 <div class="modal" id="charDetailModal">
   <div class="modal-card wide">
     <div id="charDetailBody"></div>
+    <div class="evo-box" id="charEvolveBox"></div>
     <div class="detail-actions">
-      <button class="btn block" id="charDetailActionBtn">編成する</button>
+      <button class="btn evo block" id="charEvolveBtn">進化する</button>
+      <button class="btn block mt6" id="charDetailActionBtn">編成する</button>
       <button class="btn secondary block mt6" id="charDetailCloseBtn">閉じる</button>
     </div>
+  </div>
+</div>
+
+<!-- ===================== 進化演出 ===================== -->
+<div class="modal" id="evoResultModal">
+  <div class="modal-card" id="evoResultCard">
+    <h3>EVOLUTION</h3>
+    <div id="evoResultBody"></div>
+    <button class="btn block mt8" id="evoResultCloseBtn">閉じる</button>
   </div>
 </div>
 
@@ -345,16 +370,31 @@
   </div>
 </div>
 
+<!-- ===================== 召喚演出 ===================== -->
+<div class="gacha-stage" id="gachaStage">
+  <div class="gs-veil"></div>
+  <div class="gs-rays"></div>
+  <div class="gs-circle gs-c1"></div>
+  <div class="gs-circle gs-c2"></div>
+  <div class="gs-circle gs-c3"></div>
+  <div class="gs-core"></div>
+  <div class="gs-orbs" id="gachaOrbs"></div>
+  <div class="gs-tease" id="gachaTease"></div>
+  <div class="gs-flash"></div>
+  <div class="gs-hint">タップでスキップ</div>
+</div>
+
 <!-- ===================== ガチャ結果 ===================== -->
 <div class="modal" id="pullOverlay">
   <div class="modal-card" id="pullCard">
-    <div class="pull-burst"></div>
-    <div class="pemoji" id="pullEmoji">✨</div>
-    <div class="pname" id="pullName">?</div>
-    <div class="pstars" id="pullStars">★</div>
-    <div class="pstats" id="pullStats"></div>
-    <div class="pskills" id="pullSkills"></div>
-    <button class="btn block" id="pullCloseBtn">受け取る</button>
+    <div class="pull-counter" id="pullCounter"></div>
+    <div id="pullBody"></div>
+    <div id="pullSummaryWrap" style="display:none;">
+      <h3>召喚結果</h3>
+      <div class="pull-summary" id="pullSummary"></div>
+    </div>
+    <button class="btn ghost block mt6" id="pullSkipBtn">スキップ</button>
+    <button class="btn block mt6" id="pullCloseBtn">受け取る</button>
   </div>
 </div>
 

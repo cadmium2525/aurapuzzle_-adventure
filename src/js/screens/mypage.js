@@ -4,7 +4,7 @@ import {
   state, saveState, resetState, maxStamina, ownedCharacters, DEFAULT_ICONS
 } from '../core/state.js';
 import { updateProfile, updateRentalCharacter, cloudEnabled } from '../core/friends.js';
-import { expToNextRank, characterById, AURAS, COLOR_HEX } from '../data/gamedata.js';
+import { expToNextRank } from '../data/gamedata.js';
 import { charRowHTML } from './parts.js';
 
 let editingIcon = state.profile.icon;

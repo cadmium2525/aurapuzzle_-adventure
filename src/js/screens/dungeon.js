@@ -8,8 +8,8 @@ import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js
 import { updateStatusBar } from '../core/nav.js';
 import {
   STAGES, FLOORS_PER_STAGE, HARD_REWARD_MULT, HARD_STAMINA_MULT,
-  AURAS, COLOR_HEX, characterById, availableNpcSupports, NPC_SUPPORTS,
-  leaderSkillOf
+  AURAS, COLOR_HEX, characterById, resolveCharacter,
+  availableNpcSupports, NPC_SUPPORTS, materialById, crystalIdFor
 } from '../data/gamedata.js';
 import { startDungeonRun } from '../battle/battle.js';
 import { fetchFriendRentals } from '../core/friends.js';
@@ -59,14 +59,17 @@ async function openSupportPick(stage, hard) {
 /** サポート候補1件ぶんの行を作る */
 function supportRow(ch, ownerName, ownerIcon, isNpc, note) {
   const aura = AURAS[ch.aura];
-  const ls = leaderSkillOf(ch);
+  const ls = ch.leaderSkill;
   const row = document.createElement('div');
   row.className = 'support-row' + (isNpc ? ' npc' : '');
   row.style.setProperty('--aura', COLOR_HEX[aura.key]);
   row.innerHTML = `
     ${portraitHTML(ch)}
     <div class="cinfo">
-      <div class="cname">${ch.name}<span class="owner">${ownerIcon || '🙂'} ${ownerName}</span></div>
+      <div class="cname">${ch.name}
+        <span class="sup-lv">Lv${ch.level}</span>
+        ${ch.evolved ? '<span class="evo-tag">進化</span>' : ''}
+        <span class="owner">${ownerIcon || '🙂'} ${ownerName}</span></div>
       <div class="cstats"><b>ATK</b>${ch.atk} <b>HP</b>${ch.hp} <b>RCV</b>${ch.rcv}</div>
       <div class="cskills"><span class="mini-tag ls">LS</span>${ls ? ls.name : '—'}
         <span class="ls-desc">${ls ? ls.desc : ''}</span></div>
@@ -96,7 +99,7 @@ function renderSupportList() {
       return;
     }
     friendRentals.forEach(f => {
-      const ch = characterById(f.charId);
+      const ch = resolveCharacter(f.charId, f.star, f.lv);
       if (!ch) return;
       box.appendChild(supportRow(ch, f.name, f.icon, false));
     });
@@ -106,7 +109,7 @@ function renderSupportList() {
   // NPCサポート(ランクで解放)
   const avail = availableNpcSupports(state.rank);
   avail.forEach(n => {
-    const ch = characterById(n.charId);
+    const ch = resolveCharacter(n.charId, n.star, n.level);
     if (!ch) return;
     box.appendChild(supportRow(ch, n.name, n.icon, true));
   });
@@ -152,6 +155,7 @@ export function renderDungeon() {
     const orb = stage.orbReward
       ? ` 💎${dungeonHard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward}` : '';
     const record = state.records[stage.id + '_' + (dungeonHard ? 'hard' : 'normal')];
+    const dropMat = materialById(crystalIdFor(stage.dropAura));
 
     const div = document.createElement('div');
     div.className = 'stage-card' + (isLocked ? ' locked' : '') + (cleared ? ' cleared' : '');
@@ -161,7 +165,7 @@ export function renderDungeon() {
         <div class="sname">${stage.name}${dungeonHard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
         <div class="ssub">全${FLOORS_PER_STAGE}フロア ・ 💰${rewardCoin} 🎗️${rewardFrepo}${orb}</div>
-        <div class="ssub dim">${record ? `最高コンボ ${record.maxChain}` : '未挑戦'}</div>
+        <div class="ssub dim">${dropMat.emoji}${dropMat.name} ドロップ ・ ${record ? `最高コンボ ${record.maxChain}` : '未挑戦'}</div>
       </div>
       <div class="scost">
         <span class="stcost${enough || isLocked ? '' : ' short'}">⚡${cost}</span>

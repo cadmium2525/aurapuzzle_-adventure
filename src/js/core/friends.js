@@ -4,7 +4,7 @@
  * 登録時ボーナス/毎日のあいさつでフレンドポイント(フレポ)を稼げる。
  * =======================================================*/
 import { FB, firebaseEnabled, initFirebase, getUid } from './firebase.js';
-import { state, saveState, onSave } from './state.js';
+import { state, saveState, onSave, entryOf } from './state.js';
 import {
   FRIEND_ADD_REWARD, FRIEND_ADD_REWARD_OTHER,
   FRIEND_GREET_REWARD, FRIEND_GREET_REWARD_OTHER, MAX_FRIENDS
@@ -76,7 +76,7 @@ async function pushCloudSave() {
       coin: state.coin, frepo: state.frepo, orb: state.orb,
       rank: state.rank, exp: state.exp,
       stamina: state.stamina, staminaAt: state.staminaAt,
-      characters: state.characters, team: state.team,
+      characters: state.characters, materials: state.materials, team: state.team,
       progress: state.progress, records: state.records,
       updatedAt: FB.serverTimestamp()
     });
@@ -102,8 +102,15 @@ export async function updateRentalCharacter(charId) {
   state.profile.rentalCharId = charId || null;
   saveState();
   if (firebaseEnabled() && myUid) {
-    try { await FB.updateDoc(FB.doc(FB.db, 'users', myUid), { rentalCharId: charId || null, updatedAt: FB.serverTimestamp() }); }
-    catch (e) { /* noop */ }
+    const e = charId ? entryOf(charId) : null;
+    try {
+      await FB.updateDoc(FB.doc(FB.db, 'users', myUid), {
+        rentalCharId: charId || null,
+        rentalStar: e ? e.star : null,
+        rentalLv: e ? e.lv : null,
+        updatedAt: FB.serverTimestamp()
+      });
+    } catch (err) { /* noop */ }
   }
 }
 
@@ -122,7 +129,10 @@ export async function fetchFriendRentals() {
       const d = snap.data();
       const charId = d.rentalCharId || d.rentalMonsterId;
       if (charId) {
-        results.push({ uid: f.uid, name: d.name || f.name, icon: d.icon || f.icon, charId });
+        results.push({
+          uid: f.uid, name: d.name || f.name, icon: d.icon || f.icon,
+          charId, star: d.rentalStar || null, lv: d.rentalLv || 1
+        });
       }
     } catch (e) { /* noop */ }
   }
