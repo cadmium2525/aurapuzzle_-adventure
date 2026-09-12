@@ -1,7 +1,7 @@
 /* ===================== マイページ画面 ===================== */
-import { $, toast } from '../core/ui.js';
+import { $, toast, artImg } from '../core/ui.js';
 import {
-  state, saveState, resetState, maxStamina, ownedCharacters, DEFAULT_ICONS
+  state, saveState, resetState, maxStamina, ownedCharacters, resolveOwned
 } from '../core/state.js';
 import { updateProfile, updateRentalCharacter, cloudEnabled } from '../core/friends.js';
 import {
@@ -10,8 +10,7 @@ import {
 import { getUid } from '../core/firebase.js';
 import { expToNextRank } from '../data/gamedata.js';
 import { charRowHTML } from './parts.js';
-
-let editingIcon = state.profile.icon;
+import { updateStatusBar } from '../core/nav.js';
 
 export function renderMypage() {
   $('bgmRange').value = state.settings.bgm;
@@ -23,10 +22,8 @@ export function renderMypage() {
     + (over ? ' <span class="overtag">OVER</span>' : '');
   $('profileNameInput').value = state.profile.name;
   $('profileRankText').textContent = `Rank ${state.rank} ・ ${state.settings.playerId}`;
-  editingIcon = state.profile.icon;
-  $('profileAvatar').textContent = editingIcon;
-  renderIconGrid();
-  renderRentalList();
+  renderProfileAvatar();
+  renderRentalNow();
   $('cloudStatusText').textContent = cloudEnabled()
     ? 'クラウド保存: 有効(フレンドデータはFirebaseに保存されます)'
     : 'クラウド保存: 未設定(フレンド機能を使うにはFirebase設定が必要です)';
@@ -112,46 +109,44 @@ function initAccount() {
   });
 }
 
-function renderIconGrid() {
-  const grid = $('iconGrid');
-  grid.innerHTML = '';
-  DEFAULT_ICONS.forEach(ic => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'icon-choice' + (ic === editingIcon ? ' active' : '');
-    b.textContent = ic;
-    b.addEventListener('click', () => {
-      editingIcon = ic;
-      $('profileAvatar').textContent = ic;
-      renderIconGrid();
-    });
-    grid.appendChild(b);
-  });
+/** プロフィール欄のアバター(=貸し出しキャラ) */
+function renderProfileAvatar() {
+  const el = $('profileAvatar');
+  const ch = state.profile.rentalCharId ? resolveOwned(state.profile.rentalCharId) : null;
+  el.innerHTML = ch ? artImg(ch.art && ch.art.icon, ch.portrait, 'pi') : '<span class="pi-emoji">🙂</span>';
 }
 
-/** フレンドに貸し出すキャラクターの選択リスト */
-function renderRentalList() {
-  const box = $('rentalList');
-  box.innerHTML = '';
+function renderRentalNow() {
+  const ch = state.profile.rentalCharId ? resolveOwned(state.profile.rentalCharId) : null;
+  $('rentalNowText').textContent = ch ? `現在: ${ch.name}` : '未設定(タップして選べます)';
+}
+
+/** 貸し出しキャラクター(=アイコン)の選択。トップバーのアイコンからも開く */
+export function openRentalPicker() {
+  const box = $('rentalPickList');
   const owned = ownedCharacters();
+  box.innerHTML = '';
   if (!owned.length) {
     box.innerHTML = '<div class="empty">まだ仲間がいません。</div>';
-    return;
-  }
-  owned.forEach(ch => {
-    const isRental = state.profile.rentalCharId === ch.id;
-    const row = document.createElement('div');
-    row.className = 'char-row' + (isRental ? ' in-team' : '');
-    row.innerHTML = charRowHTML(ch, state.characters[ch.id])
-      + `<div class="row-actions"><button class="btn ${isRental ? '' : 'secondary'} selbtn">${isRental ? '貸出中' : '貸し出す'}</button></div>`;
-    row.querySelector('button').addEventListener('click', async () => {
-      const next = isRental ? null : ch.id;
-      await updateRentalCharacter(next);
-      toast(next ? `${ch.name}をフレンドに貸し出します` : '貸し出しを解除しました');
-      renderRentalList();
+  } else {
+    owned.forEach(ch => {
+      const isRental = state.profile.rentalCharId === ch.id;
+      const row = document.createElement('div');
+      row.className = 'char-row' + (isRental ? ' in-team' : '');
+      row.innerHTML = charRowHTML(ch, state.characters[ch.id])
+        + `<div class="row-actions"><button class="btn ${isRental ? '' : 'secondary'} selbtn">${isRental ? '選択中' : '選ぶ'}</button></div>`;
+      row.querySelector('button').addEventListener('click', async () => {
+        await updateRentalCharacter(ch.id);
+        toast(`${ch.name}をアイコンと貸し出しに設定しました`);
+        updateStatusBar();
+        renderProfileAvatar();
+        renderRentalNow();
+        openRentalPicker();
+      });
+      box.appendChild(row);
     });
-    box.appendChild(row);
-  });
+  }
+  $('rentalPickModal').classList.add('show');
 }
 
 export function initMypage() {
@@ -163,10 +158,14 @@ export function initMypage() {
     catch (e) { toast(state.settings.playerId); }
   });
 
+  $('openRentalPickBtn').addEventListener('click', openRentalPicker);
+  $('rentalPickCloseBtn').addEventListener('click', () => $('rentalPickModal').classList.remove('show'));
+
   $('saveProfileBtn').addEventListener('click', async () => {
     const name = ($('profileNameInput').value || '').trim().slice(0, 12) || 'プレイヤー';
-    await updateProfile(name, editingIcon);
-    toast('プロフィールを保存しました');
+    await updateProfile(name, state.profile.icon);
+    toast('名前を保存しました');
+    updateStatusBar();
     renderMypage();
   });
 

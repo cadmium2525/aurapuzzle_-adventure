@@ -5,14 +5,16 @@
 import { $, toast } from '../core/ui.js';
 import {
   state, saveState, ownedCharacters, ownCharacters, resolveOwned,
-  entryOf, evolveCheck, evolveCharacter, materialCount
+  entryOf, evolveCheck, evolveCharacter, materialCount,
+  awakenCheck, awakenCharacter
 } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
-  BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE
+  BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE,
+  AWAKEN_MAX, awakenStepsFor
 } from '../data/gamedata.js';
-import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML } from './parts.js';
+import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML, awakenPipsHTML } from './parts.js';
 
 let tab = 'team';
 let detailId = null;          // 詳細を開いているキャラのID
@@ -31,6 +33,7 @@ export function initCharacter() {
     closeDetail();
   });
   $('charEvolveBtn').addEventListener('click', doEvolve);
+  $('charAwakenBtn').addEventListener('click', doAwaken);
   $('evoResultCloseBtn').addEventListener('click', () => {
     $('evoResultModal').classList.remove('show');
   });
@@ -134,6 +137,56 @@ function renderEvolveBox(id) {
   btn.textContent = check.ok ? `★${check.nextStar} へ進化する` : '進化できません';
 }
 
+/* ===================== 開眼 ===================== */
+/** 詳細モーダルの開眼セクションを描く */
+function renderAwakenBox(id) {
+  const box = $('charAwakenBox');
+  const btn = $('charAwakenBtn');
+  const e = entryOf(id);
+  const base = characterById(id);
+  if (!e || !base) { box.style.display = 'none'; btn.style.display = 'none'; return; }
+
+  const cur = Math.min(AWAKEN_MAX, e.awa || 0);
+  const steps = awakenStepsFor(base);
+  const check = awakenCheck(id);
+  box.style.display = 'block';
+
+  const rows = steps.map((st, i) => {
+    const done = i < cur;
+    const next = i === cur;
+    return `<div class="aw-row${done ? ' done' : ''}${next ? ' next' : ''}">
+      <span class="aw-no">${i + 1}</span>
+      <span class="aw-eff">${st.label}</span>
+      ${done ? '<i>✔</i>' : (next ? '<i class="aw-nexttag">次</i>' : '')}
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="evo-title">開眼 ${awakenPipsHTML(cur, AWAKEN_MAX)}
+      <span class="evo-next">${cur} / ${AWAKEN_MAX}</span></div>
+    <div class="aw-list">${rows}</div>
+    <div class="evo-req${(e.n || 0) >= 2 ? ' ok' : ''}">
+      <span>同じキャラクター(手持ち)</span><b>${e.n || 0} / 2</b>${(e.n || 0) >= 2 ? '<i>✔</i>' : ''}
+    </div>
+    <div class="evo-note">開眼すると同じキャラクターを1体使います。</div>
+    ${check.ok || cur >= AWAKEN_MAX ? '' : `<div class="evo-note warn">${check.reason}</div>`}`;
+
+  if (cur >= AWAKEN_MAX) { btn.style.display = 'none'; return; }
+  btn.style.display = 'block';
+  btn.disabled = !check.ok;
+  btn.textContent = check.ok ? `開眼する(${cur + 1}段階目)` : '開眼できません';
+}
+
+function doAwaken() {
+  if (!detailId) return;
+  const res = awakenCharacter(detailId);
+  if (!res.ok) { toast(res.message); return; }
+  toast(`開眼 ${res.to} 段階目: ${res.step ? res.step.label : ''}`);
+  updateStatusBar();
+  openDetail(detailId, detailOwned);
+  renderTeamPane();
+}
+
 function doEvolve() {
   if (!detailId) return;
   const res = evolveCharacter(detailId);
@@ -181,8 +234,11 @@ function openDetail(id, canEquip) {
   btn.style.display = (canEquip && owned) ? 'block' : 'none';
   btn.textContent = inTeam ? '編成から外す' : '編成に入れる';
   btn.className = 'btn block' + (inTeam ? ' secondary' : '');
-  if (owned) renderEvolveBox(id);
-  else { $('charEvolveBox').style.display = 'none'; $('charEvolveBtn').style.display = 'none'; }
+  if (owned) { renderEvolveBox(id); renderAwakenBox(id); }
+  else {
+    $('charEvolveBox').style.display = 'none'; $('charEvolveBtn').style.display = 'none';
+    $('charAwakenBox').style.display = 'none'; $('charAwakenBtn').style.display = 'none';
+  }
   $('charDetailModal').classList.add('show');
 }
 

@@ -8,6 +8,7 @@ import { Store } from './storage.js';
 import { uid } from './ui.js';
 import {
   CHARACTERS, characterById, characterByAuraRarity, resolveCharacter,
+  AWAKEN_MAX, awakenStepsFor, awakenModsFor,
   maxLevelFor, expToNextCharLevel, canEvolveChar, finalStarOf, MAX_RARITY, TEAM_SIZE,
   MATERIALS, crystalIdFor, evolveCostTo,
   STAMINA_REGEN_MS, STAMINA_BASE_MAX, STAMINA_PER_RANK, expToNextRank
@@ -24,7 +25,7 @@ const STARTER_IDS = ['fl_rito', 'aq_mio', 'lm_mina'];
 /** 所持キャラ1件ぶんの初期値 */
 function newEntry(charId) {
   const base = characterById(charId);
-  return { n: 1, star: base ? base.rarity : 1, lv: 1, xp: 0 };
+  return { n: 1, star: base ? base.rarity : 1, lv: 1, xp: 0, awa: 0 };
 }
 
 function emptyMaterials() {
@@ -88,7 +89,7 @@ function migrate(old) {
     if (!to) return;
     const src = ownedSrc[id];
     const base = characterById(to);
-    const entry = owned[to] || { n: 0, star: base.rarity, lv: 1, xp: 0 };
+    const entry = owned[to] || { n: 0, star: base.rarity, lv: 1, xp: 0, awa: 0 };
     if (typeof src === 'number') {
       entry.n += src;                       // v5 以前:所持数のみ
     } else if (src && typeof src === 'object') {
@@ -96,6 +97,7 @@ function migrate(old) {
       entry.star = Math.max(entry.star, Math.min(finalStarOf(base), src.star || base.rarity));
       entry.lv = Math.max(entry.lv, src.lv || 1);
       entry.xp = src.xp || 0;
+      entry.awa = Math.max(entry.awa || 0, Math.min(AWAKEN_MAX, src.awa || 0));
     }
     entry.lv = Math.min(entry.lv, maxLevelFor(entry.star));
     owned[to] = entry;
@@ -161,8 +163,55 @@ export function resolveOwned(charId) {
   const e = entryOf(charId);
   if (!e) return null;
   const ch = resolveCharacter(charId, e.star, e.lv);
-  if (ch) { ch.xp = e.xp || 0; ch.count = e.n; }
+  if (!ch) return null;
+  ch.xp = e.xp || 0;
+  ch.count = e.n;
+  ch.awaken = Math.min(AWAKEN_MAX, e.awa || 0);
+
+  // 開眼ぶんを反映する。操作時間だけはパーティ単位なので party.js で合算する
+  const mods = awakenModsFor(characterById(charId), ch.awaken);
+  ch.awakenMods = mods;
+  if (ch.awaken > 0) {
+    ch.atk = Math.round(ch.atk * mods.atk);
+    ch.hp  = Math.round(ch.hp  * mods.hp);
+    ch.rcv = Math.round(ch.rcv * mods.rcv);
+    if (ch.skill && mods.cdCut > 0) {
+      ch.skill = { ...ch.skill, cooldown: Math.max(3, ch.skill.cooldown - mods.cdCut) };
+    }
+  }
   return ch;
+}
+
+/* ===================== 開眼 ===================== */
+/**
+ * 開眼の可否を返す。同じキャラを1体消費するので手持ちが2体以上必要。
+ * @returns {{ok:boolean, reason:string, next:number, step:object|null}}
+ */
+export function awakenCheck(charId) {
+  const e = entryOf(charId);
+  const base = characterById(charId);
+  if (!e || !base) return { ok: false, reason: '所持していません', next: 0, step: null };
+  const cur = Math.min(AWAKEN_MAX, e.awa || 0);
+  if (cur >= AWAKEN_MAX) return { ok: false, reason: '開眼は最大です', next: cur, step: null };
+  const step = awakenStepsFor(base)[cur] || null;
+  if ((e.n || 0) < 2) {
+    return { ok: false, reason: '同じキャラクターがもう1体必要です', next: cur + 1, step };
+  }
+  return { ok: true, reason: '', next: cur + 1, step };
+}
+
+/**
+ * 開眼を実行する(同キャラを1体消費)。
+ * @returns {{ok:boolean, message:string, step?:object, to?:number}}
+ */
+export function awakenCharacter(charId) {
+  const check = awakenCheck(charId);
+  if (!check.ok) return { ok: false, message: check.reason };
+  const e = entryOf(charId);
+  e.n -= 1;
+  e.awa = check.next;
+  saveState();
+  return { ok: true, message: '', step: check.step, to: check.next };
 }
 
 /** 自分の編成キャラ(空きスロットは除外) */

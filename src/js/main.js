@@ -10,7 +10,7 @@ import { initCharacter, renderCharacterScreen } from './screens/character.js';
 import { initGacha, renderGacha } from './screens/gacha.js';
 import { renderShop } from './screens/shop.js';
 import { renderGuide } from './screens/guide.js';
-import { initMypage, renderMypage } from './screens/mypage.js';
+import { initMypage, renderMypage, openRentalPicker } from './screens/mypage.js';
 import { initFriends, renderFriends } from './screens/friends.js';
 import { initCloud } from './core/friends.js';
 import { applyAdminGrant } from './core/account.js';
@@ -32,6 +32,8 @@ initCharacter();
 initGacha();
 initHome();
 initMypage();
+document.getElementById('statusProfileIcon')
+  .addEventListener('click', openRentalPicker);
 initFriends();
 initBattle();
 

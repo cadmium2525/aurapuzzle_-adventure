@@ -46,6 +46,7 @@ export function charRowHTML(ch, count) {
       <div class="cname">${ch.name}${countHTML}
         <span class="rarity-tag" style="--rare:${RARITY_HEX[ch.star || ch.rarity]}">${RARITY_TITLE[ch.star || ch.rarity]}</span>
         ${ch.evolved ? '<span class="evo-tag">進化</span>' : ''}
+        ${ch.awaken ? awakenPipsHTML(ch.awaken, 4) : ''}
       </div>
       <div class="cmeta">${aura.emoji}${aura.name} ・ ${ch.job} ・ ${ROLE_LABEL[ch.role]}</div>
       <div class="cstats"><b>ATK</b>${ch.atk} <b>HP</b>${ch.hp} <b>RCV</b>${ch.rcv}</div>
@@ -55,6 +56,14 @@ export function charRowHTML(ch, count) {
         <span class="mini-tag sk">SK</span>${sk ? sk.name : '—'}
       </div>
     </div>`;
+}
+
+/** 開眼の段階を◆で示す */
+export function awakenPipsHTML(awa, max) {
+  const n = max || 4;
+  let out = '';
+  for (let i = 0; i < n; i++) out += `<span class="aw-pip${i < awa ? ' on' : ''}">◆</span>`;
+  return `<span class="aw-pips">${out}</span>`;
 }
 
 /** キャラ詳細(モーダル用) */
@@ -75,6 +84,7 @@ export function charDetailHTML(ch, extra) {
           <span class="chip aura">${aura.emoji} ${aura.name}オーラ</span>
           <span class="chip">${ROLE_LABEL[ch.role]}</span>
           ${ch.evolved ? '<span class="chip evo">進化済</span>' : ''}
+          ${ch.awaken ? `<span class="chip awa">開眼 ${ch.awaken}</span>` : ''}
         </div>
       </div>
     </div>

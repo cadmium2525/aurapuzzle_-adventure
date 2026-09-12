@@ -1,8 +1,8 @@
 /* =========================================================
  * nav.js — 画面遷移とトップバー
  * =======================================================*/
-import { $, formatMMSS } from './ui.js';
-import { state, tickStamina, maxStamina, staminaNextInMs } from './state.js';
+import { $, formatMMSS, artImg } from './ui.js';
+import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
 import { expToNextRank } from '../data/gamedata.js';
 
 const TITLES = {
@@ -41,11 +41,28 @@ export function goBack() {
 }
 
 /* ===================== トップバー ===================== */
+/**
+ * プロフィールアイコンを描く。
+ * アイコンはフレンドへの貸し出しに設定したキャラクターのもの。
+ * 未設定・イラスト無しのときは絵文字にフォールバックする。
+ */
+function renderProfileIcon() {
+  const el = $('statusProfileIcon');
+  if (!el) return;
+  const id = state.profile.rentalCharId;
+  const ch = id ? resolveOwned(id) : null;
+  el.innerHTML = ch
+    ? artImg(ch.art && ch.art.icon, ch.portrait, 'pi')
+    : '<span class="pi-emoji">🙂</span>';
+  el.title = ch ? `${ch.name}(貸し出し中)` : '貸し出しキャラクターを選ぶ';
+}
+
 export function updateStatusBar() {
   tickStamina();
   const max = maxStamina();
   const over = state.stamina > max;     // ランクアップでオーバーフロー中
   $('statusPlayerName').textContent = state.profile.name || 'プレイヤー';
+  renderProfileIcon();
   $('curStamina').textContent = `${state.stamina}/${max}`;
   $('curStamina').classList.toggle('over', over);
   const next = staminaNextInMs();

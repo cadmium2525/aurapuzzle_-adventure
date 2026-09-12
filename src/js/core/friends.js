@@ -5,6 +5,7 @@
  * =======================================================*/
 import { FB, firebaseEnabled, initFirebase, getUid } from './firebase.js';
 import { state, saveState, onSave, entryOf } from './state.js';
+import { characterById } from '../data/characters.js';
 import {
   FRIEND_ADD_REWARD, FRIEND_ADD_REWARD_OTHER,
   FRIEND_GREET_REWARD, FRIEND_GREET_REWARD_OTHER, MAX_FRIENDS
@@ -101,6 +102,9 @@ export async function updateProfile(name, icon) {
 /** フレンドに貸し出すキャラクターを設定する(null で貸し出し解除) */
 export async function updateRentalCharacter(charId) {
   state.profile.rentalCharId = charId || null;
+  // アイコンは貸し出しキャラに連動させる(フレンド側の表示は絵文字を使う)
+  const base = charId ? characterById(charId) : null;
+  if (base) state.profile.icon = base.portrait;
   saveState();
   if (firebaseEnabled() && myUid) {
     const e = charId ? entryOf(charId) : null;

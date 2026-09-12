@@ -49,6 +49,10 @@ export function buildParty(support) {
   applyLeaderSkill(mods, leader && leader.leaderSkill);
   if (support) applyLeaderSkill(mods, support.leaderSkill);
 
+  // 開眼の操作時間ぶんはパーティ単位で合算する(自陣とサポートの両方)
+  const awakenTimeMs = members.reduce(
+    (s, m) => s + ((m.awakenMods && m.awakenMods.timeSec) || 0), 0) * 1000;
+
   const baseHP = BASE_PARTY_HP + members.reduce((s, m) => s + m.hp, 0);
   return {
     members,
@@ -60,7 +64,7 @@ export function buildParty(support) {
     maxHP: Math.round(baseHP * mods.hp),
     matchMin: mods.matchMin || MATCH_MIN_DEFAULT,
     /** リーダースキル込みの1ターンの操作時間(ms) */
-    baseDragTime: Math.min(MAX_DRAG_TIME, BASE_DRAG_TIME + mods.timeMs),
+    baseDragTime: Math.min(MAX_DRAG_TIME, BASE_DRAG_TIME + mods.timeMs + awakenTimeMs),
     skills: members.map(m => m.skill || null)
   };
 }

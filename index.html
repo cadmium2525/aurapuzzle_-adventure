@@ -26,6 +26,7 @@
     </div>
     <div id="statusBar">
       <div class="status-main">
+        <button class="profile-icon" id="statusProfileIcon" aria-label="貸し出しキャラクターを選ぶ"></button>
         <div class="stamina-block">
           <div class="player-name" id="statusPlayerName">プレイヤー</div>
           <div class="stamina-head">
@@ -219,8 +220,7 @@
             <span class="mstats" id="profileRankText">Rank 1</span>
           </div>
         </div>
-        <div id="iconGrid" class="icon-grid"></div>
-        <button class="btn block" id="saveProfileBtn">プロフィールを保存</button>
+        <button class="btn block" id="saveProfileBtn">名前を保存</button>
       </div>
 
       <div class="card">
@@ -268,8 +268,9 @@
 
       <div class="card">
         <div class="cardtitle"><span>貸し出しキャラクター</span></div>
-        <div class="mstats mb8">選んだ1人がフレンドのダンジョン挑戦時、サポート枠として借りられます。</div>
-        <div id="rentalList" class="stack"></div>
+        <div class="mstats mb8">選んだ1人がフレンドのサポート枠として借りられ、そのままあなたのアイコンになります。</div>
+        <button class="btn secondary block" id="openRentalPickBtn">キャラクターを選ぶ</button>
+        <div class="mstats mt8" id="rentalNowText">未設定</div>
       </div>
 
       <div class="card">
@@ -328,6 +329,16 @@
   </div>
 </div>
 
+<!-- ===================== 貸し出しキャラクターの選択(=アイコン) ===================== -->
+<div class="modal" id="rentalPickModal">
+  <div class="modal-card wide">
+    <h3>貸し出しキャラクター</h3>
+    <div class="mstats mb8">選んだ1人がフレンドのサポート枠に出て、あなたのアイコンにもなります。</div>
+    <div id="rentalPickList" class="stack scroll-area"></div>
+    <button class="btn secondary block mt8" id="rentalPickCloseBtn">閉じる</button>
+  </div>
+</div>
+
 <!-- ===================== スキル使用の確認 ===================== -->
 <div class="modal" id="skillConfirmModal">
   <div class="modal-card">
@@ -369,8 +380,10 @@
   <div class="modal-card wide">
     <div id="charDetailBody"></div>
     <div class="evo-box" id="charEvolveBox"></div>
+    <div class="evo-box" id="charAwakenBox"></div>
     <div class="detail-actions">
       <button class="btn evo block" id="charEvolveBtn">進化する</button>
+      <button class="btn block mt6" id="charAwakenBtn">開眼する</button>
       <button class="btn block mt6" id="charDetailActionBtn">編成する</button>
       <button class="btn secondary block mt6" id="charDetailCloseBtn">閉じる</button>
     </div>

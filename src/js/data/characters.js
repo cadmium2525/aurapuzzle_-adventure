@@ -259,6 +259,56 @@ export function characterByAuraRarity(aura, rarity) {
 }
 
 /* =========================================================
+ * 開眼
+ * 同じキャラクターを重ねて行う強化。4段階まであり、段階ごとに
+ * 別々の効果が付く。何が付くかはキャラクターによって変わる。
+ * =======================================================*/
+export const AWAKEN_MAX = 4;
+
+const AW = {
+  time: v => ({ type: 'time', value: v, label: `オーラ操作時間 +${v.toFixed(1)}秒` }),
+  cd:   v => ({ type: 'cd',   value: v, label: `スキルのクールダウン -${v}ターン` }),
+  atk:  v => ({ type: 'atk',  value: v, label: `攻撃力 +${Math.round((v - 1) * 100)}%` }),
+  hp:   v => ({ type: 'hp',   value: v, label: `HP +${Math.round((v - 1) * 100)}%` }),
+  rcv:  v => ({ type: 'rcv',  value: v, label: `回復力 +${Math.round((v - 1) * 100)}%` })
+};
+
+/** ロールごとの既定の開眼内容 */
+const AWAKEN_BY_ROLE = {
+  attacker: [AW.atk(1.10), AW.cd(1),      AW.atk(1.12), AW.time(0.5)],
+  balance:  [AW.time(0.3), AW.atk(1.08),  AW.cd(1),     AW.hp(1.10)],
+  tank:     [AW.hp(1.12),  AW.time(0.3),  AW.hp(1.12),  AW.cd(1)],
+  healer:   [AW.rcv(1.12), AW.time(0.3),  AW.rcv(1.14), AW.cd(1)]
+};
+
+/** 看板・★4は専用の並びにして、キャラごとの個性を出す */
+const AWAKEN_BY_ID = {
+  aq_kai_x:  [AW.time(0.6), AW.atk(1.12), AW.cd(2),     AW.time(0.8)],
+  fl_gald_x: [AW.atk(1.15), AW.atk(1.15), AW.cd(1),     AW.hp(1.10)],
+  aq_mio_x:  [AW.time(0.5), AW.hp(1.10),  AW.time(0.7), AW.cd(1)],
+  wd_noa_x:  [AW.rcv(1.15), AW.cd(1),     AW.rcv(1.15), AW.time(0.5)]
+};
+
+/** そのキャラの開眼4段階を返す */
+export function awakenStepsFor(base) {
+  if (!base) return [];
+  return AWAKEN_BY_ID[base.id] || AWAKEN_BY_ROLE[base.role] || AWAKEN_BY_ROLE.balance;
+}
+
+/** 開眼段階までの効果を合成する */
+export function awakenModsFor(base, awa) {
+  const mods = { atk: 1, hp: 1, rcv: 1, cdCut: 0, timeSec: 0 };
+  const steps = awakenStepsFor(base);
+  for (let i = 0; i < Math.min(awa || 0, steps.length); i++) {
+    const s = steps[i];
+    if (s.type === 'time') mods.timeSec += s.value;
+    else if (s.type === 'cd') mods.cdCut += s.value;
+    else mods[s.type] *= s.value;
+  }
+  return mods;
+}
+
+/* =========================================================
  * NPCサポート
  * フレンドがいなくてもサポート枠を必ず選べるようにするための助っ人。
  * プレイヤーランクで解放されていく。
