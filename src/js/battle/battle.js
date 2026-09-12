@@ -11,14 +11,16 @@
  *  - オーラ操作の基本時間は10秒。リーダースキルとスキルで延長して戦う。
  * =======================================================*/
 import { $, sleep, randInt, toast } from '../core/ui.js';
-import { state, saveState, gainExp, maxStamina } from '../core/state.js';
+import {
+  state, saveState, gainExp, maxStamina, gainCharExp, addMaterials
+} from '../core/state.js';
 import { showScreen, currentScreen, updateStatusBar } from '../core/nav.js';
 import { setRetreatHandler } from '../core/sysmodal.js';
 import {
   AURAS, COLORS, COLOR_HEX, HEAL_COLOR, RARITY_TITLE,
   FLOORS_PER_STAGE, HARD_HP_MULT, HARD_REWARD_MULT,
   ATTACK_SCALE, HEAL_SCALE, ORB_BONUS, COMBO_BONUS, SIMUL_BONUS,
-  MAX_DRAG_TIME, leaderSkillOf, skillOf
+  MAX_DRAG_TIME, MATERIALS, materialById, crystalIdFor
 } from '../data/gamedata.js';
 import {
   COLS, ROWS, genBoard, findGroups, applyGravityNoRefill, refillBoard,
@@ -103,7 +105,7 @@ export function startDungeonRun(stage, hard, support) {
     maxHP: party.maxHP,
     playerHP: party.maxHP,
     cooldowns: party.members.map(m => {
-      const sk = skillOf(m);
+      const sk = m.skill;
       return sk ? Math.ceil(sk.cooldown * 0.6) : 0;
     }),
     buffs: { atk: null, guard: null },
@@ -132,7 +134,7 @@ function renderParty() {
   row.innerHTML = '';
   run.party.members.forEach((m, i) => {
     const aura = AURAS[m.aura];
-    const sk = skillOf(m);
+    const sk = m.skill;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'unit r' + m.rarity + (m.isSupport ? ' support' : '');
@@ -159,7 +161,7 @@ function renderLeaderChips() {
   const box = $('leaderChips');
   box.innerHTML = '';
   run.party.leaders.forEach((m, i) => {
-    const ls = leaderSkillOf(m);
+    const ls = m.leaderSkill;
     if (!ls) return;
     const chip = document.createElement('div');
     chip.className = 'ls-chip';
@@ -174,7 +176,7 @@ function updateSkillUI() {
   run.party.members.forEach((m, i) => {
     const unit = units[i];
     if (!unit) return;
-    const sk = skillOf(m);
+    const sk = m.skill;
     const cd = run.cooldowns[i];
     const ready = sk && cd <= 0;
     unit.classList.toggle('ready', !!ready);
@@ -274,7 +276,7 @@ function hideBanner() { $('banner').classList.remove('show'); }
 function useSkill(i) {
   if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
   const m = run.party.members[i];
-  const sk = skillOf(m);
+  const sk = m.skill;
   if (!sk) return;
   if (run.cooldowns[i] > 0) { toast(`${m.name}のスキルはあと${run.cooldowns[i]}ターン`); return; }
 
@@ -305,9 +307,15 @@ function useSkill(i) {
     logs.push(`${dmg}ダメージ`);
   }
   if (sk.convert) {
-    const from = COLORS.indexOf(sk.convert.from), to = COLORS.indexOf(sk.convert.to);
-    const n = convertColor(board, from, to).length;
-    logs.push(`${AURAS[from].name}→${AURAS[to].name} ${n}個`);
+    // 単体でも配列でも受け付ける(進化後スキルは複数オーラを変換する)
+    const pairs = Array.isArray(sk.convert) ? sk.convert : [sk.convert];
+    const parts = [];
+    pairs.forEach(cv => {
+      const from = COLORS.indexOf(cv.from), to = COLORS.indexOf(cv.to);
+      const n = convertColor(board, from, to).length;
+      parts.push(`${AURAS[from].name}→${AURAS[to].name} ${n}個`);
+    });
+    logs.push(parts.join(' / '));
   }
   if (sk.spawn) {
     const to = COLORS.indexOf(sk.spawn.to);
@@ -338,7 +346,7 @@ function openPartyInfo() {
   box.innerHTML = '';
   run.party.members.forEach((m, i) => {
     const aura = AURAS[m.aura];
-    const ls = leaderSkillOf(m), sk = skillOf(m);
+    const ls = m.leaderSkill, sk = m.skill;
     const isLeaderActive = run.party.leaders.includes(m);
     const div = document.createElement('div');
     div.className = 'pinfo r' + m.rarity;
@@ -528,6 +536,28 @@ async function floorClear() {
   bstate = 'idle';
 }
 
+/* ===================== ドロップ ===================== */
+/**
+ * ステージクリア時の素材ドロップを抽選する。
+ * ステージ固有のオーラ結晶を多めに、たまに他オーラと進化の輝石が出る。
+ * @returns {object} {materialId: 個数}
+ */
+function rollDrops(stage, hard) {
+  const drops = {};
+  const add = (id, n) => { if (n > 0) drops[id] = (drops[id] || 0) + n; };
+  const mult = hard ? 2 : 1;
+
+  add(crystalIdFor(stage.dropAura), (2 + randInt(0, 2)) * mult);
+  // 他オーラの結晶もたまに落ちる(どのキャラも育てられるように)
+  if (Math.random() < 0.55) {
+    const other = randInt(0, AURAS.length - 1);
+    add(crystalIdFor(other), randInt(1, 2) * mult);
+  }
+  const shardChance = Math.min(1, stage.shardRate * (hard ? 1.6 : 1));
+  if (Math.random() < shardChance) add('mt_star', randInt(1, 2) * mult);
+  return drops;
+}
+
 /* ===================== リザルト ===================== */
 function finishRun() {
   bstate = 'over';
@@ -548,6 +578,12 @@ function finishRun() {
   state.records[key] = rec;
   saveState();
 
+  // 素材ドロップと編成キャラの育成(サポートは自分のキャラではないので対象外)
+  const drops = rollDrops(stage, hard);
+  addMaterials(drops);
+  const charExp = Math.round((stage.charExpReward || 40) * (hard ? HARD_REWARD_MULT : 1));
+  const levelUps = gainCharExp(run.party.own.map(m => m.id), charExp);
+
   const { ups, staminaGained } = gainExp(exp);
 
   $('resultTitle').textContent = 'STAGE CLEAR';
@@ -558,15 +594,26 @@ function finishRun() {
     <div class="rstat"><span>回復量合計</span><b>${stats.totalHeal}</b></div>
     <div class="rstat"><span>ターン数 / スキル使用</span><b>${stats.turns} / ${stats.skillUses}</b></div>
     <div class="rstat"><span>残りHP</span><b>${run.playerHP} / ${run.maxHP}</b></div>`;
+  const dropHTML = Object.keys(drops).map(id => {
+    const mt = materialById(id);
+    return `<div class="rrow drop" style="--mt:${mt.color}">${mt.emoji} ${mt.name} <b>×${drops[id]}</b></div>`;
+  }).join('');
   $('resultRewards').innerHTML = `
     <div class="rrow">💰 <b>${coin}</b></div>
     <div class="rrow">🎗️ <b>${frepo}</b></div>
     ${orb ? `<div class="rrow">💎 <b>${orb}</b></div>` : ''}
-    <div class="rrow">⭐ <b>EXP ${exp}</b></div>`;
-  $('resultRank').innerHTML = ups > 0
-    ? `<div class="rankup">🎉 ランクアップ! Rank ${state.rank}
-        <span>スタミナ +${staminaGained}(現在 ${state.stamina} / 上限 ${maxStamina()})</span></div>`
-    : '';
+    <div class="rrow">⭐ <b>EXP ${exp}</b></div>
+    <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
+    ${dropHTML}`;
+  $('resultRank').innerHTML =
+    (ups > 0
+      ? `<div class="rankup">🎉 ランクアップ! Rank ${state.rank}
+          <span>スタミナ +${staminaGained}(現在 ${state.stamina} / 上限 ${maxStamina()})</span></div>`
+      : '')
+    + (levelUps.length
+      ? `<div class="levelup">⬆️ レベルアップ!
+          <span>${levelUps.map(l => `${l.name} Lv${l.from}→<b>${l.to}</b>`).join(' / ')}</span></div>`
+      : '');
   $('resultModal').classList.add('show');
   updateStatusBar();
   run = null;

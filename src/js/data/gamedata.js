@@ -6,7 +6,7 @@
 export * from './characters.js';
 export * from './skills.js';
 
-import { CHARACTERS } from './characters.js';
+import { CHARACTERS, MAX_GACHA_RARITY, FEATURED_CHARACTER } from './characters.js';
 
 /* --- 編成は自分3人 + サポート1人(フレンド or NPC)の計4人 --- */
 export const TEAM_SIZE = 3;
@@ -39,6 +39,8 @@ export const FLOORS_PER_STAGE = 5;
 const STAGE_NAMES = [
   '始まりの街道', '霧ふる湖畔', '灼熱の峡谷', '常闇の樹海', '天空回廊'
 ];
+/** ステージごとに主に落ちる結晶のオーラ */
+const STAGE_AURA = [0, 1, 0, 2, 3];
 
 export const STAGES = (() => {
   const list = [];
@@ -62,7 +64,10 @@ export const STAGES = (() => {
       coinReward: 150 * s,
       frepoReward: 80 * s,
       orbReward: s >= 3 ? 2 : 0,
-      expReward: 25 * s
+      expReward: 25 * s,
+      charExpReward: 80 + 130 * (s - 1),  // 編成キャラが得る経験値
+      dropAura: STAGE_AURA[s - 1],        // 主に落ちる結晶のオーラ
+      shardRate: 0.18 + 0.18 * (s - 1)    // 進化の輝石が落ちる確率
     });
   }
   return list;
@@ -71,6 +76,32 @@ export const STAGES = (() => {
 export const HARD_HP_MULT = 1.8;
 export const HARD_REWARD_MULT = 1.6;
 export const HARD_STAMINA_MULT = 1.5;
+
+/* ===================== 進化素材 ===================== */
+/** オーラ別の結晶 + 全キャラ共通の輝石 */
+export const MATERIALS = [
+  { id: 'mt_c0',   name: '紅蓮の結晶', emoji: '🔴', aura: 0,    color: '#FF7A59' },
+  { id: 'mt_c1',   name: '蒼海の結晶', emoji: '🔵', aura: 1,    color: '#45C8F1' },
+  { id: 'mt_c2',   name: '翠緑の結晶', emoji: '🟢', aura: 2,    color: '#5BE08C' },
+  { id: 'mt_c3',   name: '聖光の結晶', emoji: '🩷', aura: 3,    color: '#FF86C8' },
+  { id: 'mt_star', name: '進化の輝石', emoji: '💠', aura: null, color: '#FFC65C' }
+];
+const MATERIAL_BY_ID = new Map(MATERIALS.map(m => [m.id, m]));
+export function materialById(id) { return MATERIAL_BY_ID.get(id) || null; }
+/** そのオーラの結晶ID */
+export function crystalIdFor(aura) { return `mt_c${aura}`; }
+
+/**
+ * 進化に必要なもの。★N へ上がるときのコスト。
+ * 結晶はキャラ自身のオーラのものを使う。
+ */
+export const EVOLVE_COST = {
+  2: { crystal: 3,  shard: 1,  coin: 1000 },
+  3: { crystal: 6,  shard: 2,  coin: 3000 },
+  4: { crystal: 10, shard: 5,  coin: 8000 },
+  5: { crystal: 16, shard: 10, coin: 20000 }
+};
+export function evolveCostTo(star) { return EVOLVE_COST[star] || null; }
 
 /* ===================== ショップ ===================== */
 export const SHOP_ITEMS = [
@@ -83,11 +114,26 @@ export const SHOP_ITEMS = [
 ];
 
 /* ===================== ガチャ ===================== */
-export const FREPO_WEIGHTS = { 1: 60, 2: 30, 3: 10 };
-export const ORB_WEIGHTS   = { 1: 30, 2: 30, 3: 23, 4: 12, 5: 5 };
+/** ★5はガチャから出ない(進化専用) */
+export const GACHA_POOL = CHARACTERS.filter(c => c.rarity <= MAX_GACHA_RARITY);
+export const FREPO_POOL = GACHA_POOL.filter(c => c.rarity <= 3);
+
+export const FREPO_WEIGHTS = { 1: 58, 2: 30, 3: 12 };
+export const ORB_WEIGHTS   = { 1: 28, 2: 34, 3: 26, 4: 12 };
+/** 10連の最後の1枠で使う「★3以上確定」の重み */
+export const ORB_GUARANTEE_WEIGHTS   = { 3: 78, 4: 22 };
+export const FREPO_GUARANTEE_WEIGHTS = { 2: 70, 3: 30 };
+
 export const FREPO_COST = 300;
 export const ORB_COST = 5;
-export const FREPO_POOL = CHARACTERS.filter(c => c.rarity <= 3);
+export const MULTI_PULL = 10;
+/** 10連は1回ぶんおまけ(9回ぶんの価格) */
+export const FREPO_COST_MULTI = FREPO_COST * 9;
+export const ORB_COST_MULTI = ORB_COST * 9;
+
+/** ピックアップ:★4を引いたとき、この確率で看板キャラになる */
+export const PICKUP_CHARACTER = FEATURED_CHARACTER;
+export const PICKUP_RATE = 0.5;
 
 /* ===================== フレンド ===================== */
 export const MAX_FRIENDS = 30;

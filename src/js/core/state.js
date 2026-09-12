@@ -1,31 +1,49 @@
 /* =========================================================
- * state.js — セーブデータ / 編成 / スタミナ / ランク
+ * state.js — セーブデータ / 編成 / スタミナ / ランク / 育成
+ *
+ * 所持キャラは { n:所持数, star:進化段階, lv:レベル, xp:経験値 } で保持し、
+ * 画面・バトルは resolveCharacter() を通した形で扱う。
  * =======================================================*/
 import { Store } from './storage.js';
 import { uid } from './ui.js';
 import {
-  AURAS, CHARACTERS, characterById, characterByAuraRarity, TEAM_SIZE,
+  CHARACTERS, characterById, characterByAuraRarity, resolveCharacter,
+  maxLevelFor, expToNextCharLevel, canEvolveChar, finalStarOf, MAX_RARITY, TEAM_SIZE,
+  MATERIALS, crystalIdFor, evolveCostTo,
   STAMINA_REGEN_MS, STAMINA_BASE_MAX, STAMINA_PER_RANK, expToNextRank
 } from '../data/gamedata.js';
 
 const SAVE_KEY = 'acb_state';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 
 export const DEFAULT_ICONS = ['🙂', '🔥', '💧', '🌿', '💗', '🦸', '🧙', '👑', '🎩', '🐲'];
 
 /** 初期編成:火/水/癒の3人でスタート */
 const STARTER_IDS = ['fl_rito', 'aq_mio', 'lm_mina'];
 
+/** 所持キャラ1件ぶんの初期値 */
+function newEntry(charId) {
+  const base = characterById(charId);
+  return { n: 1, star: base ? base.rarity : 1, lv: 1, xp: 0 };
+}
+
+function emptyMaterials() {
+  const m = {};
+  MATERIALS.forEach(mt => { m[mt.id] = 0; });
+  return m;
+}
+
 function createInitialState() {
   const owned = {};
-  STARTER_IDS.forEach(id => { owned[id] = 1; });
+  STARTER_IDS.forEach(id => { owned[id] = newEntry(id); });
   return {
     version: SAVE_VERSION,
     coin: 800, frepo: 0, orb: 15,
     rank: 1, exp: 0,
     stamina: STAMINA_BASE_MAX,
     staminaAt: Date.now(),
-    characters: owned,                 // {charId: 所持数}
+    characters: owned,                 // {charId: {n, star, lv, xp}}
+    materials: emptyMaterials(),       // {materialId: 個数}
     team: STARTER_IDS.slice(),         // 自分の3人(先頭がリーダー)
     progress: {},                      // {stageId:{normal:bool, hard:bool}}
     records: {},                       // {stageId_diff:{maxChain}}
@@ -41,8 +59,8 @@ function createInitialState() {
 
 /**
  * 旧セーブを現行フォーマットへ移行する。
- * v4 以前はモンスター(`c0_3` のような ID)だったので、
- * 同じオーラ・レアリティの人物キャラクターへ読み替える。
+ * - v4 以前: モンスター(`c0_3` のようなID)→ 同じオーラ・レアリティの人物へ
+ * - v5: 所持キャラが数値(所持数)だったので {n, star, lv, xp} へ
  */
 function migrate(old) {
   const fresh = createInitialState();
@@ -56,7 +74,7 @@ function migrate(old) {
     const m = /^c(\d)_(\d)$/.exec(id);
     if (!m) return null;
     // 旧 光(c3)/闇(c4) はどちらも癒(index 3)へ集約する
-    const aura = Math.min(Number(m[1]), AURAS.length - 1);
+    const aura = Math.min(Number(m[1]), 3);
     const rarity = Math.max(1, Math.min(5, Number(m[2])));
     const ch = characterByAuraRarity(aura, rarity);
     return ch ? ch.id : null;
@@ -67,10 +85,24 @@ function migrate(old) {
   Object.keys(ownedSrc).forEach(id => {
     const to = remapId(id);
     if (!to) return;
-    owned[to] = (owned[to] || 0) + (ownedSrc[id] || 0);
+    const src = ownedSrc[id];
+    const base = characterById(to);
+    const entry = owned[to] || { n: 0, star: base.rarity, lv: 1, xp: 0 };
+    if (typeof src === 'number') {
+      entry.n += src;                       // v5 以前:所持数のみ
+    } else if (src && typeof src === 'object') {
+      entry.n += src.n || 1;
+      entry.star = Math.max(entry.star, Math.min(finalStarOf(base), src.star || base.rarity));
+      entry.lv = Math.max(entry.lv, src.lv || 1);
+      entry.xp = src.xp || 0;
+    }
+    entry.lv = Math.min(entry.lv, maxLevelFor(entry.star));
+    owned[to] = entry;
   });
   s.characters = Object.keys(owned).length ? owned : fresh.characters;
   delete s.monsters;
+
+  s.materials = Object.assign(emptyMaterials(), old.materials || {});
 
   const team = [];
   (old.team || []).forEach(id => {
@@ -109,27 +141,131 @@ export function saveState() {
 export function resetState() { Store.set(SAVE_KEY, null); }
 if (!loaded || loaded.version !== SAVE_VERSION) saveState();
 
-/* ===================== 編成 ===================== */
+/* ===================== 所持キャラ ===================== */
+/** 所持データ(進化段階・レベル)を取り出す */
+export function entryOf(charId) { return state.characters[charId] || null; }
+
+/** レベル/進化を反映したキャラクターを返す(所持数と経験値も添える) */
+export function resolveOwned(charId) {
+  const e = entryOf(charId);
+  if (!e) return null;
+  const ch = resolveCharacter(charId, e.star, e.lv);
+  if (ch) { ch.xp = e.xp || 0; ch.count = e.n; }
+  return ch;
+}
+
 /** 自分の編成キャラ(空きスロットは除外) */
 export function ownCharacters() {
   return state.team
     .filter(id => id && state.characters[id])
-    .map(characterById)
+    .map(resolveOwned)
     .filter(Boolean);
 }
 
-/** 所持キャラの一覧(レアリティ降順) */
+/** 所持キャラの一覧(進化段階→レアリティ降順) */
 export function ownedCharacters() {
   return Object.keys(state.characters)
-    .filter(id => state.characters[id] > 0)
-    .map(characterById)
+    .filter(id => state.characters[id] && state.characters[id].n > 0)
+    .map(resolveOwned)
     .filter(Boolean)
-    .sort((a, b) => b.rarity - a.rarity || a.aura - b.aura || a.name.localeCompare(b.name, 'ja'));
+    .sort((a, b) => b.star - a.star || b.level - a.level || a.aura - b.aura
+      || a.name.localeCompare(b.name, 'ja'));
 }
 
 export function addCharacter(id) {
-  state.characters[id] = (state.characters[id] || 0) + 1;
+  const base = characterById(id);
+  if (!base) return null;
+  const e = state.characters[id];
+  if (e) e.n += 1; else state.characters[id] = newEntry(id);
   saveState();
+  return state.characters[id];
+}
+
+/* ===================== キャラの育成 ===================== */
+/**
+ * 編成キャラに経験値を与える。
+ * @returns {Array<{id:string, name:string, from:number, to:number, lv:number}>} レベルが上がったキャラ
+ */
+export function gainCharExp(charIds, amount) {
+  const levelUps = [];
+  charIds.forEach(id => {
+    const e = state.characters[id];
+    if (!e) return;
+    const max = maxLevelFor(e.star);
+    if (e.lv >= max) { e.xp = 0; return; }
+    const before = e.lv;
+    e.xp += amount;
+    while (e.lv < max && e.xp >= expToNextCharLevel(e.lv)) {
+      e.xp -= expToNextCharLevel(e.lv);
+      e.lv++;
+    }
+    if (e.lv >= max) e.xp = 0;
+    if (e.lv > before) {
+      const ch = resolveOwned(id);
+      levelUps.push({ id, name: ch ? ch.name : id, from: before, to: e.lv, lv: e.lv });
+    }
+  });
+  saveState();
+  return levelUps;
+}
+
+/** 素材を増やす。{materialId: 個数} を渡す */
+export function addMaterials(drops) {
+  Object.keys(drops || {}).forEach(id => {
+    state.materials[id] = (state.materials[id] || 0) + drops[id];
+  });
+  saveState();
+}
+
+export function materialCount(id) { return state.materials[id] || 0; }
+
+/**
+ * 進化の可否と不足内容を返す。
+ * @returns {{ok:boolean, reason:string, need:object, nextStar:number}}
+ */
+export function evolveCheck(charId) {
+  const e = entryOf(charId);
+  const base = characterById(charId);
+  if (!e || !base) return { ok: false, reason: '所持していません', need: null, nextStar: 0 };
+  if (!canEvolveChar(base, e.star)) {
+    return { ok: false, reason: 'これ以上進化できません', need: null, nextStar: e.star };
+  }
+
+  const nextStar = e.star + 1;
+  const cost = evolveCostTo(nextStar);
+  const crystalId = crystalIdFor(base.aura);
+  const need = {
+    level: maxLevelFor(e.star),
+    crystalId, crystal: cost.crystal, shard: cost.shard, coin: cost.coin
+  };
+  if (e.lv < need.level) {
+    return { ok: false, reason: `レベルを${need.level}まで上げてください`, need, nextStar };
+  }
+  if (materialCount(crystalId) < cost.crystal || materialCount('mt_star') < cost.shard) {
+    return { ok: false, reason: '素材が足りません', need, nextStar };
+  }
+  if (state.coin < cost.coin) return { ok: false, reason: 'コインが足りません', need, nextStar };
+  return { ok: true, reason: '', need, nextStar };
+}
+
+/**
+ * 進化を実行する。
+ * @returns {{ok:boolean, message:string, before?:object, after?:object}}
+ */
+export function evolveCharacter(charId) {
+  const check = evolveCheck(charId);
+  if (!check.ok) return { ok: false, message: check.reason };
+  const e = entryOf(charId);
+  const before = resolveOwned(charId);
+  state.materials[check.need.crystalId] -= check.need.crystal;
+  state.materials.mt_star -= check.need.shard;
+  state.coin -= check.need.coin;
+  e.star = check.nextStar;
+  e.xp = 0;
+  // レベルは引き継ぐ(上限が伸びるので育て直しにはならない)
+  e.lv = Math.min(e.lv, maxLevelFor(e.star));
+  saveState();
+  return { ok: true, message: '進化しました!', before, after: resolveOwned(charId) };
 }
 
 /* ===================== ランク ===================== */

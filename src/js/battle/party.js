@@ -5,7 +5,7 @@
  * 2つだけが発動する。ここで2つの効果を合成して1つの修正値にまとめる。
  * =======================================================*/
 import {
-  COLORS, MATCH_MIN_DEFAULT, leaderSkillOf, skillOf,
+  COLORS, MATCH_MIN_DEFAULT,
   BASE_PARTY_HP, BASE_DRAG_TIME, MAX_DRAG_TIME
 } from '../data/gamedata.js';
 import { ownCharacters } from '../core/state.js';
@@ -46,8 +46,8 @@ export function buildParty(support) {
   const leader = own[0] || null;
 
   const mods = emptyMods();
-  applyLeaderSkill(mods, leaderSkillOf(leader));
-  if (support) applyLeaderSkill(mods, leaderSkillOf(support));
+  applyLeaderSkill(mods, leader && leader.leaderSkill);
+  if (support) applyLeaderSkill(mods, support.leaderSkill);
 
   const baseHP = BASE_PARTY_HP + members.reduce((s, m) => s + m.hp, 0);
   return {
@@ -61,7 +61,7 @@ export function buildParty(support) {
     matchMin: mods.matchMin || MATCH_MIN_DEFAULT,
     /** リーダースキル込みの1ターンの操作時間(ms) */
     baseDragTime: Math.min(MAX_DRAG_TIME, BASE_DRAG_TIME + mods.timeMs),
-    skills: members.map(m => skillOf(m))
+    skills: members.map(m => m.skill || null)
   };
 }
 

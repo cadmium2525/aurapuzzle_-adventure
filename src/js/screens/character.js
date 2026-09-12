@@ -1,17 +1,22 @@
 /* =========================================================
- * character.js — キャラクター画面(編成 / 図鑑)
+ * character.js — キャラクター画面(編成 / 図鑑 / 進化)
  * 自陣は人物キャラクター3人。先頭がリーダーでリーダースキルが発動する。
  * =======================================================*/
 import { $, toast } from '../core/ui.js';
-import { state, saveState, ownedCharacters, ownCharacters } from '../core/state.js';
 import {
-  AURAS, COLOR_HEX, CHARACTERS, characterById, TEAM_SIZE,
-  BASE_PARTY_HP, BASE_DRAG_TIME, leaderSkillOf
+  state, saveState, ownedCharacters, ownCharacters, resolveOwned,
+  entryOf, evolveCheck, evolveCharacter, materialCount
+} from '../core/state.js';
+import { updateStatusBar } from '../core/nav.js';
+import {
+  AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
+  BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE
 } from '../data/gamedata.js';
-import { charRowHTML, charDetailHTML, portraitHTML } from './parts.js';
+import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML } from './parts.js';
 
 let tab = 'team';
-let detailChar = null;
+let detailId = null;          // 詳細を開いているキャラのID
+let detailOwned = false;
 
 export function initCharacter() {
   $('tabTeamBtn').addEventListener('click', () => { tab = 'team'; renderCharacterScreen(); });
@@ -21,13 +26,17 @@ export function initCharacter() {
     if (e.target === $('charDetailModal')) closeDetail();
   });
   $('charDetailActionBtn').addEventListener('click', () => {
-    if (!detailChar) return;
-    toggleTeam(detailChar.id);
+    if (!detailId) return;
+    toggleTeam(detailId);
     closeDetail();
+  });
+  $('charEvolveBtn').addEventListener('click', doEvolve);
+  $('evoResultCloseBtn').addEventListener('click', () => {
+    $('evoResultModal').classList.remove('show');
   });
 }
 
-function closeDetail() { $('charDetailModal').classList.remove('show'); detailChar = null; }
+function closeDetail() { $('charDetailModal').classList.remove('show'); detailId = null; }
 
 /** 編成へ入れる / 外す */
 function toggleTeam(id) {
@@ -65,16 +74,115 @@ export function renderCharacterScreen() {
   if (tab === 'team') renderTeamPane(); else renderListPane();
 }
 
-function openDetail(ch, canEquip) {
-  detailChar = ch;
-  const inTeam = state.team.includes(ch.id);
-  const owned = (state.characters[ch.id] || 0) > 0;
+/* ===================== 進化 ===================== */
+/** 詳細モーダルの進化セクションを描く */
+function renderEvolveBox(id) {
+  const box = $('charEvolveBox');
+  const btn = $('charEvolveBtn');
+  const e = entryOf(id);
+  if (!e) { box.style.display = 'none'; btn.style.display = 'none'; return; }
+
+  const check = evolveCheck(id);
+  const base = characterById(id);
+  box.style.display = 'block';
+
+  if (!check.need) {                       // ★5到達済み
+    box.innerHTML = `<div class="evo-title">進化</div>
+      <div class="evo-done">✨ 最終進化に到達しています</div>`;
+    btn.style.display = 'none';
+    return;
+  }
+
+  const need = check.need;
+  const crystal = materialById(need.crystalId);
+  const lvOK = e.lv >= need.level;
+  const cOK = materialCount(need.crystalId) >= need.crystal;
+  const sOK = materialCount('mt_star') >= need.shard;
+  const coinOK = state.coin >= need.coin;
+  const after = resolveCharacter(id, check.nextStar, Math.min(e.lv, 99));
+  const now = resolveOwned(id);
+
+  const req = (ok, label, have, want) =>
+    `<div class="evo-req${ok ? ' ok' : ''}"><span>${label}</span>
+      <b>${have} / ${want}</b>${ok ? '<i>✔</i>' : ''}</div>`;
+
+  box.innerHTML = `
+    <div class="evo-title">進化 ★${e.star} → ★${check.nextStar}
+      <span class="evo-next">${RARITY_TITLE[check.nextStar]}</span></div>
+    <div class="evo-reqs">
+      ${req(lvOK, 'レベル', e.lv, need.level)}
+      ${req(cOK, `${crystal.emoji} ${crystal.name}`, materialCount(need.crystalId), need.crystal)}
+      ${req(sOK, '💠 進化の輝石', materialCount('mt_star'), need.shard)}
+      ${req(coinOK, '💰 コイン', state.coin.toLocaleString(), need.coin.toLocaleString())}
+    </div>
+    <div class="evo-preview">
+      <div class="evo-col"><span>ATK</span><b>${now.atk}</b><i>→</i><b class="up">${after.atk}</b></div>
+      <div class="evo-col"><span>HP</span><b>${now.hp}</b><i>→</i><b class="up">${after.hp}</b></div>
+      <div class="evo-col"><span>RCV</span><b>${now.rcv}</b><i>→</i><b class="up">${after.rcv}</b></div>
+    </div>
+    <div class="evo-skillup">
+      <div class="skill-line on"><span class="skill-tag ls">LS</span>
+        <span><b>${after.leaderSkill.name}</b><br>${after.leaderSkill.desc}</span></div>
+      <div class="skill-line on"><span class="skill-tag sk">SKILL</span>
+        <span><b>${after.skill.name}</b>(CT ${after.skill.cooldown})<br>${after.skill.desc}</span></div>
+    </div>
+    ${base.artStages ? '<div class="evo-note">✨ 進化でイラストが変化します</div>' : ''}
+    ${check.ok ? '' : `<div class="evo-note warn">${check.reason}</div>`}`;
+
+  btn.style.display = 'block';
+  btn.disabled = !check.ok;
+  btn.textContent = check.ok ? `★${check.nextStar} へ進化する` : '進化できません';
+}
+
+function doEvolve() {
+  if (!detailId) return;
+  const res = evolveCharacter(detailId);
+  if (!res.ok) { toast(res.message); return; }
+  saveState();
+  updateStatusBar();
+  showEvolveResult(res.before, res.after);
+  openDetail(detailId, detailOwned);
+  renderTeamPane();
+}
+
+/** 進化の演出モーダル */
+function showEvolveResult(before, after) {
+  const aura = AURAS[after.aura];
+  $('evoResultBody').innerHTML = `
+    <div class="evo-burst"></div>
+    <div class="evo-res-head" style="--aura:${COLOR_HEX[aura.key]}">
+      ${portraitHTML(after, 'big')}
+    </div>
+    <div class="evo-res-name">${after.name}</div>
+    <div class="evo-res-star">★${before.star} → <b>★${after.star}</b></div>
+    <div class="evo-res-stats">
+      <div><span>ATK</span><b>${before.atk} → ${after.atk}</b></div>
+      <div><span>HP</span><b>${before.hp} → ${after.hp}</b></div>
+      <div><span>RCV</span><b>${before.rcv} → ${after.rcv}</b></div>
+    </div>
+    <div class="skill-line on"><span class="skill-tag ls">LS</span>
+      <span><b>${after.leaderSkill.name}</b><br>${after.leaderSkill.desc}</span></div>
+    <div class="skill-line on"><span class="skill-tag sk">SKILL</span>
+      <span><b>${after.skill.name}</b>(CT ${after.skill.cooldown})<br>${after.skill.desc}</span></div>`;
+  $('evoResultModal').classList.add('show');
+}
+
+/* ===================== 詳細モーダル ===================== */
+function openDetail(id, canEquip) {
+  detailId = id;
+  detailOwned = canEquip;
+  const owned = !!entryOf(id);
+  const ch = owned ? resolveOwned(id) : resolveCharacter(id, null, 1);
+  const inTeam = state.team.includes(id);
+
   $('charDetailBody').innerHTML = charDetailHTML(ch,
     owned ? '' : '<div class="cd-note">まだ仲間にしていません。ガチャやショップで探しましょう。</div>');
   const btn = $('charDetailActionBtn');
   btn.style.display = (canEquip && owned) ? 'block' : 'none';
   btn.textContent = inTeam ? '編成から外す' : '編成に入れる';
   btn.className = 'btn block' + (inTeam ? ' secondary' : '');
+  if (owned) renderEvolveBox(id);
+  else { $('charEvolveBox').style.display = 'none'; $('charEvolveBtn').style.display = 'none'; }
   $('charDetailModal').classList.add('show');
 }
 
@@ -94,6 +202,7 @@ function renderTeamPane() {
         <span class="slot-label">${i === 0 ? 'リーダー' : 'サブ' + i}</span>
         ${portraitHTML(ch)}
         <span class="slot-name">${ch.name}</span>
+        <span class="slot-lv">Lv${ch.level}</span>
         <span class="slot-move">
           <button class="mv" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="前へ">▲</button>
           <button class="mv" data-dir="1" ${i === team.length - 1 ? 'disabled' : ''} aria-label="後ろへ">▼</button>
@@ -104,7 +213,7 @@ function renderTeamPane() {
           moveInTeam(i, Number(b.dataset.dir));
         });
       });
-      div.addEventListener('click', () => openDetail(ch, true));
+      div.addEventListener('click', () => openDetail(ch.id, true));
     } else {
       div.innerHTML = `<span class="slot-label">${i === 0 ? 'リーダー' : 'サブ' + i}</span>
         <span class="slot-empty">＋</span><span class="slot-name">空き</span>`;
@@ -124,7 +233,7 @@ function renderTeamPane() {
   const auraSet = [...new Set(team.map(m => m.aura))]
     .map(a => `<span class="aura-chip" style="--aura:${COLOR_HEX[AURAS[a].key]}">${AURAS[a].emoji}${AURAS[a].name}</span>`)
     .join('');
-  const ls = leaderSkillOf(team[0]);
+  const ls = team.length ? team[0].leaderSkill : null;
   const extraTime = (ls && ls.time) ? ls.time : 0;
   $('teamSummary').innerHTML = team.length ? `
     <div class="ts-row"><span>合計HP(サポート除く)</span><b>${totalHP}</b></div>
@@ -139,6 +248,8 @@ function renderTeamPane() {
        <div class="mstats mt6">サポート枠のリーダースキルも発動します(ダンジョン出発時に選択)。</div>`
     : '<div class="empty">リーダーが未設定です。</div>';
 
+  renderMaterials();
+
   // 所持キャラ一覧
   const ownedEl = $('ownedList');
   ownedEl.innerHTML = '';
@@ -150,17 +261,31 @@ function renderTeamPane() {
   }
   owned.forEach(ch => {
     const inTeam = state.team.includes(ch.id);
+    const canEvolve = evolveCheck(ch.id).ok;
     const row = document.createElement('div');
     row.className = 'char-row' + (inTeam ? ' in-team' : '');
-    row.innerHTML = charRowHTML(ch, state.characters[ch.id])
+    row.innerHTML = charRowHTML(ch, ch.count)
       + `<div class="row-actions">
            <button class="btn ${inTeam ? 'secondary' : ''} selbtn">${inTeam ? '外す' : '編成'}</button>
-           <button class="btn ghost tiny detailbtn">詳細</button>
+           <button class="btn ghost tiny detailbtn">${canEvolve ? '進化可' : '詳細'}</button>
          </div>`;
+    if (canEvolve) row.classList.add('evolvable');
     row.querySelector('.selbtn').addEventListener('click', () => toggleTeam(ch.id));
-    row.querySelector('.detailbtn').addEventListener('click', () => openDetail(ch, true));
+    row.querySelector('.detailbtn').addEventListener('click', () => openDetail(ch.id, true));
     ownedEl.appendChild(row);
   });
+}
+
+/** 所持素材の表示 */
+function renderMaterials() {
+  const box = $('materialList');
+  if (!box) return;
+  box.innerHTML = MATERIALS.map(mt => `
+    <div class="mt-chip" style="--mt:${mt.color}">
+      <span class="mt-emoji">${mt.emoji}</span>
+      <span class="mt-name">${mt.name}</span>
+      <b class="mt-count">${materialCount(mt.id)}</b>
+    </div>`).join('');
 }
 
 /* ===================== 図鑑タブ ===================== */
@@ -169,12 +294,13 @@ function renderListPane() {
   el.innerHTML = '';
   CHARACTERS.slice()
     .sort((a, b) => a.aura - b.aura || a.rarity - b.rarity)
-    .forEach(ch => {
-      const count = state.characters[ch.id] || 0;
+    .forEach(base => {
+      const e = entryOf(base.id);
+      const ch = e ? resolveOwned(base.id) : resolveCharacter(base.id, null, 1);
       const row = document.createElement('div');
-      row.className = 'char-row' + (count ? '' : ' locked');
-      row.innerHTML = charRowHTML(ch, count);
-      row.addEventListener('click', () => openDetail(ch, false));
+      row.className = 'char-row' + (e ? '' : ' locked');
+      row.innerHTML = charRowHTML(ch, e ? e.n : 0);
+      row.addEventListener('click', () => openDetail(base.id, false));
       el.appendChild(row);
     });
 }
