@@ -27,7 +27,7 @@ function renderList() {
   box.innerHTML = '';
   const today = todayStr();
   if (!state.profile.friends.length) {
-    box.innerHTML = '<div class="mstats">まだフレンドがいません。フレンドコードを交換して登録しましょう。</div>';
+    box.innerHTML = '<div class="empty">まだフレンドがいません。フレンドコードを交換して登録しましょう。<br>フレンドがいなくても、ダンジョンでは<b>NPCサポート</b>を選べます。</div>';
     return;
   }
   state.profile.friends.forEach(f => {
@@ -35,10 +35,10 @@ function renderList() {
     const row = document.createElement('div');
     row.className = 'friend-row';
     row.innerHTML = `
-      <div class="elemicon" style="background:rgba(255,255,255,0.08);">${f.icon || '🙂'}</div>
-      <div class="minfo">
-        <div class="mname">${f.name || 'プレイヤー'}</div>
-        <div class="mstats">${f.code || ''}</div>
+      <div class="friend-avatar">${f.icon || '🙂'}</div>
+      <div class="cinfo">
+        <div class="cname">${f.name || 'プレイヤー'}</div>
+        <div class="cmeta">${f.code || ''}</div>
       </div>
       <button class="btn ${greeted ? 'secondary' : ''} greetbtn" ${greeted ? 'disabled' : ''}>${greeted ? '済み' : 'あいさつ'}</button>
       <button class="friend-del" aria-label="削除">✕</button>`;

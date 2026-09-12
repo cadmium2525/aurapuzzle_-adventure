@@ -1,9 +1,11 @@
 /* ===================== マイページ画面 ===================== */
 import { $, toast } from '../core/ui.js';
-import { state, saveState, resetState, maxStamina, DEFAULT_ICONS } from '../core/state.js';
-import { updateProfile, updateRentalMonster, cloudEnabled } from '../core/friends.js';
-import { expToNextRank, monsterById } from '../data/gamedata.js';
-import { monRowHTML } from './parts.js';
+import {
+  state, saveState, resetState, maxStamina, ownedCharacters, DEFAULT_ICONS
+} from '../core/state.js';
+import { updateProfile, updateRentalCharacter, cloudEnabled } from '../core/friends.js';
+import { expToNextRank, characterById, AURAS, COLOR_HEX } from '../data/gamedata.js';
+import { charRowHTML } from './parts.js';
 
 let editingIcon = state.profile.icon;
 
@@ -12,9 +14,13 @@ export function renderMypage() {
   $('seRange').value = state.settings.se;
   $('playerIdText').textContent = state.settings.playerId;
   $('mypageRank').textContent = `Rank ${state.rank}(EXP ${state.exp}/${expToNextRank(state.rank)})`;
-  $('mypageStamina').textContent = `${state.stamina} / ${maxStamina()}`;
+  const over = state.stamina > maxStamina();
+  $('mypageStamina').innerHTML = `${state.stamina} / ${maxStamina()}`
+    + (over ? ' <span class="overtag">OVER</span>' : '');
   $('profileNameInput').value = state.profile.name;
+  $('profileRankText').textContent = `Rank ${state.rank} ・ ${state.settings.playerId}`;
   editingIcon = state.profile.icon;
+  $('profileAvatar').textContent = editingIcon;
   renderIconGrid();
   renderRentalList();
   $('cloudStatusText').textContent = cloudEnabled()
@@ -30,38 +36,38 @@ function renderIconGrid() {
     b.type = 'button';
     b.className = 'icon-choice' + (ic === editingIcon ? ' active' : '');
     b.textContent = ic;
-    b.addEventListener('click', () => { editingIcon = ic; renderIconGrid(); });
+    b.addEventListener('click', () => {
+      editingIcon = ic;
+      $('profileAvatar').textContent = ic;
+      renderIconGrid();
+    });
     grid.appendChild(b);
   });
 }
 
-/** フレンドに貸し出すレンタルモンスターの選択リスト */
+/** フレンドに貸し出すキャラクターの選択リスト */
 function renderRentalList() {
   const box = $('rentalList');
   box.innerHTML = '';
-  const owned = Object.keys(state.monsters)
-    .filter(id => state.monsters[id] > 0)
-    .sort((a, b) => b.localeCompare(a));
+  const owned = ownedCharacters();
   if (!owned.length) {
-    box.innerHTML = '<div class="mstats">まだモンスターを持っていません。</div>';
+    box.innerHTML = '<div class="empty">まだ仲間がいません。</div>';
     return;
   }
-  owned.map(monsterById).filter(Boolean)
-    .sort((a, b) => b.rarity - a.rarity)
-    .forEach(m => {
-      const isRental = state.profile.rentalMonsterId === m.id;
-      const row = document.createElement('div');
-      row.className = 'mon-row';
-      row.innerHTML = monRowHTML(m, state.monsters[m.id])
-        + `<button class="btn ${isRental ? '' : 'secondary'} selbtn">${isRental ? '貸し出し中' : '貸し出す'}</button>`;
-      row.querySelector('button').addEventListener('click', async () => {
-        const next = isRental ? null : m.id;
-        await updateRentalMonster(next);
-        toast(next ? `${m.name}をフレンドに貸し出します` : '貸し出しを解除しました');
-        renderRentalList();
-      });
-      box.appendChild(row);
+  owned.forEach(ch => {
+    const isRental = state.profile.rentalCharId === ch.id;
+    const row = document.createElement('div');
+    row.className = 'char-row' + (isRental ? ' in-team' : '');
+    row.innerHTML = charRowHTML(ch, state.characters[ch.id])
+      + `<div class="row-actions"><button class="btn ${isRental ? '' : 'secondary'} selbtn">${isRental ? '貸出中' : '貸し出す'}</button></div>`;
+    row.querySelector('button').addEventListener('click', async () => {
+      const next = isRental ? null : ch.id;
+      await updateRentalCharacter(next);
+      toast(next ? `${ch.name}をフレンドに貸し出します` : '貸し出しを解除しました');
+      renderRentalList();
     });
+    box.appendChild(row);
+  });
 }
 
 export function initMypage() {

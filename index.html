@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>オーラコネクト・バトル</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#150F27">
+<meta name="theme-color" content="#0E0A1E">
 <link rel="icon" href="./assets/icons/icon-192.png">
 <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,27 +14,35 @@
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
+<div id="bg-aura" aria-hidden="true"><i></i><i></i><i></i></div>
+
 <div id="app">
   <!-- ===================== トップバー ===================== -->
   <header id="topbar">
     <div id="topRow">
-      <button id="backBtn" class="hidden" aria-label="戻る">←</button>
+      <button id="backBtn" class="iconbtn hidden" aria-label="戻る">‹</button>
       <div id="screenTitle">ホーム</div>
-      <button id="sysBtn" aria-label="システムメニュー">⚙</button>
+      <button id="sysBtn" class="iconbtn" aria-label="システムメニュー">⚙</button>
     </div>
     <div id="statusBar">
-      <div id="staminaRow">
-        <span class="slabel">⚡スタミナ</span><b id="curStamina">0/0</b>
-        <span id="staminaTimer">MAX</span>
-      </div>
-      <div id="rankBox">
-        <span>Rank <b id="curRank">1</b></span>
-        <div id="rankExpTrack"><div id="rankExpFill"></div></div>
+      <div class="status-main">
+        <div class="stamina-block">
+          <div class="stamina-head">
+            <span class="slabel">⚡ スタミナ</span>
+            <b id="curStamina">0/0</b>
+            <span id="staminaTimer">MAX</span>
+          </div>
+          <div class="stamina-track"><div id="staminaFill"></div></div>
+        </div>
+        <div class="rank-block">
+          <div class="rank-ring"><span id="curRank">1</span></div>
+          <div class="rank-exp"><div id="rankExpFill"></div></div>
+        </div>
       </div>
       <div id="currencyRow">
-        <span>💰<b id="curCoin">0</b></span>
-        <span>🎗️<b id="curFrepo">0</b></span>
-        <span>💎<b id="curOrb">0</b></span>
+        <span class="cpill">💰<b id="curCoin">0</b></span>
+        <span class="cpill">🎗️<b id="curFrepo">0</b></span>
+        <span class="cpill">💎<b id="curOrb">0</b></span>
       </div>
     </div>
   </header>
@@ -43,200 +51,286 @@
     <!-- ===================== ホーム ===================== -->
     <section class="screen active" id="screen-home">
       <div id="homeHero">
-        <h1>オーラコネクト・バトル</h1>
-        <p>玉を消してオーラを集め、ダンジョンを攻略しよう</p>
+        <div class="hero-glow"></div>
+        <h1>オーラコネクト</h1>
+        <p>オーラをつないで、仲間と共に挑め</p>
       </div>
+
+      <div class="card leader-card" id="homeLeaderCard">
+        <div class="cardtitle">
+          <span>出撃パーティ</span>
+          <button class="linkbtn" data-nav="character">編成する ›</button>
+        </div>
+        <div id="homeLeaderBox"></div>
+        <div id="homePartyRow" class="party-mini"></div>
+      </div>
+
       <div class="menu-grid">
-        <div class="menu-tile" data-nav="dungeon"><span class="emoji">🏰</span>ダンジョン</div>
-        <div class="menu-tile" data-nav="event"><span class="emoji">🎉</span>イベント</div>
-        <div class="menu-tile" data-nav="monster"><span class="emoji">🐲</span>モンスター</div>
-        <div class="menu-tile" data-nav="gacha"><span class="emoji">🎰</span>ガチャ</div>
-        <div class="menu-tile" data-nav="shop"><span class="emoji">🛒</span>ショップ</div>
-        <div class="menu-tile" data-nav="friends"><span class="emoji">🤝</span>フレンド</div>
-        <div class="menu-tile" data-nav="mypage"><span class="emoji">👤</span>マイページ</div>
-      </div>
-      <div class="card">
-        <div class="cardtitle">編成リーダー</div>
-        <div id="homeLeaderBox" class="mon-row"></div>
+        <button class="menu-tile t-dungeon" data-nav="dungeon"><span class="emoji">🏰</span><span>ダンジョン</span></button>
+        <button class="menu-tile t-event"   data-nav="event"><span class="emoji">🎉</span><span>イベント</span></button>
+        <button class="menu-tile t-char"    data-nav="character"><span class="emoji">🧝</span><span>キャラクター</span></button>
+        <button class="menu-tile t-gacha"   data-nav="gacha"><span class="emoji">🎰</span><span>ガチャ</span></button>
+        <button class="menu-tile t-shop"    data-nav="shop"><span class="emoji">🛒</span><span>ショップ</span></button>
+        <button class="menu-tile t-friend"  data-nav="friends"><span class="emoji">🤝</span><span>フレンド</span></button>
+        <button class="menu-tile t-mypage"  data-nav="mypage"><span class="emoji">👤</span><span>マイページ</span></button>
+        <button class="menu-tile t-guide"   data-nav="guide"><span class="emoji">📖</span><span>あそびかた</span></button>
       </div>
     </section>
 
     <!-- ===================== ダンジョン ===================== -->
     <section class="screen" id="screen-dungeon">
-      <div class="difftoggle">
+      <div class="segmented">
         <button id="diffNormalBtn" class="active">ノーマル</button>
         <button id="diffHardBtn">ハード</button>
       </div>
-      <div id="stageList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="stageList" class="stack"></div>
     </section>
 
     <!-- ===================== バトル ===================== -->
     <section class="screen" id="screen-battle">
-      <div id="floorIndicator"></div>
+      <div id="battleHead">
+        <div class="bh-left">
+          <div id="battleStageName">ステージ</div>
+          <div id="floorPips"></div>
+        </div>
+        <div id="leaderChips"></div>
+        <button id="battleInfoBtn" class="iconbtn small" aria-label="パーティ情報">ⓘ</button>
+      </div>
 
-      <!-- 敵(大きく表示) -->
+      <!-- 敵 -->
       <div id="enemyStage">
+        <div class="enemy-ring"></div>
         <div id="enemyEmoji">👹</div>
         <div id="enemyMeta">
           <b id="enemyName">エネミー</b>
           <span id="enemyTurn">攻撃まで <span id="enemyTurnCount">2</span></span>
+        </div>
+        <div class="enemy-hp">
+          <div class="hpbar"><div class="fill enemy" id="enemyHPFill"></div></div>
           <span id="enemyHPText">0 / 0</span>
         </div>
-        <div class="hpbar"><div class="fill enemy" id="enemyHPFill"></div></div>
+        <div id="enemyTurnPips"></div>
         <div id="banner"></div>
       </div>
 
-      <!-- 味方4体 -->
+      <!-- 自陣 -->
       <div id="partyBox">
         <div id="partyRow"></div>
         <div id="playerHPRow">
+          <span class="hp-label">HP</span>
           <div class="hpbar"><div class="fill player" id="playerHPFill"></div></div>
           <span id="playerHPText">0 / 0</span>
         </div>
       </div>
 
       <div id="timerRow">
+        <span class="timer-label">⏱</span>
         <div id="timerTrack"><div id="timerFill"></div></div>
-        <div id="timerNum">12.0s</div>
+        <div id="timerNum">10.0s</div>
       </div>
       <div id="boardWrap"><canvas id="board"></canvas></div>
     </section>
 
     <!-- ===================== イベント ===================== -->
     <section class="screen" id="screen-event">
-      <div class="card placeholder-card">🎉<br><br>イベントは近日公開予定です。<br>お楽しみに!</div>
+      <div class="card placeholder-card"><span class="ph-emoji">🎉</span>イベントは近日公開予定です。<br>お楽しみに!</div>
     </section>
 
-    <!-- ===================== モンスター ===================== -->
-    <section class="screen" id="screen-monster">
-      <div class="tabs">
+    <!-- ===================== あそびかた ===================== -->
+    <section class="screen" id="screen-guide">
+      <div class="card">
+        <div class="cardtitle"><span>バトルの基本</span></div>
+        <ol class="guide-list">
+          <li><b>オーラをつなぐ</b><br>同じオーラが4つ以上つながると消えます。オーブをドラッグして動かしましょう。</li>
+          <li><b>操作時間は10秒</b><br>最初にオーブへ触れてから10秒。指を離しても時間内なら掴み直せます。リーダースキルとスキルで延長できます。</li>
+          <li><b>オーラが合った仲間だけ攻撃</b><br>各キャラは自分のオーラを消したときだけ攻撃します。消さなかった仲間は攻撃しません。消した数が多いほど威力が上がります。</li>
+          <li><b>癒オーラは回復</b><br>癒オーラのキャラは攻撃ではなくパーティを回復します。</li>
+          <li><b>リーダースキル</b><br>自陣リーダー(編成の1人目)とサポート枠、2人のリーダースキルが発動します。</li>
+          <li><b>スキル</b><br>バトル中に仲間をタップすると発動。ターン経過でチャージされます。</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="cardtitle"><span>オーラ一覧</span></div>
+        <div id="guideAuraList" class="stack"></div>
+      </div>
+    </section>
+
+    <!-- ===================== キャラクター ===================== -->
+    <section class="screen" id="screen-character">
+      <div class="segmented">
         <button id="tabTeamBtn" class="active">編成</button>
-        <button id="tabListBtn">一覧</button>
+        <button id="tabListBtn">図鑑</button>
       </div>
-      <div id="monsterTeamPane">
+
+      <div id="characterTeamPane">
         <div class="card">
-          <div class="cardtitle">編成中のチーム(先頭がリーダー / 自分3体+フレンド1体の計4体)</div>
+          <div class="cardtitle">
+            <span>パーティ(自分3人 + サポート1人)</span>
+            <span class="hint">先頭がリーダー</span>
+          </div>
           <div class="teamslots" id="teamSlots"></div>
+          <div id="teamSummary" class="team-summary"></div>
+        </div>
+        <div class="card" id="leaderSkillCard">
+          <div class="cardtitle"><span>リーダースキル(自陣)</span></div>
+          <div id="teamLeaderSkill"></div>
         </div>
         <div class="card">
-          <div class="cardtitle">所持モンスター(タップで編成)</div>
-          <div id="ownedList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div class="cardtitle"><span>所持キャラクター</span><span class="hint" id="ownedCount"></span></div>
+          <div id="ownedList" class="stack"></div>
         </div>
       </div>
-      <div id="monsterListPane" style="display:none;">
+
+      <div id="characterListPane" style="display:none;">
         <div class="card">
-          <div class="cardtitle">図鑑(全モンスター)</div>
-          <div id="allMonsterList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div class="cardtitle"><span>図鑑(全キャラクター)</span></div>
+          <div id="allCharacterList" class="stack"></div>
         </div>
       </div>
     </section>
 
     <!-- ===================== ガチャ ===================== -->
     <section class="screen" id="screen-gacha">
-      <div class="gacha-card">
+      <div class="gacha-card g-frepo">
         <div class="gtitle">🎗️ フレポガチャ</div>
-        <div class="gcost">1〜3★モンスター中心 / 1回 300 フレポ</div>
+        <div class="gcost">N〜SR中心 ・ 1回 300 フレポ</div>
         <button class="btn" id="frepoGachaBtn">1回引く</button>
       </div>
-      <div class="gacha-card">
+      <div class="gacha-card g-orb">
         <div class="gtitle">💎 オーブガチャ</div>
-        <div class="gcost">全レアリティ(最大5★)登場 / 1回 5 オーブ</div>
+        <div class="gcost">全レアリティ登場(最大UR) ・ 1回 5 オーブ</div>
         <button class="btn" id="orbGachaBtn">1回引く</button>
+      </div>
+      <div class="card">
+        <div class="cardtitle"><span>排出レアリティ</span></div>
+        <div id="gachaRates" class="stack"></div>
       </div>
     </section>
 
     <!-- ===================== ショップ ===================== -->
     <section class="screen" id="screen-shop">
       <div class="card">
-        <div class="cardtitle">コインショップ</div>
-        <div id="shopList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div class="cardtitle"><span>コインショップ</span></div>
+        <div id="shopList" class="stack"></div>
       </div>
     </section>
 
     <!-- ===================== マイページ ===================== -->
     <section class="screen" id="screen-mypage">
-      <div class="card">
-        <div class="cardtitle">プロフィール</div>
-        <div id="iconGrid" class="icon-grid"></div>
-        <div class="setting-row" style="border-bottom:none;padding-top:10px;">
-          <label>ユーザー名</label>
-          <input type="text" id="profileNameInput" maxlength="12" placeholder="プレイヤー" style="flex:1;margin-left:10px;background:rgba(255,255,255,0.06);border:1px solid var(--panel-border);border-radius:8px;color:var(--ink);padding:7px 10px;font-size:12.5px;">
+      <div class="card profile-card">
+        <div class="cardtitle"><span>プロフィール</span></div>
+        <div class="profile-head">
+          <div class="profile-avatar" id="profileAvatar">🙂</div>
+          <div class="profile-meta">
+            <input type="text" id="profileNameInput" maxlength="12" placeholder="プレイヤー">
+            <span class="mstats" id="profileRankText">Rank 1</span>
+          </div>
         </div>
-        <button class="btn block" id="saveProfileBtn" style="margin-top:8px;">プロフィールを保存</button>
+        <div id="iconGrid" class="icon-grid"></div>
+        <button class="btn block" id="saveProfileBtn">プロフィールを保存</button>
       </div>
+
       <div class="card">
-        <div class="cardtitle">フレンドコード</div>
-        <div class="idbox"><span id="playerIdText">-</span><button class="btn secondary" id="copyIdBtn" style="padding:6px 10px;font-size:11px;">コピー</button></div>
-        <div class="mstats" style="margin-top:6px;">このコードを友達に教えてフレンド登録してもらいましょう。</div>
-        <div class="mstats" id="cloudStatusText" style="margin-top:4px;"></div>
+        <div class="cardtitle"><span>フレンドコード</span></div>
+        <div class="idbox"><span id="playerIdText">-</span><button class="btn secondary tiny" id="copyIdBtn">コピー</button></div>
+        <div class="mstats mt6">このコードを友達に教えてフレンド登録してもらいましょう。</div>
+        <div class="mstats" id="cloudStatusText"></div>
       </div>
+
       <div class="card">
-        <div class="cardtitle">レンタルモンスター(フレンドに貸し出す)</div>
-        <div class="mstats" style="margin-bottom:8px;">選んだ1体がフレンドのダンジョン挑戦時、4体目として借りられます。</div>
-        <div id="rentalList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div class="cardtitle"><span>貸し出しキャラクター</span></div>
+        <div class="mstats mb8">選んだ1人がフレンドのダンジョン挑戦時、サポート枠として借りられます。</div>
+        <div id="rentalList" class="stack"></div>
       </div>
+
       <div class="card">
-        <div class="cardtitle">プレイヤー</div>
+        <div class="cardtitle"><span>プレイヤー</span></div>
         <div class="setting-row"><label>ランク</label><span class="val" id="mypageRank">-</span></div>
         <div class="setting-row"><label>スタミナ</label><span class="val" id="mypageStamina">-</span></div>
       </div>
+
       <div class="card">
-        <div class="cardtitle">サウンド</div>
+        <div class="cardtitle"><span>サウンド</span></div>
         <div class="setting-row"><label>BGM音量</label><input type="range" id="bgmRange" min="0" max="100"></div>
         <div class="setting-row"><label>SE音量</label><input type="range" id="seRange" min="0" max="100"></div>
       </div>
+
       <div class="card">
-        <div class="cardtitle">データ管理</div>
-        <button class="btn secondary block" id="resetDataBtn">データを初期化する</button>
+        <div class="cardtitle"><span>データ管理</span></div>
+        <button class="btn danger block" id="resetDataBtn">データを初期化する</button>
       </div>
     </section>
 
     <!-- ===================== フレンド ===================== -->
     <section class="screen" id="screen-friends">
-      <div class="card" id="friendCloudNotice" style="display:none;">
-        <div class="mstats">フレンド機能はFirebase未設定のため現在利用できません。src/js/core/firebase.js に設定値を入力してください。</div>
+      <div class="card notice" id="friendCloudNotice" style="display:none;">
+        <div class="mstats">フレンド機能はFirebase未設定のため現在利用できません。ダンジョンでは<b>NPCサポート</b>をいつでも選べます。</div>
       </div>
       <div class="card">
-        <div class="cardtitle">フレンドを追加</div>
+        <div class="cardtitle"><span>フレンドを追加</span></div>
         <div class="idbox">
-          <input type="text" id="friendCodeInput" placeholder="フレンドコードを入力(例 AC-XXXXXXXX)" style="flex:1;background:transparent;border:none;color:var(--ink);font-size:12px;">
+          <input type="text" id="friendCodeInput" placeholder="フレンドコード(例 AC-XXXXXXXX)">
         </div>
-        <button class="btn block" id="addFriendBtn" style="margin-top:8px;">コードで登録する</button>
+        <button class="btn block mt8" id="addFriendBtn">コードで登録する</button>
       </div>
       <div class="card">
-        <div class="cardtitle">フレンド一覧(<span id="friendCountText">0 / 30 人</span>)</div>
-        <button class="btn secondary block" id="greetAllBtn" style="margin-bottom:8px;">まとめてあいさつ(フレポ獲得)</button>
-        <div id="friendList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div class="cardtitle"><span>フレンド一覧</span><span class="hint" id="friendCountText">0 / 30 人</span></div>
+        <button class="btn secondary block mb8" id="greetAllBtn">まとめてあいさつ(フレポ獲得)</button>
+        <div id="friendList" class="stack"></div>
       </div>
     </section>
   </main>
 </div>
 
-<!-- ===================== システムモーダル(⚙) ===================== -->
+<!-- ===================== システムモーダル ===================== -->
 <div class="modal" id="sysModal">
   <div class="modal-card">
     <h3>システム</h3>
     <div class="modal-sec">
-      <div class="cardtitle">サウンド</div>
+      <div class="cardtitle"><span>サウンド</span></div>
       <div class="setting-row"><label>BGM音量</label><input type="range" id="sysBgm" min="0" max="100"></div>
       <div class="setting-row"><label>SE音量</label><input type="range" id="sysSe" min="0" max="100"></div>
     </div>
     <div class="modal-sec" id="sysRetreatBox" style="display:none;">
-      <div class="cardtitle">ダンジョン</div>
+      <div class="cardtitle"><span>ダンジョン</span></div>
       <button class="btn danger block" id="sysRetreatBtn">リタイア</button>
     </div>
     <button class="btn secondary block" id="sysCloseBtn">閉じる</button>
   </div>
 </div>
 
-<!-- ===================== フレンドモンスター選択(ダンジョン出発前) ===================== -->
-<div class="modal" id="friendPickModal">
-  <div class="modal-card">
-    <h3>フレンドモンスターを選択</h3>
-    <div class="mstats" style="margin-bottom:10px;">フレンドが貸し出しているモンスターを1体選ぶと、自分の3体と合わせて4体で挑戦できます。</div>
-    <div id="friendPickList" style="display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow:auto;"></div>
-    <button class="btn secondary block" id="friendPickSkipBtn" style="margin-top:10px;">フレンドなしで挑戦(3体)</button>
-    <button class="btn block" id="friendPickCloseBtn" style="margin-top:8px;">キャンセル</button>
+<!-- ===================== サポート選択(ダンジョン出発前) ===================== -->
+<div class="modal" id="supportPickModal">
+  <div class="modal-card wide">
+    <h3>サポートを選ぶ</h3>
+    <div class="mstats mb8">サポートの<b>リーダースキル</b>も発動します。フレンドがいなくてもNPCサポートを選べます。</div>
+    <div class="segmented small">
+      <button id="supTabFriendBtn" class="active">フレンド</button>
+      <button id="supTabNpcBtn">NPC</button>
+    </div>
+    <div id="supportPickList" class="stack scroll-area"></div>
+    <button class="btn secondary block mt8" id="supportSkipBtn">サポートなしで挑戦(3人)</button>
+    <button class="btn ghost block mt6" id="supportCloseBtn">キャンセル</button>
+  </div>
+</div>
+
+<!-- ===================== パーティ情報(バトル中) ===================== -->
+<div class="modal" id="partyInfoModal">
+  <div class="modal-card wide">
+    <h3>パーティ情報</h3>
+    <div id="partyInfoList" class="stack scroll-area"></div>
+    <button class="btn secondary block mt8" id="partyInfoCloseBtn">閉じる</button>
+  </div>
+</div>
+
+<!-- ===================== キャラクター詳細 ===================== -->
+<div class="modal" id="charDetailModal">
+  <div class="modal-card wide">
+    <div id="charDetailBody"></div>
+    <div class="detail-actions">
+      <button class="btn block" id="charDetailActionBtn">編成する</button>
+      <button class="btn secondary block mt6" id="charDetailCloseBtn">閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -254,10 +348,12 @@
 <!-- ===================== ガチャ結果 ===================== -->
 <div class="modal" id="pullOverlay">
   <div class="modal-card" id="pullCard">
+    <div class="pull-burst"></div>
     <div class="pemoji" id="pullEmoji">✨</div>
     <div class="pname" id="pullName">?</div>
     <div class="pstars" id="pullStars">★</div>
     <div class="pstats" id="pullStats"></div>
+    <div class="pskills" id="pullSkills"></div>
     <button class="btn block" id="pullCloseBtn">受け取る</button>
   </div>
 </div>
