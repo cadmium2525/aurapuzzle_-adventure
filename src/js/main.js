@@ -4,7 +4,7 @@
 import { initNav, registerScreen, showScreen, updateStatusBar } from './core/nav.js';
 import { initSysModal } from './core/sysmodal.js';
 import { initBattle } from './battle/battle.js';
-import { renderHome } from './screens/home.js';
+import { initHome, renderHome } from './screens/home.js';
 import { initDungeon, renderDungeon } from './screens/dungeon.js';
 import { initCharacter, renderCharacterScreen } from './screens/character.js';
 import { initGacha, renderGacha } from './screens/gacha.js';
@@ -30,6 +30,7 @@ initSysModal();
 initDungeon();
 initCharacter();
 initGacha();
+initHome();
 initMypage();
 initFriends();
 initBattle();

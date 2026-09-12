@@ -1,11 +1,16 @@
 /* ===================== ホーム画面 =====================
  * 編成中の3人を1枚絵として見せる。
- * リーダーを最前面の中央に置き、2人目と3人目を左右の少し後ろへ
- * 小さく・暗く重ねることで、並びだけでリーダーと編成が分かるようにする。
+ * 1人を最前面の中央に、残り2人を左右の少し後ろへ小さく暗く重ねる。
+ *
+ * 左右の△で前面に出す人を入れ替えられるが、これは「見せ方」だけの操作で、
+ * リーダー(編成の先頭)は変わらない。
  * ==================================================== */
 import { $, artImg } from '../core/ui.js';
 import { ownCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
+
+/** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
+let frontIndex = 0;
 
 /** 1人ぶんの立ち絵(イラストが無ければ絵文字にフォールバック) */
 function slotHTML(m, cls) {
@@ -19,14 +24,34 @@ function slotHTML(m, cls) {
 export function renderHome() {
   const mons = ownCharacters();
   const art = $('homePartyArt');
+  const navs = [$('homePrevBtn'), $('homeNextBtn')];
 
   if (!mons.length) {
     art.innerHTML = '<div class="empty">編成が空です。キャラクター画面で設定しましょう。</div>';
+    navs.forEach(b => { if (b) b.hidden = true; });
     return;
   }
 
-  // 後ろの2人を先に描き、リーダーを最後に重ねて最前面にする
-  art.innerHTML = slotHTML(mons[1], 'sub left')
-    + slotHTML(mons[2], 'sub right')
-    + slotHTML(mons[0], 'lead');
+  // 編成が変わって位置がずれても破綻しないようにする
+  if (frontIndex >= mons.length) frontIndex = 0;
+  navs.forEach(b => { if (b) b.hidden = mons.length < 2; });
+
+  const at = i => mons[(frontIndex + i) % mons.length];
+  // 後ろの2人を先に描き、前面の1人を最後に重ねる
+  art.innerHTML = (mons.length > 1 ? slotHTML(at(1), 'sub left') : '')
+    + (mons.length > 2 ? slotHTML(at(2), 'sub right') : '')
+    + slotHTML(at(0), 'lead');
+}
+
+/** 前面に出す人をずらす(リーダーは変わらない) */
+function shiftFront(step) {
+  const n = ownCharacters().length;
+  if (n < 2) return;
+  frontIndex = (frontIndex + step + n) % n;
+  renderHome();
+}
+
+export function initHome() {
+  $('homePrevBtn').addEventListener('click', () => shiftFront(-1));
+  $('homeNextBtn').addEventListener('click', () => shiftFront(1));
 }
