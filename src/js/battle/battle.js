@@ -53,6 +53,12 @@ export function initBattle() {
     showScreen('dungeon', false);
   });
   $('battleInfoBtn').addEventListener('click', openPartyInfo);
+  $('skillCancelBtn').addEventListener('click', closeSkillConfirm);
+  $('skillUseBtn').addEventListener('click', () => {
+    const i = pendingSkill;
+    closeSkillConfirm();
+    if (i !== null) applySkill(i);
+  });
   $('partyInfoCloseBtn').addEventListener('click', () => $('partyInfoModal').classList.remove('show'));
   $('partyInfoModal').addEventListener('click', e => {
     if (e.target === $('partyInfoModal')) $('partyInfoModal').classList.remove('show');
@@ -145,7 +151,7 @@ function renderParty() {
         <span class="unit-cd" hidden></span>
         ${unitRoleBadge(i)}
       </span>`;
-    btn.addEventListener('click', () => useSkill(i));
+    btn.addEventListener('click', () => confirmSkill(i));
     row.appendChild(btn);
   });
   updateSkillUI();
@@ -245,12 +251,45 @@ function showBanner(html) { $('banner').innerHTML = html; $('banner').classList.
 function hideBanner() { $('banner').classList.remove('show'); }
 
 /* ===================== スキル ===================== */
-function useSkill(i) {
+/** スキルの使用確認。内容を見せてから applySkill に進む */
+let pendingSkill = null;
+function confirmSkill(i) {
   if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
   const m = run.party.members[i];
   const sk = m.skill;
-  if (!sk) return;
+  if (!sk) { toast(`${m.name}はスキルを持っていません`); return; }
   if (run.cooldowns[i] > 0) { toast(`${m.name}のスキルはあと${run.cooldowns[i]}ターン`); return; }
+
+  pendingSkill = i;
+  const aura = AURAS[m.aura];
+  $('skillConfirmBody').innerHTML = `
+    <div class="skill-confirm-head">
+      <span class="skill-confirm-face" style="--aura:${COLOR_HEX[aura.key]}">
+        ${artImg(m.art && m.art.icon, m.portrait, 'sc')}
+      </span>
+      <span class="skill-confirm-who">
+        <b>${m.name}</b>
+        <span>${aura.emoji}${aura.name}オーラ ・ ${m.job}</span>
+      </span>
+    </div>
+    <div class="skill-confirm-box">
+      <div class="sname">${sk.name}</div>
+      <div class="sdesc">${sk.desc}</div>
+      <div class="sct">使用後は ${sk.cooldown} ターン使えません</div>
+    </div>`;
+  $('skillConfirmModal').classList.add('show');
+}
+
+function closeSkillConfirm() {
+  pendingSkill = null;
+  $('skillConfirmModal').classList.remove('show');
+}
+
+function applySkill(i) {
+  if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
+  const m = run.party.members[i];
+  const sk = m.skill;
+  if (!sk || run.cooldowns[i] > 0) return;
 
   const logs = [];
   if (sk.timeThisTurn) {

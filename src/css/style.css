@@ -30,6 +30,9 @@
   --safe-bottom:env(safe-area-inset-bottom, 0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+/* スマホで長押しすると範囲選択やコピー候補が出てゲームの操作を邪魔するので止める */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+input,textarea{-webkit-user-select:text;user-select:text;}
 html,body{margin:0;padding:0;}
 body{
   min-height:100vh;min-height:100dvh;
@@ -80,7 +83,7 @@ body{
 }
 .iconbtn.small{width:28px;height:28px;font-size:14px;border-radius:9px;}
 .iconbtn:active{transform:scale(.92);background:var(--panel);}
-.iconbtn.hidden{visibility:hidden;}
+.iconbtn.hidden{display:none;}
 #screenTitle{font-weight:800;font-size:16px;flex:1;min-width:0;letter-spacing:.02em;}
 
 #statusBar{display:flex;flex-direction:column;gap:7px;padding:0 12px 9px;}
@@ -120,7 +123,7 @@ body{
 .cpill b{color:var(--accent);font-variant-numeric:tabular-nums;}
 
 main{flex:1;padding:14px 14px 6px;display:flex;flex-direction:column;gap:13px;}
-body.in-battle main{padding-left:7px;padding-right:7px;}
+body.in-battle main{padding-left:3px;padding-right:3px;}
 .screen{display:none;flex-direction:column;gap:13px;}
 .screen.active{display:flex;animation:screenIn .26s ease;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
@@ -349,7 +352,7 @@ button{font-family:inherit;cursor:pointer;}
 
 #enemyStage{
   /* 盤面は縦で頭打ちになるので、敵フィールドの取り分に上限を設けて盤面へ回す */
-  position:relative;flex:1 1 auto;min-height:0;max-height:25vh;
+  position:relative;flex:1 1 auto;min-height:0;max-height:24vh;
   background:radial-gradient(ellipse at 50% 26%, rgba(255,107,107,0.18), transparent 62%),
     linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
   border:1px solid var(--panel-border);border-radius:var(--r-lg);
@@ -458,7 +461,7 @@ button{font-family:inherit;cursor:pointer;}
 #banner .bskill{color:var(--accent-3);}
 
 #boardWrap{
-  position:relative;align-self:center;padding:5px;flex-shrink:0;
+  position:relative;align-self:center;padding:4px;flex-shrink:0;
   border-radius:24px;
   background:linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025));
   border:1px solid var(--panel-border-hi);
@@ -627,6 +630,22 @@ input[type=range]{accent-color:var(--accent);}
   animation:modalIn .26s cubic-bezier(.2,.9,.3,1.1);
 }
 .modal-card.wide{max-width:390px;}
+.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.skill-confirm-head{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
+.skill-confirm-face{width:52px;height:52px;border-radius:16px;flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  background:color-mix(in srgb, var(--aura, #888) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--aura, #888) 45%, transparent);}
+.sc-img{width:100%;height:100%;object-fit:cover;display:block;}
+.sc-emoji{font-size:30px;line-height:1;}
+.skill-confirm-who{min-width:0;}
+.skill-confirm-who b{display:block;font-size:14px;}
+.skill-confirm-who span{font-size:10px;color:var(--ink-dim);}
+.skill-confirm-box{background:rgba(0,0,0,0.26);border:1px solid var(--panel-border);
+  border-radius:var(--r-md);padding:11px 12px;margin-bottom:15px;}
+.skill-confirm-box .sname{font-size:13.5px;font-weight:900;margin-bottom:5px;}
+.skill-confirm-box .sdesc{font-size:11px;color:var(--ink);line-height:1.6;}
+.skill-confirm-box .sct{font-size:10px;color:var(--ink-dim);margin-top:7px;}
 @keyframes modalIn{from{opacity:0;transform:translateY(16px) scale(.96);}to{opacity:1;transform:none;}}
 .modal-card h3{margin:0 0 13px;font-size:15.5px;font-weight:900;text-align:center;letter-spacing:.03em;}
 .modal-sec{margin-bottom:15px;}
