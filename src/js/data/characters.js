@@ -90,23 +90,50 @@ const KAI_ART = [
   { star: 5, minLevel: 1,  icon: 'assets/chars/kai_2_icon.webp', full: 'assets/chars/kai_2.webp', label: '進化' }
 ];
 
+/** ★4で追加した3人のイラスト(KAI_ART と同じ3段階の構成) */
+const GALD_ART = [
+  { star: 4, minLevel: 1,  icon: 'assets/chars/garudo_1_icon.webp', full: 'assets/chars/garudo_1.webp', label: '初期' },
+  { star: 4, minLevel: 20, icon: 'assets/chars/garudo_2_icon.webp', full: 'assets/chars/garudo_1.webp', label: '覚醒' },
+  { star: 5, minLevel: 1,  icon: 'assets/chars/garudo_2_icon.webp', full: 'assets/chars/garudo_2.webp', label: '進化' }
+];
+const MIO_ART = [
+  { star: 4, minLevel: 1,  icon: 'assets/chars/mio_1_icon.webp', full: 'assets/chars/mio_1.webp', label: '初期' },
+  { star: 4, minLevel: 20, icon: 'assets/chars/mio_2_icon.webp', full: 'assets/chars/mio_1.webp', label: '覚醒' },
+  { star: 5, minLevel: 1,  icon: 'assets/chars/mio_2_icon.webp', full: 'assets/chars/mio_2.webp', label: '進化' }
+];
+const NOA_ART = [
+  { star: 4, minLevel: 1,  icon: 'assets/chars/noa_1_icon.webp', full: 'assets/chars/noa_1.webp', label: '初期' },
+  { star: 4, minLevel: 20, icon: 'assets/chars/noa_2_icon.webp', full: 'assets/chars/noa_1.webp', label: '覚醒' },
+  { star: 5, minLevel: 1,  icon: 'assets/chars/noa_2_icon.webp', full: 'assets/chars/noa_2.webp', label: '進化' }
+];
+
 /* --- キャラクター図鑑 --- */
 export const CHARACTERS = [
   /* ===== 火 ===== */
   mk('fl_rito',   'リト',       '見習い剣士',   '🧑‍🎤', 0, 1, 'balance',  'ls_novice',  'sk_novice_time'),
-  mk('fl_gald',   'ガルド',     '傭兵',         '🧔',   0, 2, 'attacker', 'ls_ember',   'sk_strike'),
+  mk('fl_gald',   'ゴラン',     '傭兵',         '🧔',   0, 2, 'attacker', 'ls_ember',   'sk_strike'),
   mk('fl_aina',   'アイナ',     '紅蓮の剣士',   '👩‍🦰', 0, 3, 'attacker', 'ls_blaze',   'sk_flamewave'),
   mk('fl_belg',   'ベルグ',     '砲術士',       '🧑‍🚒', 0, 3, 'balance',  'ls_burst',   'sk_warcry'),
   mk('fl_rune',   'ルネ',       '焔姫',         '👸',   0, 4, 'attacker', 'ls_inferno', 'sk_ember_time'),
   mk('fl_ignis',  'イグナス',   '業火の英雄',   '🦸',   0, 4, 'attacker', 'ls_ignis',   'sk_ignition'),
+  mk('fl_gald_x', 'ガルド',     '紅蓮の傭兵',   '🧔‍♂️', 0, 4, 'attacker', 'ls_gald_x',  'sk_gald_x', {
+    artStages: GALD_ART,
+    evoJob: '不滅の豪傑',
+    flavor: '金さえ積めば地獄にも付き合う。頬の傷は、値切った客の数だけ増えていった。'
+  }),
 
   /* ===== 水 ===== */
-  mk('aq_mio',    'ミオ',       '水練生',       '🧒',   1, 1, 'balance',  'ls_ripple',  'sk_calm'),
+  mk('aq_mio',    'シズク',     '水練生',       '🧒',   1, 1, 'balance',  'ls_ripple',  'sk_calm'),
   mk('aq_kai',    'ナギ',       '潮風の斥候',   '🧑‍✈️', 1, 2, 'balance',  'ls_scout',   'sk_delay'),
   mk('aq_shirka', 'シルカ',     '氷結術士',     '🧙‍♀️', 1, 3, 'balance',  'ls_frost',   'sk_freeze'),
   mk('aq_reina',  'レイナ',     '波乗り',       '🏄‍♀️', 1, 3, 'attacker', 'ls_tide',    'sk_aqua_conv'),
   mk('aq_nereid', 'ネレイド',   '深海の守護者', '🧜‍♀️', 1, 4, 'tank',     'ls_abyss',   'sk_barrier'),
   mk('aq_aqualis','アクアリス', '蒼海の賢者',   '🧙',   1, 4, 'balance',  'ls_aquaris', 'sk_maelstrom'),
+  mk('aq_mio_x',  'ミオ',       '氷華の姫',     '❄️',   1, 4, 'balance',  'ls_mio_x',   'sk_mio_x', {
+    artStages: MIO_ART,
+    evoJob: '永久氷河の女王',
+    flavor: '凍らせているのは水ではなく時間のほうだと、本人だけが言い張っている。'
+  }),
   /* 看板キャラ。進化で専用のリーダースキル/スキルに変化する */
   mk('aq_kai_x',  '不器用なカイ', '虚空の剣士', '⚔️',  1, 4, 'attacker', 'ls_kai4',    'sk_kai4', {
     artStages: KAI_ART,
@@ -119,12 +146,17 @@ export const CHARACTERS = [
   }),
 
   /* ===== 木 ===== */
-  mk('wd_noa',    'ノア',       '森の狩人',     '🧑‍🌾', 2, 1, 'balance',  'ls_sprout',  'sk_hunt'),
+  mk('wd_noa',    'クルト',     '森の狩人',     '🧑‍🌾', 2, 1, 'balance',  'ls_sprout',  'sk_hunt'),
   mk('wd_hami',   'ハーミ',     '薬草師',       '👩‍⚕️', 2, 2, 'healer',   'ls_herb',    'sk_heal_s'),
   mk('wd_zeek',   'ジーク',     '樹護士',       '🧑‍🔧', 2, 3, 'tank',     'ls_guard',   'sk_wood_conv'),
   mk('wd_el',     'エル',       '風読みの射手', '🏹',   2, 3, 'attacker', 'ls_wind',    'sk_wind_time'),
   mk('wd_leafia', 'リーフィア', '大樹の巫女',   '🧝‍♀️', 2, 4, 'healer',   'ls_herb',    'sk_heal_l'),
   mk('wd_yggd',   'ユグド',     '世界樹の守人', '🧝',   2, 4, 'balance',  'ls_yggd',    'sk_forest'),
+  mk('wd_noa_x',  'ノア',       '花冠の癒し手', '🌸',   2, 4, 'healer',   'ls_noa_x',   'sk_noa_x', {
+    artStages: NOA_ART,
+    evoJob: '森羅の大賢者',
+    flavor: '読みかけの本に花を挟む癖がある。栞はいつも、その日の森で摘んだものだ。'
+  }),
 
   /* ===== 癒 ===== */
   mk('lm_mina',   'ミナ',       '見習い聖女',   '👧',   3, 1, 'healer',   'ls_pray',    'sk_heal_m'),

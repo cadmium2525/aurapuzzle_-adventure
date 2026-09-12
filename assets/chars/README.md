@@ -17,6 +17,17 @@
 形式は **WebP を推奨**(透過に対応していて、同じ見た目でもPNGの2割程度のファイルサイズになる)。
 PNG / JPEG でも動くので、拡張子に合わせて `characters.js` のパスを書き換えてください。
 
+## ★4の3人(`fl_gald_x` / `aq_mio_x` / `wd_noa_x`)
+
+ガルド / ミオ / ノアも同じ3段階の構成。カイと同様、`_1` が★4のあいだ、
+`_2` が★5(進化後)の立ち絵で、アイコンだけ Lv20 の覚醒で先に切り替わる。
+
+| キャラ | 初期アイコン | 覚醒・進化アイコン | ★4立ち絵 | ★5立ち絵 |
+| --- | --- | --- | --- | --- |
+| ガルド | `garudo_1_icon.webp` | `garudo_2_icon.webp` | `garudo_1.webp` | `garudo_2.webp` |
+| ミオ | `mio_1_icon.webp` | `mio_2_icon.webp` | `mio_1.webp` | `mio_2.webp` |
+| ノア | `noa_1_icon.webp` | `noa_2_icon.webp` | `noa_1.webp` | `noa_2.webp` |
+
 ## 他のキャラクターにイラストを付ける
 
 `src/js/data/characters.js` の `mk(...)` の最後の引数に `artStages` を渡します。
