@@ -107,8 +107,8 @@ const NOA_ART = [
   { star: 5, minLevel: 1,  icon: 'assets/chars/noa_2_icon.webp', full: 'assets/chars/noa_2.webp', label: '進化' }
 ];
 
-/** 初期メンバー3人のイラスト。★1のあいだと、★2へ進化したあとの2段階 */
-const starterArt = (name) => ([
+/** ★1キャラのイラスト。★1のあいだと、★2へ進化したあとの2段階 */
+const twoStageArt = (name) => ([
   { star: 1, minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '初期' },
   { star: 2, minLevel: 1, icon: `assets/chars/${name}_2_icon.webp`, full: `assets/chars/${name}_2.webp`, label: '進化' }
 ]);
@@ -117,7 +117,7 @@ const starterArt = (name) => ([
 export const CHARACTERS = [
   /* ===== 火 ===== */
   mk('fl_rito',   'リト',       '見習い剣士',   '🧑‍🎤', 0, 1, 'balance',  'ls_novice',  'sk_novice_time', {
-    artStages: starterArt('rito')
+    artStages: twoStageArt('rito')
   }),
   mk('fl_gald',   'ゴラン',     '傭兵',         '🧔',   0, 2, 'attacker', 'ls_ember',   'sk_strike'),
   mk('fl_aina',   'アイナ',     '紅蓮の剣士',   '👩‍🦰', 0, 3, 'attacker', 'ls_blaze',   'sk_flamewave'),
@@ -132,7 +132,7 @@ export const CHARACTERS = [
 
   /* ===== 水 ===== */
   mk('aq_mio',    'シズク',     '水練生',       '🧒',   1, 1, 'balance',  'ls_ripple',  'sk_calm', {
-    artStages: starterArt('shizuku')
+    artStages: twoStageArt('shizuku')
   }),
   mk('aq_kai',    'ナギ',       '潮風の斥候',   '🧑‍✈️', 1, 2, 'balance',  'ls_scout',   'sk_delay'),
   mk('aq_shirka', 'シルカ',     '氷結術士',     '🧙‍♀️', 1, 3, 'balance',  'ls_frost',   'sk_freeze'),
@@ -156,7 +156,9 @@ export const CHARACTERS = [
   }),
 
   /* ===== 木 ===== */
-  mk('wd_noa',    'クルト',     '森の狩人',     '🧑‍🌾', 2, 1, 'balance',  'ls_sprout',  'sk_hunt'),
+  mk('wd_noa',    'クルト',     '森の狩人',     '🧑‍🌾', 2, 1, 'balance',  'ls_sprout',  'sk_hunt', {
+    artStages: twoStageArt('kuruto')
+  }),
   mk('wd_hami',   'ハーミ',     '薬草師',       '👩‍⚕️', 2, 2, 'healer',   'ls_herb',    'sk_heal_s'),
   mk('wd_zeek',   'ジーク',     '樹護士',       '🧑‍🔧', 2, 3, 'tank',     'ls_guard',   'sk_wood_conv'),
   mk('wd_el',     'エル',       '風読みの射手', '🏹',   2, 3, 'attacker', 'ls_wind',    'sk_wind_time'),
@@ -170,7 +172,7 @@ export const CHARACTERS = [
 
   /* ===== 癒 ===== */
   mk('lm_mina',   'ミナ',       '見習い聖女',   '👧',   3, 1, 'healer',   'ls_pray',    'sk_heal_m', {
-    artStages: starterArt('mina')
+    artStages: twoStageArt('mina')
   }),
   mk('lm_sera',   'セラ',       '祈祷師',       '🧕',   3, 2, 'tank',     'ls_vow',     'sk_heal_m'),
   mk('lm_lily',   'リリィ',     '白の癒し手',   '👩‍🦳', 3, 3, 'healer',   'ls_bless',   'sk_light'),
