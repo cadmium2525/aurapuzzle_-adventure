@@ -55,7 +55,7 @@ function renderAccount() {
   const canRegister = st.state === 'guest';
 
   $('accountStatusText').textContent = isSignedIn
-    ? `ID「${st.id}」でログイン中です。`
+    ? `ID「${st.id}」でログイン中です。${st.admin ? '(管理者アカウント)' : ''}`
     : STATUS_TEXT[st.state] || '';
 
   $('accountForm').hidden = !canRegister;

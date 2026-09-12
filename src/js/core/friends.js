@@ -78,6 +78,7 @@ async function pushCloudSave() {
       stamina: state.stamina, staminaAt: state.staminaAt,
       characters: state.characters, materials: state.materials, team: state.team,
       progress: state.progress, records: state.records,
+      grants: state.grants || {},        // 一度きりの付与が別端末で重複しないように運ぶ
       updatedAt: FB.serverTimestamp()
     });
     await FB.updateDoc(FB.doc(FB.db, 'users', myUid), {

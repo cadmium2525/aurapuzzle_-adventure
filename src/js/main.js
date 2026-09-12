@@ -13,6 +13,8 @@ import { renderGuide } from './screens/guide.js';
 import { initMypage, renderMypage } from './screens/mypage.js';
 import { initFriends, renderFriends } from './screens/friends.js';
 import { initCloud } from './core/friends.js';
+import { applyAdminGrant } from './core/account.js';
+import { toast } from './core/ui.js';
 
 registerScreen('home', renderHome);
 registerScreen('dungeon', renderDungeon);
@@ -36,7 +38,13 @@ showScreen('home', false);
 updateStatusBar();
 
 // Firebase(匿名ログイン+データ同期)は失敗してもゲーム本体に影響しないよう非同期で初期化
-initCloud().catch(() => {});
+initCloud()
+  .then(() => {
+    // 別端末でのログイン後など、起動時点で管理者だった場合はここで付与する
+    const granted = applyAdminGrant();
+    if (granted) { updateStatusBar(); toast(`管理者アカウント: 💎${granted} を付与しました`); }
+  })
+  .catch(() => {});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

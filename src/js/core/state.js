@@ -47,6 +47,7 @@ function createInitialState() {
     team: STARTER_IDS.slice(),         // 自分の3人(先頭がリーダー)
     progress: {},                      // {stageId:{normal:bool, hard:bool}}
     records: {},                       // {stageId_diff:{maxChain}}
+    grants: {},                        // 一度きりの付与の記録(再ログインで重複させない)
     settings: { bgm: 60, se: 80, playerId: uid() },
     profile: {
       name: 'プレイヤー',
@@ -117,6 +118,7 @@ function migrate(old) {
   s.stamina = typeof old.stamina === 'number' ? old.stamina : maxStaminaFor(s.rank);
   s.staminaAt = old.staminaAt || Date.now();
   s.records = old.records || {};
+  s.grants = old.grants || {};
   s.settings = Object.assign(fresh.settings, old.settings || {});
   s.profile = Object.assign(fresh.profile, old.profile || {});
   s.profile.friends = Array.isArray(s.profile.friends) ? s.profile.friends : [];

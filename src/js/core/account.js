@@ -13,7 +13,7 @@
  *   ことを登録画面で明示すること。
  * =======================================================*/
 import { AUTH, firebaseEnabled, isAnonymous, currentEmail, currentUid } from './firebase.js';
-import { replaceSavedState, resetState } from './state.js';
+import { state, saveState, replaceSavedState, resetState } from './state.js';
 import { fetchCloudState } from './friends.js';
 
 /** 実在しないドメイン。ここを所有ドメインに変えても動作は同じ */
@@ -21,6 +21,17 @@ const EMAIL_DOMAIN = 'users.aura-connect.invalid';
 
 export const ID_PATTERN = /^[a-z0-9_-]{3,16}$/;
 export const MIN_PASSWORD = 6;
+
+/**
+ * 管理者として扱うID。
+ * Cloud Functions を使わない構成なのでサーバ側の検証は無く、これは
+ * 「誰が管理者か」を示す運用上の目印でしかない。クライアントの改変で
+ * 誰でも同じことはできるため、不正防止の役割は持たせていない。
+ */
+const ADMIN_IDS = ['cadmium'];
+
+/** 管理者アカウントに一度だけ配るオーブ(ダイヤ) */
+export const ADMIN_ORB_GRANT = 500;
 
 /** 全角や大文字のゆらぎで別IDにならないように正規化する */
 export function normalizeId(raw) {
@@ -41,12 +52,36 @@ export function idFromEmail(email) {
 /** ログイン中アカウントのID(未登録なら null) */
 export function currentAccountId() { return idFromEmail(currentEmail()); }
 
+/** そのIDが管理者かどうか */
+export function isAdminId(id) { return ADMIN_IDS.includes(normalizeId(id)); }
+
+/** 今ログインしているのが管理者アカウントか */
+export function isAdmin() {
+  const id = currentAccountId();
+  return !!id && isAdminId(id);
+}
+
+/**
+ * 管理者アカウントへの初回付与を行う。
+ * 付与済みフラグをセーブに残すので、再ログインしても増えない。
+ * @returns {number|null} 付与した数(何もしなければ null)
+ */
+export function applyAdminGrant() {
+  if (!isAdmin()) return null;
+  if (!state.grants) state.grants = {};
+  if (state.grants.adminOrb) return null;
+  state.orb += ADMIN_ORB_GRANT;
+  state.grants.adminOrb = true;
+  saveState();
+  return ADMIN_ORB_GRANT;
+}
+
 /** 画面表示用のログイン状態 */
 export function accountStatus() {
   if (!firebaseEnabled()) return { state: 'offline' };
   if (!currentUid()) return { state: 'connecting' };
   if (isAnonymous()) return { state: 'guest' };
-  return { state: 'signedIn', id: currentAccountId() };
+  return { state: 'signedIn', id: currentAccountId(), admin: isAdmin() };
 }
 
 const MESSAGES = {
@@ -88,7 +123,13 @@ export async function registerAccount(rawId, password) {
     const cred = AUTH.EmailAuthProvider.credential(toEmail(id), password);
     await AUTH.linkWithCredential(user, cred);
     AUTH.user = AUTH.auth.currentUser;      // 昇格後の状態を確実に反映させる
-    return { ok: true, message: `ID「${id}」で登録しました` };
+    const granted = applyAdminGrant();
+    return {
+      ok: true,
+      message: granted
+        ? `ID「${id}」を管理者アカウントとして登録し、💎${granted} を付与しました`
+        : `ID「${id}」で登録しました`
+    };
   } catch (e) {
     return { ok: false, message: messageFor(e, '登録に失敗しました') };
   }
