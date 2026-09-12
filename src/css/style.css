@@ -594,6 +594,34 @@ input[type=range]{accent-color:var(--accent);}
 .acc-msg{color:var(--ink);background:rgba(0,0,0,0.22);border-radius:10px;padding:8px 10px;}
 .acc-msg.ng{color:#FF9A9A;}
 
+/* ダンジョン: 章タブと曜日ダンジョン */
+.segmented.sub{margin-bottom:9px;}
+.chapter-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.chapter-bar::-webkit-scrollbar{display:none;}
+.chapter-btn{
+  flex-shrink:0;min-width:62px;padding:6px 8px;border-radius:12px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);color:var(--ink-dim);
+  display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2;
+}
+.chapter-btn b{font-size:13px;font-weight:900;color:var(--ink);}
+.chapter-btn span{font-size:8.5px;white-space:nowrap;}
+.chapter-btn.active{background:rgba(255,198,92,.16);border-color:rgba(255,198,92,.5);}
+.chapter-btn.active b{color:var(--accent);}
+.chapter-btn.locked{opacity:.45;}
+.chapter-btn.locked b{color:var(--ink-dim);}
+
+.daily-head{background:linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border:1px solid var(--panel-border);border-radius:var(--r-md);padding:11px 13px;}
+.daily-title{font-size:15px;font-weight:900;display:flex;align-items:center;gap:8px;}
+.daily-day{font-size:10px;font-weight:700;color:var(--accent);
+  background:rgba(255,198,92,.16);border-radius:8px;padding:2px 7px;}
+.daily-note{font-size:10.5px;color:var(--ink-dim);margin-top:3px;}
+.daily-week{display:flex;gap:5px;margin-top:9px;}
+.dw{width:24px;height:24px;border-radius:8px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);color:var(--ink-dim);}
+.dw.now{background:rgba(255,198,92,.2);border-color:rgba(255,198,92,.5);color:var(--accent);}
+
 /* プロフィールアイコン(=貸し出しキャラクター) */
 .profile-icon{
   width:38px;height:38px;border-radius:13px;flex-shrink:0;overflow:hidden;padding:0;

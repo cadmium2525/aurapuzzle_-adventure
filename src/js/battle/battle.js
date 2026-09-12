@@ -562,14 +562,31 @@ function rollDrops(stage, hard) {
   const drops = {};
   const add = (id, n) => { if (n > 0) drops[id] = (drops[id] || 0) + n; };
   const mult = hard ? 2 : 1;
+  const dm = stage.dropMult || 1;              // 曜日ダンジョンの難易度倍率
+  const shardChance = Math.min(1, stage.shardRate * (hard ? 1.6 : 1));
 
-  add(crystalIdFor(stage.dropAura), (2 + randInt(0, 2)) * mult);
+  // ゴールド特化はコイン報酬だけを厚くするので、素材は落とさない
+  if (stage.dropType === 'gold') return drops;
+
+  if (stage.dropType === 'exp') {
+    add('mt_exp1', Math.round((2 + randInt(0, 2)) * dm) * mult);
+    if (Math.random() < Math.min(0.9, 0.3 * dm)) add('mt_exp2', randInt(1, 2) * mult);
+    return drops;
+  }
+
+  if (stage.dropType === 'crystal') {
+    // 曜日の素材ダンジョン。狙った色だけをまとめて落とす
+    add(crystalIdFor(stage.dropAura), Math.round((4 + randInt(0, 3)) * dm) * mult);
+    if (Math.random() < shardChance) add('mt_star', randInt(1, 3) * mult);
+    return drops;
+  }
+
+  add(crystalIdFor(stage.dropAura), ((stage.crystalBase || 2) + randInt(0, 2)) * mult);
   // 他オーラの結晶もたまに落ちる(どのキャラも育てられるように)
   if (Math.random() < 0.55) {
     const other = randInt(0, AURAS.length - 1);
-    add(crystalIdFor(other), randInt(1, 2) * mult);
+    add(crystalIdFor(other), randInt(1, Math.max(2, Math.round((stage.crystalBase || 2) * 0.6))) * mult);
   }
-  const shardChance = Math.min(1, stage.shardRate * (hard ? 1.6 : 1));
   if (Math.random() < shardChance) add('mt_star', randInt(1, 2) * mult);
   return drops;
 }

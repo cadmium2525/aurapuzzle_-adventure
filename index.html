@@ -74,9 +74,17 @@
     <!-- ===================== ダンジョン ===================== -->
     <section class="screen" id="screen-dungeon">
       <div class="segmented">
-        <button id="diffNormalBtn" class="active">ノーマル</button>
-        <button id="diffHardBtn">ハード</button>
+        <button id="modeStoryBtn" class="active">ノーマル</button>
+        <button id="modeDailyBtn">曜日</button>
       </div>
+      <div id="storyControls">
+        <div class="segmented sub">
+          <button id="diffNormalBtn" class="active">ノーマル</button>
+          <button id="diffHardBtn">ハード</button>
+        </div>
+        <div id="chapterBar" class="chapter-bar"></div>
+      </div>
+      <div id="dailyHead" class="daily-head" hidden></div>
       <div id="stageList" class="stack"></div>
     </section>
 

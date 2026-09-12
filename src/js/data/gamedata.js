@@ -36,42 +36,135 @@ export const MATCH_MIN_DEFAULT = 4;
 const ENEMY_EMOJIS = ['👹','🐉','👻','🧟','🦂','🕷️','🐍','💀','🦑','👺','🐺','🦁','🐲','🧌','👽'];
 export const FLOORS_PER_STAGE = 5;
 
-const STAGE_NAMES = [
-  '始まりの街道', '霧ふる湖畔', '灼熱の峡谷', '常闇の樹海', '天空回廊'
+/** 章ごとのステージ名(1章5ステージ × 10章) */
+const CHAPTER_NAMES = [
+  '旅立ちの野', '水鏡の湖', '灼熱の谷', '常闇の森', '天空の回廊',
+  '朽ちた王都', '氷結の海', '竜骨の荒野', '虚無の狭間', '世界樹の頂'
 ];
-/** ステージごとに主に落ちる結晶のオーラ */
-const STAGE_AURA = [0, 1, 0, 2, 3];
+const STAGE_NAMES = [
+  ['始まりの街道', 'せせらぎの丘', '風鳴りの草原', '古い石橋', '街道の関所'],
+  ['霧ふる湖畔',   '沈んだ桟橋',   '水鏡の浅瀬',   '雨音の洞',   '湖底の神殿'],
+  ['灼熱の峡谷',   '燻る火口',     '灰かぶりの道', '溶岩の回廊', '炎帝の玉座'],
+  ['常闇の樹海',   '苔むす遺構',   '毒沼の径',     '巨木の根元', '樹海の心臓'],
+  ['天空回廊',     '浮遊する石段', '雷雲の足場',   '風神の露台', '天空の門'],
+  ['朽ちた城下',   '崩れた城壁',   '王都の墓所',   '玉座の間',   '亡王の広間'],
+  ['氷結の入江',   '流氷の道',     '凍てつく灯台', '氷檻の洞窟', '氷海の主'],
+  ['竜骨の荒野',   '風食の岩塔',   '砂に眠る翼',   '竜の墓場',   '古竜の祭壇'],
+  ['虚無の狭間',   '歪んだ回廊',   '無音の広間',   '影の三叉路', '狭間の番人'],
+  ['大樹の根',     '螺旋の枝道',   '天枝の宿り木', '星の見える葉', '世界樹の頂']
+];
+/** ステージごとに主に落ちる結晶のオーラ(章のなかで一巡させる) */
+const STAGE_AURA = [0, 1, 2, 3, 0];
+
+export const CHAPTER_COUNT = CHAPTER_NAMES.length;
+export const STAGES_PER_CHAPTER = 5;
+export function chapterNameOf(ch) { return CHAPTER_NAMES[ch - 1] || ''; }
+/** その章の最終ステージID(クリアで次の章が解禁される) */
+export function chapterLastStageId(ch) { return ch * STAGES_PER_CHAPTER; }
 
 export const STAGES = (() => {
   const list = [];
-  for (let s = 1; s <= 5; s++) {
+  for (let ch = 1; ch <= CHAPTER_COUNT; ch++) {
+    for (let i = 1; i <= STAGES_PER_CHAPTER; i++) {
+      const id = (ch - 1) * STAGES_PER_CHAPTER + i;   // 通し番号。旧セーブの1〜5はそのまま使える
+      const step = id - 1;                            // 0始まりの通し難易度
+      const floors = [];
+      for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
+        const isBoss = f === FLOORS_PER_STAGE;
+        floors.push({
+          name: isBoss ? `${STAGE_NAMES[ch - 1][i - 1]}の主` : `フロア${f}`,
+          emoji: ENEMY_EMOJIS[(id * 5 + f) % ENEMY_EMOJIS.length],
+          hp: Math.round((120 + step * 210 + (f - 1) * (60 + step * 16)) * (isBoss ? 1.6 : 1)),
+          atk: Math.round(8 + step * 7.5 + (f - 1) * (3 + step * 0.6)),
+          interval: isBoss ? 1 : 2   // 何ターンごとに攻撃してくるか
+        });
+      }
+      list.push({
+        id,
+        chapter: ch,
+        name: `${ch}-${i} ${STAGE_NAMES[ch - 1][i - 1]}`,
+        floors,
+        stamina: 5 + Math.floor(step * 0.9),
+        coinReward: 150 + step * 110,
+        frepoReward: 80 + step * 45,
+        orbReward: i === STAGES_PER_CHAPTER ? 2 : 0,   // 各章の最終ステージだけオーブ
+        expReward: 25 + step * 14,
+        charExpReward: 80 + step * 95,
+        dropAura: STAGE_AURA[(i - 1) % STAGE_AURA.length],
+        shardRate: Math.min(0.85, 0.18 + step * 0.045),
+        crystalBase: 2 + Math.floor(step / 6),   // 奥へ進むほど結晶も増える
+        dropType: 'normal'
+      });
+    }
+  }
+  return list;
+})();
+
+/* ===================== 曜日ダンジョン ===================== */
+/**
+ * 曜日ごとに手に入るものが変わる。0=日 〜 6=土。
+ *  月      癒(回復キャラ)の進化素材
+ *  火水木  それぞれ火・水・木の進化素材
+ *  金      ゴールド特化
+ *  土日    キャラクターの経験値アイテム
+ */
+export const DAILY_THEMES = [
+  { day: 0, label: '日', title: '賢者の書庫', emoji: '📗', dropType: 'exp',     dropAura: null, note: 'キャラ経験値アイテム' },
+  { day: 1, label: '月', title: '聖光の祭壇', emoji: '🩷', dropType: 'crystal', dropAura: 3,    note: '回復キャラの進化素材' },
+  { day: 2, label: '火', title: '紅蓮の炉',   emoji: '🔴', dropType: 'crystal', dropAura: 0,    note: '火の進化素材' },
+  { day: 3, label: '水', title: '蒼海の泉',   emoji: '🔵', dropType: 'crystal', dropAura: 1,    note: '水の進化素材' },
+  { day: 4, label: '木', title: '翠緑の苗床', emoji: '🟢', dropType: 'crystal', dropAura: 2,    note: '木の進化素材' },
+  { day: 5, label: '金', title: '黄金の坑道', emoji: '💰', dropType: 'gold',    dropAura: null, note: 'ゴールド特化' },
+  { day: 6, label: '土', title: '賢者の書庫', emoji: '📗', dropType: 'exp',     dropAura: null, note: 'キャラ経験値アイテム' }
+];
+
+/** 曜日ダンジョンの難易度(プレイヤーランクで解放) */
+const DAILY_TIERS = [
+  { tier: 1, name: '初級', rank: 1,  stamina: 8,  mult: 1,   hp: 900,   atk: 40 },
+  { tier: 2, name: '中級', rank: 8,  stamina: 15, mult: 2.4, hp: 3200,  atk: 95 },
+  { tier: 3, name: '上級', rank: 18, stamina: 25, mult: 5,   hp: 9000,  atk: 190 }
+];
+
+/** その曜日に挑めるステージ一覧を返す(idは 1000番台で通常ステージと分ける) */
+export function dailyStagesFor(day) {
+  const t = DAILY_THEMES[day];
+  if (!t) return [];
+  return DAILY_TIERS.map(d => {
     const floors = [];
     for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
       const isBoss = f === FLOORS_PER_STAGE;
       floors.push({
-        name: isBoss ? `${STAGE_NAMES[s - 1]}の主` : `フロア${f}`,
-        emoji: ENEMY_EMOJIS[(s * 5 + f) % ENEMY_EMOJIS.length],
-        hp: Math.round((120 + (s - 1) * 260 + (f - 1) * 60) * (isBoss ? 1.6 : 1)),
-        atk: 8 + (s - 1) * 10 + (f - 1) * 3,
-        interval: isBoss ? 1 : 2   // 何ターンごとに攻撃してくるか
+        name: isBoss ? `${t.title}の主` : `フロア${f}`,
+        emoji: ENEMY_EMOJIS[(day * 3 + d.tier + f) % ENEMY_EMOJIS.length],
+        hp: Math.round((d.hp + (f - 1) * d.hp * 0.25) * (isBoss ? 1.6 : 1)),
+        atk: Math.round(d.atk + (f - 1) * d.atk * 0.15),
+        interval: isBoss ? 1 : 2
       });
     }
-    list.push({
-      id: s,
-      name: `${s}. ${STAGE_NAMES[s - 1]}`,
+    return {
+      id: 1000 + day * 10 + d.tier,
+      daily: true,
+      day,
+      tier: d.tier,
+      requireRank: d.rank,
+      name: `${t.emoji} ${t.title} ${d.name}`,
       floors,
-      stamina: 5 + (s - 1) * 3,
-      coinReward: 150 * s,
-      frepoReward: 80 * s,
-      orbReward: s >= 3 ? 2 : 0,
-      expReward: 25 * s,
-      charExpReward: 80 + 130 * (s - 1),  // 編成キャラが得る経験値
-      dropAura: STAGE_AURA[s - 1],        // 主に落ちる結晶のオーラ
-      shardRate: 0.18 + 0.18 * (s - 1)    // 進化の輝石が落ちる確率
-    });
-  }
-  return list;
-})();
+      stamina: d.stamina,
+      coinReward: Math.round((t.dropType === 'gold' ? 3000 : 400) * d.mult),
+      frepoReward: Math.round(120 * d.mult),
+      orbReward: 0,
+      expReward: Math.round(40 * d.mult),
+      charExpReward: Math.round(200 * d.mult),
+      dropAura: t.dropAura,
+      shardRate: t.dropType === 'crystal' ? Math.min(0.9, 0.35 * d.mult) : 0,
+      dropType: t.dropType,
+      dropMult: d.mult
+    };
+  });
+}
+
+/** 今日の曜日テーマ */
+export function todayTheme() { return DAILY_THEMES[new Date().getDay()]; }
 
 export const HARD_HP_MULT = 1.8;
 export const HARD_REWARD_MULT = 1.6;
