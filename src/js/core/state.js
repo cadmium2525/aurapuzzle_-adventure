@@ -10,7 +10,7 @@ import {
   CHARACTERS, characterById, characterByAuraRarity, resolveCharacter,
   AWAKEN_MAX, awakenStepsFor,
   maxLevelFor, expToNextCharLevel, canEvolveChar, finalStarOf, MAX_RARITY, TEAM_SIZE,
-  MATERIALS, crystalIdFor, evolveCostTo,
+  MATERIALS, crystalIdFor, evolveCostTo, dismissRewardFor, awakenTokenCost, EXP_ITEMS,
   STAMINA_REGEN_MS, STAMINA_BASE_MAX, STAMINA_PER_RANK, expToNextRank
 } from '../data/gamedata.js';
 
@@ -174,31 +174,98 @@ export function resolveOwned(charId) {
  * 開眼の可否を返す。同じキャラを1体消費するので手持ちが2体以上必要。
  * @returns {{ok:boolean, reason:string, next:number, step:object|null}}
  */
-export function awakenCheck(charId) {
+export function awakenCheck(charId, useToken) {
   const e = entryOf(charId);
   const base = characterById(charId);
-  if (!e || !base) return { ok: false, reason: '所持していません', next: 0, step: null };
+  if (!e || !base) return { ok: false, reason: '所持していません', next: 0, step: null, tokenCost: 0 };
   const cur = Math.min(AWAKEN_MAX, e.awa || 0);
-  if (cur >= AWAKEN_MAX) return { ok: false, reason: '開眼は最大です', next: cur, step: null };
-  const step = awakenStepsFor(base)[cur] || null;
-  if ((e.n || 0) < 2) {
-    return { ok: false, reason: '同じキャラクターがもう1体必要です', next: cur + 1, step };
+  const tokenCost = awakenTokenCost(base.rarity);
+  const info = { next: cur + 1, step: awakenStepsFor(base)[cur] || null, tokenCost };
+  if (cur >= AWAKEN_MAX) {
+    return { ok: false, reason: '開眼は最大です', next: cur, step: null, tokenCost };
   }
-  return { ok: true, reason: '', next: cur + 1, step };
+  if (useToken) {
+    if (materialCount('mt_awaken') < tokenCost) {
+      return { ok: false, reason: `開眼の証が${tokenCost}個必要です`, ...info };
+    }
+    return { ok: true, reason: '', ...info };
+  }
+  if ((e.n || 0) < 2) {
+    return { ok: false, reason: '同じキャラクターがもう1体必要です', ...info };
+  }
+  return { ok: true, reason: '', ...info };
 }
 
 /**
  * 開眼を実行する(同キャラを1体消費)。
  * @returns {{ok:boolean, message:string, step?:object, to?:number}}
  */
-export function awakenCharacter(charId) {
-  const check = awakenCheck(charId);
+export function awakenCharacter(charId, useToken) {
+  const check = awakenCheck(charId, useToken);
   if (!check.ok) return { ok: false, message: check.reason };
   const e = entryOf(charId);
-  e.n -= 1;
+  if (useToken) state.materials.mt_awaken -= check.tokenCost;
+  else e.n -= 1;
   e.awa = check.next;
   saveState();
-  return { ok: true, message: '', step: check.step, to: check.next };
+  return { ok: true, message: '', step: check.step, to: check.next, usedToken: !!useToken };
+}
+
+/* ===================== 送還(被りの分解) ===================== */
+/** 送還できるか。最後の1体は残すので手持ちが2体以上必要 */
+export function dismissCheck(charId) {
+  const e = entryOf(charId);
+  const base = characterById(charId);
+  if (!e || !base) return { ok: false, reason: '所持していません', reward: null };
+  const reward = dismissRewardFor(e.star);
+  if ((e.n || 0) < 2) {
+    return { ok: false, reason: '最後の1体は送還できません', reward };
+  }
+  return { ok: true, reason: '', reward };
+}
+
+/**
+ * 被りを1体送還して素材に変える。
+ * @returns {{ok:boolean, message:string, gained?:object}}
+ */
+export function dismissCharacter(charId) {
+  const check = dismissCheck(charId);
+  if (!check.ok) return { ok: false, message: check.reason };
+  const e = entryOf(charId);
+  const base = characterById(charId);
+  const r = check.reward;
+  const crystalId = crystalIdFor(base.aura);
+
+  e.n -= 1;
+  const gained = {};
+  const add = (id, v) => { if (v > 0) { state.materials[id] = (state.materials[id] || 0) + v; gained[id] = v; } };
+  add(crystalId, r.crystal);
+  add('mt_star', r.shard);
+  add('mt_awaken', r.awaken);
+  state.coin += r.coin;
+  saveState();
+  return { ok: true, message: '', gained, coin: r.coin };
+}
+
+/* ===================== 経験値アイテム ===================== */
+/**
+ * 経験値アイテムを使って1体に経験値を与える。
+ * ダンジョンに連れて行かなくても育てられるようにするための経路。
+ */
+export function useExpItem(charId, itemId, count) {
+  const e = entryOf(charId);
+  const per = EXP_ITEMS[itemId];
+  if (!e || !per) return { ok: false, message: '使えません' };
+  const have = materialCount(itemId);
+  const use = Math.max(1, Math.min(count || 1, have));
+  if (have < 1) return { ok: false, message: 'アイテムがありません' };
+  if (e.lv >= maxLevelFor(e.star)) return { ok: false, message: 'レベルが上限です' };
+
+  state.materials[itemId] -= use;
+  const before = e.lv;
+  const ups = gainCharExp([charId], per * use);
+  saveState();
+  return { ok: true, message: '', used: use, exp: per * use, from: before, to: e.lv, levelUps: ups };
 }
 
 /** 自分の編成キャラ(空きスロットは除外) */

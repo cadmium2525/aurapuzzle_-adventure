@@ -6,13 +6,13 @@ import { $, toast } from '../core/ui.js';
 import {
   state, saveState, ownedCharacters, ownCharacters, resolveOwned,
   entryOf, evolveCheck, evolveCharacter, materialCount,
-  awakenCheck, awakenCharacter
+  awakenCheck, awakenCharacter, dismissCheck, dismissCharacter, useExpItem
 } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
   BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE,
-  AWAKEN_MAX, awakenStepsFor
+  AWAKEN_MAX, awakenStepsFor, EXP_ITEMS, maxLevelFor, crystalIdFor
 } from '../data/gamedata.js';
 import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML, awakenPipsHTML } from './parts.js';
 
@@ -33,7 +33,9 @@ export function initCharacter() {
     closeDetail();
   });
   $('charEvolveBtn').addEventListener('click', doEvolve);
-  $('charAwakenBtn').addEventListener('click', doAwaken);
+  $('charAwakenBtn').addEventListener('click', () => doAwaken(false));
+  $('charAwakenTokenBtn').addEventListener('click', () => doAwaken(true));
+  $('charDismissBtn').addEventListener('click', doDismiss);
   $('evoResultCloseBtn').addEventListener('click', () => {
     $('evoResultModal').classList.remove('show');
   });
@@ -148,7 +150,8 @@ function renderAwakenBox(id) {
 
   const cur = Math.min(AWAKEN_MAX, e.awa || 0);
   const steps = awakenStepsFor(base);
-  const check = awakenCheck(id);
+  const check = awakenCheck(id, false);
+  const tokenCheck = awakenCheck(id, true);
   box.style.display = 'block';
 
   const rows = steps.map((st, i) => {
@@ -168,18 +171,113 @@ function renderAwakenBox(id) {
     <div class="evo-req${(e.n || 0) >= 2 ? ' ok' : ''}">
       <span>同じキャラクター(手持ち)</span><b>${e.n || 0} / 2</b>${(e.n || 0) >= 2 ? '<i>✔</i>' : ''}
     </div>
-    <div class="evo-note">開眼すると同じキャラクターを1体使います。</div>
-    ${check.ok || cur >= AWAKEN_MAX ? '' : `<div class="evo-note warn">${check.reason}</div>`}`;
+    <div class="evo-req${tokenCheck.ok ? ' ok' : ''}">
+      <span>👁️ 開眼の証</span><b>${materialCount('mt_awaken')} / ${check.tokenCost}</b>${tokenCheck.ok ? '<i>✔</i>' : ''}
+    </div>
+    <div class="evo-note">同じキャラクター1体、または開眼の証${check.tokenCost}個のどちらかを使います。</div>`;
 
-  if (cur >= AWAKEN_MAX) { btn.style.display = 'none'; return; }
+  const tokenBtn = $('charAwakenTokenBtn');
+  if (cur >= AWAKEN_MAX) { btn.style.display = 'none'; tokenBtn.style.display = 'none'; return; }
   btn.style.display = 'block';
   btn.disabled = !check.ok;
-  btn.textContent = check.ok ? `開眼する(${cur + 1}段階目)` : '開眼できません';
+  btn.textContent = check.ok ? `同キャラで開眼(${cur + 1}段階目)` : '同キャラが足りません';
+  tokenBtn.style.display = 'block';
+  tokenBtn.disabled = !tokenCheck.ok;
+  tokenBtn.textContent = tokenCheck.ok
+    ? `開眼の証×${check.tokenCost}で開眼` : `開眼の証が足りません(${check.tokenCost}個)`;
 }
 
-function doAwaken() {
+/* ===================== 育成(経験値アイテム) ===================== */
+function renderExpBox(id) {
+  const box = $('charExpBox');
+  const e = entryOf(id);
+  if (!e) { box.style.display = 'none'; return; }
+  const max = maxLevelFor(e.star);
+  const atMax = e.lv >= max;
+  const items = Object.keys(EXP_ITEMS).filter(k => materialCount(k) > 0);
+
+  box.style.display = 'block';
+  if (atMax) {
+    box.innerHTML = `<div class="evo-title">育成</div>
+      <div class="evo-done">Lv${max} に到達しています</div>`;
+    return;
+  }
+  if (!items.length) {
+    box.innerHTML = `<div class="evo-title">育成</div>
+      <div class="evo-note">経験値アイテムがありません。曜日ダンジョン(土日)で手に入ります。</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="evo-title">育成
+      <span class="evo-next">Lv${e.lv} / ${max}</span></div>
+    <div class="aw-list">${items.map(k => {
+      const mt = materialById(k);
+      return `<div class="aw-row next" data-item="${k}">
+        <span class="aw-eff">${mt.emoji} ${mt.name} <b>×${materialCount(k)}</b>(1個 +${EXP_ITEMS[k]}exp)</span>
+        <button class="btn ghost tiny expbtn" data-item="${k}">1個使う</button>
+        <button class="btn ghost tiny expbtn" data-item="${k}" data-all="1">全部使う</button>
+      </div>`;
+    }).join('')}</div>`;
+
+  box.querySelectorAll('.expbtn').forEach(b => {
+    b.addEventListener('click', () => {
+      const n = b.dataset.all ? materialCount(b.dataset.item) : 1;
+      const res = useExpItem(id, b.dataset.item, n);
+      if (!res.ok) { toast(res.message); return; }
+      toast(res.to > res.from ? `Lv${res.from} → Lv${res.to}` : `経験値+${res.exp}`);
+      updateStatusBar();
+      openDetail(detailId, detailOwned);
+      renderTeamPane();
+    });
+  });
+}
+
+/* ===================== 送還 ===================== */
+function renderDismissBox(id) {
+  const box = $('charDismissBox');
+  const btn = $('charDismissBtn');
+  const e = entryOf(id);
+  const base = characterById(id);
+  if (!e || !base) { box.style.display = 'none'; btn.style.display = 'none'; return; }
+
+  const check = dismissCheck(id);
+  const r = check.reward;
+  const crystal = materialById(crystalIdFor(base.aura));
+  const parts = [
+    `${crystal.emoji} ${crystal.name} ×${r.crystal}`,
+    r.shard ? `💠 進化の輝石 ×${r.shard}` : '',
+    r.awaken ? `👁️ 開眼の証 ×${r.awaken}` : '',
+    `💰 ${r.coin.toLocaleString()}`
+  ].filter(Boolean);
+
+  box.style.display = 'block';
+  box.innerHTML = `<div class="evo-title">送還
+      <span class="evo-next">手持ち ${e.n || 0}</span></div>
+    <div class="evo-note">余った被りを1体ぶん素材に変えます(最後の1体は残ります)。</div>
+    <div class="aw-list"><div class="aw-row done"><span class="aw-eff">${parts.join(' ・ ')}</span></div></div>
+    ${check.ok ? '' : `<div class="evo-note warn">${check.reason}</div>`}`;
+
+  btn.style.display = 'block';
+  btn.disabled = !check.ok;
+  btn.textContent = check.ok ? '1体を送還する' : '送還できません';
+}
+
+function doDismiss() {
   if (!detailId) return;
-  const res = awakenCharacter(detailId);
+  const base = characterById(detailId);
+  if (!confirm(`${base.name}を1体送還します。よろしいですか?`)) return;
+  const res = dismissCharacter(detailId);
+  if (!res.ok) { toast(res.message); return; }
+  const names = Object.keys(res.gained)
+    .map(k => `${materialById(k).emoji}${res.gained[k]}`).join(' ');
+  toast(`送還: ${names} 💰${res.coin.toLocaleString()}`);
+  updateStatusBar();
+  openDetail(detailId, detailOwned);
+  renderTeamPane();
+}
+
+function doAwaken(useToken) {
+  if (!detailId) return;
+  const res = awakenCharacter(detailId, useToken);
   if (!res.ok) { toast(res.message); return; }
   toast(`開眼 ${res.to} 段階目: ${res.step ? res.step.label : ''}`);
   updateStatusBar();
@@ -234,10 +332,11 @@ function openDetail(id, canEquip) {
   btn.style.display = (canEquip && owned) ? 'block' : 'none';
   btn.textContent = inTeam ? '編成から外す' : '編成に入れる';
   btn.className = 'btn block' + (inTeam ? ' secondary' : '');
-  if (owned) { renderEvolveBox(id); renderAwakenBox(id); }
+  if (owned) { renderEvolveBox(id); renderAwakenBox(id); renderExpBox(id); renderDismissBox(id); }
   else {
-    $('charEvolveBox').style.display = 'none'; $('charEvolveBtn').style.display = 'none';
-    $('charAwakenBox').style.display = 'none'; $('charAwakenBtn').style.display = 'none';
+    ['charEvolveBox','charAwakenBox','charExpBox','charDismissBox',
+     'charEvolveBtn','charAwakenBtn','charAwakenTokenBtn','charDismissBtn']
+      .forEach(k => { $(k).style.display = 'none'; });
   }
   $('charDetailModal').classList.add('show');
 }

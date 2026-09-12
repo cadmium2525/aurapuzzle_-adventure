@@ -84,7 +84,10 @@ export const MATERIALS = [
   { id: 'mt_c1',   name: '蒼海の結晶', emoji: '🔵', aura: 1,    color: '#45C8F1' },
   { id: 'mt_c2',   name: '翠緑の結晶', emoji: '🟢', aura: 2,    color: '#5BE08C' },
   { id: 'mt_c3',   name: '聖光の結晶', emoji: '🩷', aura: 3,    color: '#FF86C8' },
-  { id: 'mt_star', name: '進化の輝石', emoji: '💠', aura: null, color: '#FFC65C' }
+  { id: 'mt_star',   name: '進化の輝石', emoji: '💠', aura: null, color: '#FFC65C' },
+  { id: 'mt_awaken', name: '開眼の証',   emoji: '👁️', aura: null, color: '#B6EEFF' },
+  { id: 'mt_exp1',   name: '経験の雫',   emoji: '🔹', aura: null, color: '#8FD8FF' },
+  { id: 'mt_exp2',   name: '経験の書',   emoji: '📗', aura: null, color: '#5BE08C' }
 ];
 const MATERIAL_BY_ID = new Map(MATERIALS.map(m => [m.id, m]));
 export function materialById(id) { return MATERIAL_BY_ID.get(id) || null; }
@@ -102,6 +105,35 @@ export const EVOLVE_COST = {
   5: { crystal: 16, shard: 10, coin: 20000 }
 };
 export function evolveCostTo(star) { return EVOLVE_COST[star] || null; }
+
+/* ===================== 送還(被りの分解) ===================== */
+/**
+ * 被ったキャラを素材に変える。進化段階が高いほど見返りが大きい。
+ * 低レアの余りを進化素材に、高レアの余りを開眼の証に流すのが狙い。
+ */
+export const DISMISS_REWARD = {
+  1: { crystal: 1,  shard: 0, coin: 200,   awaken: 0 },
+  2: { crystal: 2,  shard: 0, coin: 500,   awaken: 1 },
+  3: { crystal: 5,  shard: 1, coin: 1500,  awaken: 1 },
+  4: { crystal: 12, shard: 3, coin: 5000,  awaken: 3 },
+  5: { crystal: 20, shard: 6, coin: 12000, awaken: 5 }
+};
+export function dismissRewardFor(star) { return DISMISS_REWARD[star] || DISMISS_REWARD[1]; }
+
+/**
+ * 同キャラの代わりに開眼へ使える「開眼の証」の必要数。
+ * ★4を同キャラ5体そろえるのは現実的でないため、この経路を用意している。
+ * 基準は素体のレアリティ(進化段階ではない)。
+ */
+export const AWAKEN_TOKEN_COST = { 1: 1, 2: 1, 3: 3, 4: 5, 5: 5 };
+export function awakenTokenCost(baseRarity) { return AWAKEN_TOKEN_COST[baseRarity] || 1; }
+
+/* ===================== 経験値アイテム ===================== */
+/** 使うと編成外のキャラにも経験値を与えられる。曜日ダンジョンで手に入る */
+export const EXP_ITEMS = {
+  mt_exp1: 150,
+  mt_exp2: 800
+};
 
 /* ===================== ショップ ===================== */
 export const SHOP_ITEMS = [
