@@ -35,11 +35,11 @@ function pickRarity(weights) {
 function pullFrom(pool, weights) {
   const rarity = pickRarity(weights);
   // ピックアップ:最高レアを引いたときは一定確率で看板キャラになる
-  if (PICKUP_CHARACTER && rarity >= MAX_GACHA_RARITY
-      && pool.includes(PICKUP_CHARACTER) && Math.random() < PICKUP_RATE) {
-    return PICKUP_CHARACTER;
-  }
-  const cands = pool.filter(c => c.rarity === rarity);
+  const pickupOn = PICKUP_CHARACTER && rarity >= MAX_GACHA_RARITY && pool.includes(PICKUP_CHARACTER);
+  if (pickupOn && Math.random() < PICKUP_RATE) return PICKUP_CHARACTER;
+  // ピックアップ枠を外したあとの通常枠に看板キャラを残すと、
+  // PICKUP_RATE より出やすくなってしまうのでここでは除外する
+  const cands = pool.filter(c => c.rarity === rarity && !(pickupOn && c === PICKUP_CHARACTER));
   if (!cands.length) return pool[Math.floor(Math.random() * pool.length)];
   return cands[Math.floor(Math.random() * cands.length)];
 }

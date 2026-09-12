@@ -133,7 +133,7 @@ export const ORB_COST_MULTI = ORB_COST * 9;
 
 /** ピックアップ:★4を引いたとき、この確率で看板キャラになる */
 export const PICKUP_CHARACTER = FEATURED_CHARACTER;
-export const PICKUP_RATE = 0.5;
+export const PICKUP_RATE = 0.3;
 
 /* ===================== フレンド ===================== */
 export const MAX_FRIENDS = 30;
