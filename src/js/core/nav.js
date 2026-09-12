@@ -45,15 +45,22 @@ export function goBack() {
  * プロフィールアイコンを描く。
  * アイコンはフレンドへの貸し出しに設定したキャラクターのもの。
  * 未設定・イラスト無しのときは絵文字にフォールバックする。
+ *
+ * updateStatusBar() は毎秒呼ばれるので、中身が変わっていないときは
+ * DOMに触れない。作り直すと画像が読み込み直されて点滅する。
  */
 function renderProfileIcon() {
   const el = $('statusProfileIcon');
   if (!el) return;
   const id = state.profile.rentalCharId;
   const ch = id ? resolveOwned(id) : null;
-  el.innerHTML = ch
-    ? artImg(ch.art && ch.art.icon, ch.portrait, 'pi')
-    : '<span class="pi-emoji">🙂</span>';
+  const src = (ch && ch.art && ch.art.icon) || '';
+  const emoji = ch ? ch.portrait : '🙂';
+  const key = src || 'emoji:' + emoji;
+  if (el.dataset.iconKey !== key) {
+    el.dataset.iconKey = key;
+    el.innerHTML = artImg(src, emoji, 'pi');
+  }
   el.title = ch ? `${ch.name}(貸し出し中)` : '貸し出しキャラクターを選ぶ';
 }
 
