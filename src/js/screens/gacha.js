@@ -89,7 +89,7 @@ function buildOrbs(tier) {
     const sp = document.createElement('span');
     const angle = (360 / n) * i + Math.random() * 12;
     const dist = 130 + Math.random() * 90;
-    sp.className = 'g-orb';
+    sp.className = 'gs-orb';
     sp.style.setProperty('--a', angle + 'deg');
     sp.style.setProperty('--d', dist + 'px');
     sp.style.setProperty('--c', palette[i % palette.length]);
