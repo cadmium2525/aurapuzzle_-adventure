@@ -20,6 +20,18 @@ export function formatMMSS(ms) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/**
+ * イラストの差し込み。
+ * 画像が用意されていればそれを使い、読み込めなければ絵文字に戻す。
+ * (assets/chars/ に画像を置くまでは絵文字のまま動く)
+ * 画面とバトルの両方から使うので core に置いている。
+ */
+export function artImg(src, emoji, cls) {
+  if (!src) return `<span class="${cls}-emoji">${emoji}</span>`;
+  return `<img class="${cls}-img" src="${src}" alt="" loading="lazy"
+    onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls}-emoji',textContent:'${emoji}'}))">`;
+}
+
 let toastTimer = null;
 export function toast(msg) {
   const t = $('toast');

@@ -3,22 +3,12 @@ import {
   AURAS, COLOR_HEX, RARITY_TITLE, RARITY_HEX, ROLE_LABEL,
   MAX_RARITY, expToNextCharLevel
 } from '../data/gamedata.js';
+import { artImg } from '../core/ui.js';
 
 /** ★表示(獲得ぶんは金、残りは薄く) */
 export function stars(n, max) {
   const total = max || MAX_RARITY;
   return `<span class="stars">${'★'.repeat(n)}<span class="dim">${'★'.repeat(Math.max(0, total - n))}</span></span>`;
-}
-
-/**
- * イラストの差し込み。
- * 画像が用意されていればそれを使い、読み込めなければ絵文字に戻す。
- * (assets/chars/ に画像を置くまでは絵文字のまま動く)
- */
-function artImg(src, emoji, cls) {
-  if (!src) return `<span class="${cls}-emoji">${emoji}</span>`;
-  return `<img class="${cls}-img" src="${src}" alt="" loading="lazy"
-    onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls}-emoji',textContent:'${emoji}'}))">`;
 }
 
 /** キャラの丸いポートレート(オーラ色のリング付き) */

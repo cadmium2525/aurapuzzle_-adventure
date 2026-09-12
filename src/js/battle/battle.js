@@ -10,7 +10,7 @@
  *  - 発動するリーダースキルは「自陣リーダー」と「サポート」の2つ。
  *  - オーラ操作の基本時間は10秒。リーダースキルとスキルで延長して戦う。
  * =======================================================*/
-import { $, sleep, randInt, toast } from '../core/ui.js';
+import { $, sleep, randInt, toast, artImg } from '../core/ui.js';
 import {
   state, saveState, gainExp, maxStamina, gainCharExp, addMaterials
 } from '../core/state.js';
@@ -144,7 +144,7 @@ function renderParty() {
     btn.innerHTML = `
       <span class="unit-pops"></span>
       <span class="unit-face">
-        <span class="unit-portrait">${m.portrait}</span>
+        <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
         <span class="unit-aura">${aura.emoji}</span>
         ${unitRoleBadge(i)}
       </span>
@@ -353,7 +353,7 @@ function openPartyInfo() {
     div.style.setProperty('--aura', COLOR_HEX[aura.key]);
     div.innerHTML = `
       <div class="pinfo-head">
-        <span class="pinfo-portrait">${m.portrait}</span>
+        <span class="pinfo-portrait">${artImg(m.art && m.art.icon, m.portrait, 'pinfo')}</span>
         <span class="pinfo-id">
           <b>${m.name}</b>
           <span class="pinfo-sub">${aura.emoji}${aura.name} ・ ${m.job} ・ ${RARITY_TITLE[m.rarity]}${
