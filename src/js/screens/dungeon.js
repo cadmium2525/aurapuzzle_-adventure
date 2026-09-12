@@ -14,7 +14,7 @@ import {
   dailyStagesFor, DAILY_THEMES, todayTheme
 } from '../data/gamedata.js';
 import { startDungeonRun } from '../battle/battle.js';
-import { fetchFriendRentals } from '../core/friends.js';
+import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
 
 let dungeonHard = false;
@@ -23,6 +23,7 @@ let chapter = 1;
 let pendingStage = null, pendingHard = false;
 let supportTab = 'friend';
 let friendRentals = null;      // 取得済みのフレンド貸し出しキャラ(null=未取得)
+let strangerRentals = null;    // フレンド以外のプレイヤー(読み取り数を抑えるため使い回す)
 
 export function initDungeon() {
   $('modeStoryBtn').addEventListener('click', () => { dungeonMode = 'story'; renderDungeon(); });
@@ -35,6 +36,7 @@ export function initDungeon() {
     if (e.target === $('supportPickModal')) closeSupportPick();
   });
   $('supTabFriendBtn').addEventListener('click', () => { supportTab = 'friend'; renderSupportList(); });
+  $('supTabOtherBtn').addEventListener('click', () => { supportTab = 'other'; renderSupportList(); });
   $('supTabNpcBtn').addEventListener('click', () => { supportTab = 'npc'; renderSupportList(); });
 }
 
@@ -51,19 +53,24 @@ function closeSupportPick() {
 async function openSupportPick(stage, hard) {
   pendingStage = stage; pendingHard = hard;
   friendRentals = null;
+  strangerRentals = null;
   // フレンドが1人もいなければ最初からNPCタブを開く
   supportTab = state.profile.friends.length ? 'friend' : 'npc';
   $('supportPickModal').classList.add('show');
   renderSupportList();
 
-  const rentals = await fetchFriendRentals();
+  const [rentals, strangers] = await Promise.all([
+    fetchFriendRentals(),
+    strangerRentals === null ? fetchStrangerRentals() : Promise.resolve(strangerRentals)
+  ]);
   if (pendingStage !== stage) return;   // モーダルを閉じた後に返ってきたら無視
   friendRentals = rentals;
-  if (supportTab === 'friend') renderSupportList();
+  strangerRentals = strangers;
+  renderSupportList();
 }
 
 /** サポート候補1件ぶんの行を作る */
-function supportRow(ch, ownerName, ownerIcon, isNpc, note) {
+function supportRow(ch, ownerName, ownerIcon, isNpc, note, ownerUid) {
   const aura = AURAS[ch.aura];
   const ls = ch.leaderSkill;
   const row = document.createElement('div');
@@ -84,13 +91,14 @@ function supportRow(ch, ownerName, ownerIcon, isNpc, note) {
     </div>
     <button class="btn selbtn">選ぶ</button>`;
   row.querySelector('button').addEventListener('click', () => {
-    confirmAndStart({ ...ch, isSupport: true, isNpc, ownerName, ownerIcon });
+    confirmAndStart({ ...ch, isSupport: true, isNpc, ownerName, ownerIcon, ownerUid });
   });
   return row;
 }
 
 function renderSupportList() {
   $('supTabFriendBtn').classList.toggle('active', supportTab === 'friend');
+  $('supTabOtherBtn').classList.toggle('active', supportTab === 'other');
   $('supTabNpcBtn').classList.toggle('active', supportTab === 'npc');
   const box = $('supportPickList');
   box.innerHTML = '';
@@ -109,6 +117,21 @@ function renderSupportList() {
       const ch = resolveCharacter(f.charId, f.star, f.lv, f.awa);
       if (!ch) return;
       box.appendChild(supportRow(ch, f.name, f.icon, false));
+    });
+    return;
+  }
+
+  // フレンドではない他のプレイヤー。借りるとクリア後にフレンド登録を聞く
+  if (supportTab === 'other') {
+    if (strangerRentals === null) { box.innerHTML = '<div class="empty">読み込み中…</div>'; return; }
+    if (!strangerRentals.length) {
+      box.innerHTML = '<div class="empty">今は他のプレイヤーが見つかりませんでした。</div>';
+      return;
+    }
+    strangerRentals.forEach(f => {
+      const ch = resolveCharacter(f.charId, f.star, f.lv, f.awa);
+      if (!ch) return;
+      box.appendChild(supportRow(ch, f.name, f.icon, false, 'クリア後にフレンド登録できます', f.uid));
     });
     return;
   }
@@ -220,7 +243,6 @@ function renderStageCards(list, stages) {
     const cost = staminaCost(stage, hard);
     const enough = state.stamina >= cost;
     const rewardCoin = Math.round(stage.coinReward * (hard ? HARD_REWARD_MULT : 1));
-    const rewardFrepo = Math.round(stage.frepoReward * (hard ? HARD_REWARD_MULT : 1));
     const orb = stage.orbReward
       ? ` 💎${hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward}` : '';
     const record = state.records[stage.id + '_' + (hard ? 'hard' : 'normal')];
@@ -234,7 +256,7 @@ function renderStageCards(list, stages) {
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
-        <div class="ssub">全${FLOORS_PER_STAGE}フロア ・ 💰${rewardCoin} 🎗️${rewardFrepo}${orb}</div>
+        <div class="ssub">全${FLOORS_PER_STAGE}フロア ・ 💰${rewardCoin}${orb}</div>
         <div class="ssub dim">${dropText} ・ ${isLocked && stage.daily ? `ランク${stage.requireRank}で解放`
           : (record ? `最高コンボ ${record.maxChain}` : '未挑戦')}</div>
       </div>

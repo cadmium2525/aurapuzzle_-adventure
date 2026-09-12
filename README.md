@@ -228,19 +228,23 @@ service cloud.firestore {
     function onlyChanged(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
-    // 他人が加算できるのはフレンド報酬の固定額だけ
-    function isFriendReward() {
+    // 他人が加算できるのは、あいさつの固定額と貸し出し使用回数(+1)だけ
+    function isGreetReward() {
       return onlyChanged(['pendingFrepo'])
         && request.resource.data.pendingFrepo is int
-        && (request.resource.data.pendingFrepo == resource.data.pendingFrepo + 300
-         || request.resource.data.pendingFrepo == resource.data.pendingFrepo + 10);
+        && request.resource.data.pendingFrepo == resource.data.pendingFrepo + 10;
+    }
+    function isRentalUse() {
+      return onlyChanged(['rentalUseCount'])
+        && request.resource.data.rentalUseCount is int
+        && request.resource.data.rentalUseCount == resource.data.rentalUseCount + 1;
     }
 
     match /users/{uid} {
       // 名前・アイコン・貸し出しキャラはフレンドが読む必要がある
       allow read:   if signedIn();
       allow create: if isMe(uid);
-      allow update: if isMe(uid) || (signedIn() && isFriendReward());
+      allow update: if isMe(uid) || (signedIn() && (isGreetReward() || isRentalUse()));
       allow delete: if false;
 
       match /friends/{friendUid} {
@@ -264,7 +268,7 @@ service cloud.firestore {
 ```
 
 このルールで防げるのは「他人のセーブデータの読み書き」「他人のプロフィール改竄」
-「フレンドコードの乗っ取り」「任意額のフレポ付与」。
+「フレンドコードの乗っ取り」「任意額のフレポ付与」「使用回数の一括水増し」。
 
 一方、Cloud Functions を使わない以上、**次の2つは防ぎきれない**。
 - 自分のセーブデータの改竄(クライアントが書く値をそのまま保存しているため)
@@ -322,8 +326,16 @@ Firestore 側でユニーク制約を作る必要がない。ただし Authentic
 - **プレイヤーアイコンは「フレンドに貸し出しているキャラクター」のアイコン**になる。
   トップバーのアイコンをタップすると所持キャラクター一覧から選び直せる。
   (以前あった絵文字を個別に選ぶ方式は廃止した)
-- マイページで発行される「フレンドコード」を交換して友達を登録する
-  - フレンド登録時: 自分+300フレポ、相手+300フレポ
-  - 毎日1回の「あいさつ」: 自分+20フレポ、相手+10フレポ
+- フレンドになる経路は2つ。
+  - マイページで発行される「フレンドコード」を交換する
+  - ダンジョンのサポートで**フレンド以外のプレイヤー**を借り、クリア後の
+    確認から登録する(`fetchStrangerRentals()` が候補を拾う)
+- **フレンドポイントの入手経路は2つだけ**。ダンジョン報酬・ショップ・
+  フレンド登録ボーナスからは出さない。
+  - 毎日1回の「あいさつ」: 自分+20、相手+10
+  - **自分の貸し出しキャラが使われた回数 × 50 を翌日まとめて受け取る**
+    - 借りた側が相手の `rentalUseCount` を +1 する
+    - 持ち主は起動時、日付が変わっていれば未受取ぶんを受け取る
+      (`rentalRewardedCount` と `lastRentalRewardDate` で二重取りを防ぐ)
 - マイページの「貸し出しキャラクター」で1人を指定すると、フレンドの
   ダンジョン挑戦時にサポート枠として借りられる(リーダースキルも発動する)

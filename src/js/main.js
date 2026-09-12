@@ -12,7 +12,7 @@ import { renderShop } from './screens/shop.js';
 import { renderGuide } from './screens/guide.js';
 import { initMypage, renderMypage, openRentalPicker } from './screens/mypage.js';
 import { initFriends, renderFriends } from './screens/friends.js';
-import { initCloud } from './core/friends.js';
+import { initCloud, takeRentalClaim } from './core/friends.js';
 import { applyAdminGrant } from './core/account.js';
 import { toast } from './core/ui.js';
 
@@ -46,6 +46,12 @@ initCloud()
     // 別端末でのログイン後など、起動時点で管理者だった場合はここで付与する
     const granted = applyAdminGrant();
     if (granted) { updateStatusBar(); toast(`管理者アカウント: 💎${granted} を付与しました`); }
+    // 自分のキャラが借りられたぶんのフレポ(前日までの合計)
+    const claim = takeRentalClaim();
+    if (claim) {
+      updateStatusBar();
+      toast(`貸し出しキャラが${claim.uses}回使われました 🎗️+${claim.gained}`);
+    }
   })
   .catch(() => {});
 

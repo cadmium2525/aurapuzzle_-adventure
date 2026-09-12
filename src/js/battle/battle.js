@@ -16,6 +16,7 @@ import {
 } from '../core/state.js';
 import { showScreen, currentScreen, updateStatusBar } from '../core/nav.js';
 import { setRetreatHandler } from '../core/sysmodal.js';
+import { countRentalUse, addFriendByUid } from '../core/friends.js';
 import {
   AURAS, COLORS, COLOR_HEX, HEAL_COLOR, RARITY_TITLE,
   FLOORS_PER_STAGE, HARD_HP_MULT, HARD_REWARD_MULT,
@@ -37,6 +38,7 @@ let grabbed = false;       // 操作時間内で「今まさに指がオーブ�
 let clearingCells = [], clearStart = 0;
 let chainLabels = [];          // 盤面に浮かべる「N Chain」
 let run = null;
+let pendingFriendUid = null, pendingFriendName = '';
 
 /* ===================== 起動 ===================== */
 export function initBattle() {
@@ -48,6 +50,15 @@ export function initBattle() {
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('resize', () => { if (currentScreen === 'battle') resizeBoard(); });
   setRetreatHandler(retreat);
+  $('resultAddFriendBtn').addEventListener('click', async () => {
+    if (!pendingFriendUid) return;
+    const btn = $('resultAddFriendBtn');
+    btn.disabled = true; btn.textContent = '登録中…';
+    const res = await addFriendByUid(pendingFriendUid, pendingFriendName);
+    toast(res.message);
+    if (res.ok) { $('resultFriendBox').hidden = true; pendingFriendUid = null; }
+    else { btn.disabled = false; btn.textContent = 'フレンド登録する'; }
+  });
   $('resultBtn').addEventListener('click', () => {
     $('resultModal').classList.remove('show');
     showScreen('dungeon', false);
@@ -116,6 +127,9 @@ export function startDungeonRun(stage, hard, support) {
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
+  // 誰かの貸し出しキャラを借りたら、その人の使用回数を1つ増やす(相手は翌日フレポを受け取る)
+  if (support && support.ownerUid) countRentalUse(support.ownerUid);
+
   board = null;                 // 新しいダンジョンでは盤面を作り直す
   renderParty();
   showScreen('battle');
@@ -598,11 +612,10 @@ function finishRun() {
   const prog = state.progress[stage.id] = state.progress[stage.id] || {};
   if (hard) prog.hard = true; else prog.normal = true;
 
-  const coin  = Math.round(stage.coinReward  * (hard ? HARD_REWARD_MULT : 1));
-  const frepo = Math.round(stage.frepoReward * (hard ? HARD_REWARD_MULT : 1));
-  const orb   = hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward;
-  const exp   = Math.round(stage.expReward * (hard ? HARD_REWARD_MULT : 1));
-  state.coin += coin; state.frepo += frepo; state.orb += orb;
+  const coin = Math.round(stage.coinReward * (hard ? HARD_REWARD_MULT : 1));
+  const orb  = hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward;
+  const exp  = Math.round(stage.expReward * (hard ? HARD_REWARD_MULT : 1));
+  state.coin += coin; state.orb += orb;
 
   const key = stage.id + '_' + (hard ? 'hard' : 'normal');
   const rec = state.records[key] || { maxChain: 0 };
@@ -633,11 +646,24 @@ function finishRun() {
   }).join('');
   $('resultRewards').innerHTML = `
     <div class="rrow">💰 <b>${coin}</b></div>
-    <div class="rrow">🎗️ <b>${frepo}</b></div>
     ${orb ? `<div class="rrow">💎 <b>${orb}</b></div>` : ''}
     <div class="rrow">⭐ <b>EXP ${exp}</b></div>
     <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
     ${dropHTML}`;
+
+  // フレンド以外から借りていたら、ここで登録できるようにする
+  const sup = run.party.support;
+  const box = $('resultFriendBox');
+  const canInvite = !!(sup && sup.ownerUid && !state.profile.friends.some(f => f.uid === sup.ownerUid));
+  box.hidden = !canInvite;
+  if (canInvite) {
+    pendingFriendUid = sup.ownerUid;
+    pendingFriendName = sup.ownerName || 'プレイヤー';
+    $('resultFriendText').innerHTML =
+      `${sup.ownerIcon || '🙂'} <b>${pendingFriendName}</b> のサポートで攻略しました。フレンドになりますか?`;
+    $('resultAddFriendBtn').disabled = false;
+    $('resultAddFriendBtn').textContent = 'フレンド登録する';
+  }
   $('resultRank').innerHTML =
     (ups > 0
       ? `<div class="rankup">🎉 ランクアップ! Rank ${state.rank}
@@ -662,6 +688,8 @@ function battleDefeat() {
     <div class="rstat"><span>与ダメージ合計</span><b>${run.stats.totalDamage}</b></div>`;
   $('resultRewards').innerHTML = '<div class="rrow rnone">HPが尽きた…報酬なし</div>';
   $('resultRank').innerHTML = '';
+  $('resultFriendBox').hidden = true;
+  pendingFriendUid = null;
   $('resultModal').classList.add('show');
   run = null;
 }

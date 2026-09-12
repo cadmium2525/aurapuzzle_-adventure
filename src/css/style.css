@@ -736,6 +736,10 @@ input[type=range]{accent-color:var(--accent);}
 }
 .modal-card.wide{max-width:390px;}
 .confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+/* リザルトのフレンド登録の誘い */
+#resultFriendBox{margin-top:13px;padding-top:13px;border-top:1px solid var(--panel-border);}
+.rfriend-note{font-size:11.5px;color:var(--ink);line-height:1.6;margin-bottom:9px;text-align:center;}
+.rfriend-note b{color:var(--accent);}
 .skill-confirm-head{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
 .skill-confirm-face{width:52px;height:52px;border-radius:16px;flex-shrink:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;font-size:30px;

@@ -366,6 +366,7 @@
     <div class="mstats mb8">サポートの<b>リーダースキル</b>も発動します。フレンドがいなくてもNPCサポートを選べます。</div>
     <div class="segmented small">
       <button id="supTabFriendBtn" class="active">フレンド</button>
+      <button id="supTabOtherBtn">他のプレイヤー</button>
       <button id="supTabNpcBtn">NPC</button>
     </div>
     <div id="supportPickList" class="stack scroll-area"></div>
@@ -418,7 +419,11 @@
     <div id="resultRank"></div>
     <div id="resultStats"></div>
     <div id="resultRewards"></div>
-    <button class="btn block" id="resultBtn">ダンジョンへ戻る</button>
+    <div id="resultFriendBox" hidden>
+      <div class="rfriend-note" id="resultFriendText"></div>
+      <button class="btn block" id="resultAddFriendBtn">フレンド登録する</button>
+    </div>
+    <button class="btn secondary block mt6" id="resultBtn">ダンジョンへ戻る</button>
   </div>
 </div>
 

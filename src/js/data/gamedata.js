@@ -90,7 +90,6 @@ export const STAGES = (() => {
         floors,
         stamina: 5 + Math.floor(step * 0.9),
         coinReward: 150 + step * 110,
-        frepoReward: 80 + step * 45,
         orbReward: i === STAGES_PER_CHAPTER ? 2 : 0,   // 各章の最終ステージだけオーブ
         expReward: 25 + step * 14,
         charExpReward: 80 + step * 95,
@@ -156,7 +155,6 @@ export function dailyStagesFor(day) {
       floors,
       stamina: d.stamina,
       coinReward: Math.round((t.dropType === 'gold' ? 3000 : 400) * d.mult),
-      frepoReward: Math.round(120 * d.mult),
       orbReward: 0,
       expReward: Math.round(40 * d.mult),
       charExpReward: Math.round(200 * d.mult),
@@ -239,8 +237,7 @@ export const SHOP_ITEMS = [
   { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200 },
   { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200 },
   { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200 },
-  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 },
-  { id: 'sh_frepo', type: 'frepo', amount: 1000, emoji: '🎗️', price: 1200 }
+  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 }
 ];
 
 /* ===================== ガチャ ===================== */
@@ -267,10 +264,15 @@ export const PICKUP_RATE = 0.3;
 
 /* ===================== フレンド ===================== */
 export const MAX_FRIENDS = 30;
-export const FRIEND_ADD_REWARD = 300;
-export const FRIEND_ADD_REWARD_OTHER = 300;
-export const FRIEND_GREET_REWARD = 20;
-export const FRIEND_GREET_REWARD_OTHER = 10;
+/**
+ * フレンドポイントの入手経路は2つだけ。
+ *   1. 自分の貸し出しキャラが使われた回数に応じて翌日まとめて受け取る
+ *   2. フレンドへのあいさつ(1日1回)
+ * ダンジョン報酬・ショップ・フレンド登録ボーナスからは出さない。
+ */
+export const FRIEND_GREET_REWARD = 20;        // あいさつした側
+export const FRIEND_GREET_REWARD_OTHER = 10;  // あいさつされた側
+export const FRIEND_RENTAL_REWARD = 50;       // 貸し出しキャラが1回使われるごと
 
 /* ===================== スタミナ / ランク ===================== */
 export const STAMINA_REGEN_MS = 3 * 60 * 1000;  // 3分で1回復

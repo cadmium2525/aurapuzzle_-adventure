@@ -31,7 +31,8 @@ const isConfigured = !/YOUR_/.test(firebaseConfig.apiKey);
 export const FB = {
   ready: false, db: null,
   doc: null, getDoc: null, setDoc: null, updateDoc: null, deleteField: null,
-  collection: null, getDocs: null, serverTimestamp: null, increment: null, runTransaction: null
+  collection: null, getDocs: null, query: null, limit: null,
+  serverTimestamp: null, increment: null, runTransaction: null
 };
 
 /** Auth の API をまとめて保持する(SDK読み込み後に埋まる) */
@@ -62,6 +63,7 @@ export function initFirebase() {
         doc: fsMod.doc, getDoc: fsMod.getDoc, setDoc: fsMod.setDoc,
         updateDoc: fsMod.updateDoc, deleteField: fsMod.deleteField,
         collection: fsMod.collection, getDocs: fsMod.getDocs,
+        query: fsMod.query, limit: fsMod.limit,
         serverTimestamp: fsMod.serverTimestamp, increment: fsMod.increment,
         runTransaction: fsMod.runTransaction,
         ready: true

@@ -7,8 +7,8 @@ import { FB, firebaseEnabled, initFirebase, getUid } from './firebase.js';
 import { state, saveState, onSave, entryOf } from './state.js';
 import { characterById } from '../data/characters.js';
 import {
-  FRIEND_ADD_REWARD, FRIEND_ADD_REWARD_OTHER,
-  FRIEND_GREET_REWARD, FRIEND_GREET_REWARD_OTHER, MAX_FRIENDS
+  FRIEND_GREET_REWARD, FRIEND_GREET_REWARD_OTHER,
+  FRIEND_RENTAL_REWARD, MAX_FRIENDS
 } from '../data/gamedata.js';
 
 let myUid = null;
@@ -41,6 +41,7 @@ export async function initCloud() {
     await FB.setDoc(myRef, {
       name: state.profile.name, icon: state.profile.icon,
       friendCode: code, pendingFrepo: 0,
+      rentalUseCount: 0, rentalRewardedCount: 0, lastRentalRewardDate: '',
       rentalCharId: state.profile.rentalCharId || null,
       rentalStar: rentalEntry ? rentalEntry.star : null,
       rentalLv: rentalEntry ? rentalEntry.lv : null,
@@ -59,6 +60,8 @@ export async function initCloud() {
     }
     // プロフィール名/アイコンが未登録ならこちらの値で補完
     if (!data.friendCode) await FB.updateDoc(myRef, { friendCode: code });
+    // 自分のキャラが使われたぶんを翌日まとめて受け取る
+    lastRentalClaim = await claimRentalReward(myRef, data);
   }
 
   await pushCloudSave();
@@ -201,12 +204,110 @@ export async function addFriendByCode(rawCode) {
     name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
     addedAt: now, lastGreetDate: ''
   });
-  await FB.updateDoc(FB.doc(FB.db, 'users', targetUid), { pendingFrepo: FB.increment(FRIEND_ADD_REWARD_OTHER) });
-
-  state.frepo += FRIEND_ADD_REWARD;
-  saveState();
   await refreshFriendsList();
-  return { ok: true, message: `フレンド登録しました!フレポ+${FRIEND_ADD_REWARD}` };
+  return { ok: true, message: `${target.name || 'プレイヤー'}をフレンドに登録しました` };
+}
+
+/**
+ * uid を直接指定してフレンド登録する。
+ * ダンジョンで他のプレイヤーのキャラを借りたあとの導線で使う。
+ */
+export async function addFriendByUid(targetUid, fallbackName) {
+  if (!firebaseEnabled() || !myUid) return { ok: false, message: 'フレンド機能は現在利用できません' };
+  if (!targetUid || targetUid === myUid) return { ok: false, message: '自分は登録できません' };
+  if (state.profile.friends.length >= MAX_FRIENDS) return { ok: false, message: `フレンドは最大${MAX_FRIENDS}人までです` };
+  if (state.profile.friends.some(f => f.uid === targetUid)) return { ok: false, message: 'すでにフレンドです' };
+
+  const snap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
+  if (!snap.exists()) return { ok: false, message: '相手の情報が見つかりませんでした' };
+  const target = snap.data();
+  const now = Date.now();
+  await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), {
+    name: target.name || fallbackName || 'プレイヤー', icon: target.icon || '🙂',
+    code: target.friendCode || '', addedAt: now, lastGreetDate: ''
+  });
+  await FB.setDoc(FB.doc(FB.db, 'users', targetUid, 'friends', myUid), {
+    name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
+    addedAt: now, lastGreetDate: ''
+  });
+  await refreshFriendsList();
+  return { ok: true, message: `${target.name || 'プレイヤー'}をフレンドに登録しました` };
+}
+
+/**
+ * フレンドではない他のプレイヤーの貸し出しキャラを拾う。
+ * ここからサポートに借りて、クリア後にフレンド登録へ誘導する。
+ * 読み取り数を抑えるため取得件数に上限を置き、呼び出し側で使い回す。
+ */
+export async function fetchStrangerRentals(want = 6) {
+  if (!firebaseEnabled() || !myUid) return [];
+  try {
+    const snaps = await FB.getDocs(FB.query(FB.collection(FB.db, 'users'), FB.limit(30)));
+    const friendIds = new Set(state.profile.friends.map(f => f.uid));
+    const pool = [];
+    snaps.forEach(d => {
+      if (d.id === myUid || friendIds.has(d.id)) return;
+      const v = d.data();
+      const charId = v.rentalCharId || v.rentalMonsterId;
+      if (!charId) return;
+      pool.push({
+        uid: d.id, name: v.name || 'プレイヤー', icon: v.icon || '🙂', stranger: true,
+        charId, star: v.rentalStar || null, lv: v.rentalLv || 1, awa: v.rentalAwa || 0
+      });
+    });
+    // 毎回同じ顔ぶれにならないよう混ぜる
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, want);
+  } catch (e) { return []; }
+}
+
+/* ===================== 貸し出しの使用回数 ===================== */
+/**
+ * 他プレイヤーのキャラをサポートに借りたとき、その持ち主の使用回数を1つ増やす。
+ * 持ち主は翌日にまとめてフレポを受け取る。
+ */
+export async function countRentalUse(ownerUid) {
+  if (!firebaseEnabled() || !myUid || !ownerUid || ownerUid === myUid) return;
+  try {
+    await FB.updateDoc(FB.doc(FB.db, 'users', ownerUid), { rentalUseCount: FB.increment(1) });
+  } catch (e) { /* 失敗してもゲーム進行には影響させない */ }
+}
+
+/**
+ * 前日までに自分のキャラが使われたぶんのフレポを受け取る。
+ * 同じ日に二重取りしないよう、受取日を記録して1日1回に制限する。
+ * @returns {{gained:number, uses:number}|null}
+ */
+async function claimRentalReward(myRef, data) {
+  const today = todayStr();
+  if (data.lastRentalRewardDate === today) return null;   // 今日はもう受け取り済み
+  const uses = (data.rentalUseCount || 0) - (data.rentalRewardedCount || 0);
+  if (uses <= 0) {
+    // 受け取るものが無くても日付だけ進めておく(初回など)
+    if (!data.lastRentalRewardDate) {
+      await FB.updateDoc(myRef, { lastRentalRewardDate: today });
+    }
+    return null;
+  }
+  const gained = uses * FRIEND_RENTAL_REWARD;
+  state.frepo += gained;
+  saveState();
+  await FB.updateDoc(myRef, {
+    rentalRewardedCount: data.rentalUseCount || 0,
+    lastRentalRewardDate: today
+  });
+  return { gained, uses };
+}
+
+/** 起動時に受け取った貸し出し報酬(画面側で知らせるために持っておく) */
+let lastRentalClaim = null;
+export function takeRentalClaim() {
+  const r = lastRentalClaim;
+  lastRentalClaim = null;
+  return r;
 }
 
 /** フレンドを削除する(片側のみ。相手側は次回一覧更新まで残るが実害はない) */
