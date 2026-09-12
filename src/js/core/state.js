@@ -8,7 +8,7 @@ import { Store } from './storage.js';
 import { uid } from './ui.js';
 import {
   CHARACTERS, characterById, characterByAuraRarity, resolveCharacter,
-  AWAKEN_MAX, awakenStepsFor, awakenModsFor,
+  AWAKEN_MAX, awakenStepsFor,
   maxLevelFor, expToNextCharLevel, canEvolveChar, finalStarOf, MAX_RARITY, TEAM_SIZE,
   MATERIALS, crystalIdFor, evolveCostTo,
   STAMINA_REGEN_MS, STAMINA_BASE_MAX, STAMINA_PER_RANK, expToNextRank
@@ -162,23 +162,10 @@ export function entryOf(charId) { return state.characters[charId] || null; }
 export function resolveOwned(charId) {
   const e = entryOf(charId);
   if (!e) return null;
-  const ch = resolveCharacter(charId, e.star, e.lv);
+  const ch = resolveCharacter(charId, e.star, e.lv, e.awa);
   if (!ch) return null;
   ch.xp = e.xp || 0;
   ch.count = e.n;
-  ch.awaken = Math.min(AWAKEN_MAX, e.awa || 0);
-
-  // 開眼ぶんを反映する。操作時間だけはパーティ単位なので party.js で合算する
-  const mods = awakenModsFor(characterById(charId), ch.awaken);
-  ch.awakenMods = mods;
-  if (ch.awaken > 0) {
-    ch.atk = Math.round(ch.atk * mods.atk);
-    ch.hp  = Math.round(ch.hp  * mods.hp);
-    ch.rcv = Math.round(ch.rcv * mods.rcv);
-    if (ch.skill && mods.cdCut > 0) {
-      ch.skill = { ...ch.skill, cooldown: Math.max(3, ch.skill.cooldown - mods.cdCut) };
-    }
-  }
   return ch;
 }
 

@@ -13,7 +13,7 @@ import {
 } from '../data/gamedata.js';
 import { startDungeonRun } from '../battle/battle.js';
 import { fetchFriendRentals } from '../core/friends.js';
-import { portraitHTML } from './parts.js';
+import { portraitHTML, awakenPipsHTML } from './parts.js';
 
 let dungeonHard = false;
 let pendingStage = null, pendingHard = false;
@@ -69,6 +69,7 @@ function supportRow(ch, ownerName, ownerIcon, isNpc, note) {
       <div class="cname">${ch.name}
         <span class="sup-lv">Lv${ch.level}</span>
         ${ch.evolved ? '<span class="evo-tag">進化</span>' : ''}
+        ${ch.awaken ? awakenPipsHTML(ch.awaken, 4) : ''}
         <span class="owner">${ownerIcon || '🙂'} ${ownerName}</span></div>
       <div class="cstats"><b>ATK</b>${ch.atk} <b>HP</b>${ch.hp} <b>RCV</b>${ch.rcv}</div>
       <div class="cskills"><span class="mini-tag ls">LS</span>${ls ? ls.name : '—'}
@@ -99,7 +100,7 @@ function renderSupportList() {
       return;
     }
     friendRentals.forEach(f => {
-      const ch = resolveCharacter(f.charId, f.star, f.lv);
+      const ch = resolveCharacter(f.charId, f.star, f.lv, f.awa);
       if (!ch) return;
       box.appendChild(supportRow(ch, f.name, f.icon, false));
     });

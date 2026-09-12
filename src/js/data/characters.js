@@ -202,8 +202,9 @@ export function artStageFor(base, star, level) {
  * @param {string|object} idOrBase キャラID または素体
  * @param {number} star  現在の進化段階(★)
  * @param {number} level 現在のレベル
+ * @param {number} [awa] 開眼段階(フレンドから借りたキャラにも使う)
  */
-export function resolveCharacter(idOrBase, star, level) {
+export function resolveCharacter(idOrBase, star, level, awa) {
   const base = typeof idOrBase === 'string' ? characterById(idOrBase) : idOrBase;
   if (!base) return null;
   const st = Math.max(base.rarity, Math.min(MAX_RARITY, star || base.rarity));
@@ -217,7 +218,7 @@ export function resolveCharacter(idOrBase, star, level) {
     ? evolvedActiveSkill(base.skillId, base.evoSkillId)
     : ACTIVE_SKILLS[base.skillId] || null;
 
-  return {
+  return applyAwaken({
     ...base,
     baseRarity: base.rarity,
     rarity: st,
@@ -233,7 +234,28 @@ export function resolveCharacter(idOrBase, star, level) {
     leaderSkill,
     skill,
     art: artStageFor(base, st, lv)
-  };
+  }, base, awa);
+}
+
+/**
+ * 開眼ぶんをキャラに反映する。
+ * 自分のキャラもフレンドから借りたキャラも同じ経路を通す。
+ * 操作時間だけはパーティ単位なので、ここでは awakenMods に残して party.js が合算する。
+ */
+function applyAwaken(ch, base, awa) {
+  const n = Math.max(0, Math.min(AWAKEN_MAX, awa || 0));
+  const mods = awakenModsFor(base, n);
+  ch.awaken = n;
+  ch.awakenMods = mods;
+  if (n > 0) {
+    ch.atk = Math.round(ch.atk * mods.atk);
+    ch.hp  = Math.round(ch.hp  * mods.hp);
+    ch.rcv = Math.round(ch.rcv * mods.rcv);
+    if (ch.skill && mods.cdCut > 0) {
+      ch.skill = { ...ch.skill, cooldown: Math.max(3, ch.skill.cooldown - mods.cdCut) };
+    }
+  }
+  return ch;
 }
 
 /**

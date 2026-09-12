@@ -33,13 +33,18 @@ export async function initCloud() {
   if (!myUid) return false;
 
   const code = state.settings.playerId;
+  const rentalEntry = state.profile.rentalCharId ? entryOf(state.profile.rentalCharId) : null;
   const myRef = FB.doc(FB.db, 'users', myUid);
   const snap = await FB.getDoc(myRef);
 
   if (!snap.exists()) {
     await FB.setDoc(myRef, {
       name: state.profile.name, icon: state.profile.icon,
-      friendCode: code, pendingFrepo: 0, rentalCharId: state.profile.rentalCharId || null,
+      friendCode: code, pendingFrepo: 0,
+      rentalCharId: state.profile.rentalCharId || null,
+      rentalStar: rentalEntry ? rentalEntry.star : null,
+      rentalLv: rentalEntry ? rentalEntry.lv : null,
+      rentalAwa: rentalEntry ? (rentalEntry.awa || 0) : null,
       createdAt: FB.serverTimestamp(), updatedAt: FB.serverTimestamp()
     });
     await FB.setDoc(FB.doc(FB.db, 'friendCodes', code), { uid: myUid });
@@ -82,8 +87,15 @@ async function pushCloudSave() {
       grants: state.grants || {},        // 一度きりの付与が別端末で重複しないように運ぶ
       updatedAt: FB.serverTimestamp()
     });
+    // 貸し出しキャラのレベル/開眼は後から変わるので、保存のたびに最新へ揃える
+    const rental = state.profile.rentalCharId ? entryOf(state.profile.rentalCharId) : null;
     await FB.updateDoc(FB.doc(FB.db, 'users', myUid), {
-      name: state.profile.name, icon: state.profile.icon, updatedAt: FB.serverTimestamp()
+      name: state.profile.name, icon: state.profile.icon,
+      rentalCharId: state.profile.rentalCharId || null,
+      rentalStar: rental ? rental.star : null,
+      rentalLv: rental ? rental.lv : null,
+      rentalAwa: rental ? (rental.awa || 0) : null,
+      updatedAt: FB.serverTimestamp()
     });
   } catch (e) { console.warn('[friends] cloud save failed', e); }
 }
@@ -113,6 +125,7 @@ export async function updateRentalCharacter(charId) {
         rentalCharId: charId || null,
         rentalStar: e ? e.star : null,
         rentalLv: e ? e.lv : null,
+        rentalAwa: e ? (e.awa || 0) : null,
         updatedAt: FB.serverTimestamp()
       });
     } catch (err) { /* noop */ }
@@ -122,7 +135,7 @@ export async function updateRentalCharacter(charId) {
 /**
  * ダンジョン出発前に呼ぶ。各フレンドの最新の貸し出しキャラ設定を取得する。
  * (フレンド一覧のローカルキャッシュは登録時点のスナップショットなので、都度取得する)
- * @returns {Promise<Array<{uid:string,name:string,icon:string,charId:string}>>}
+ * @returns {Promise<Array<{uid:string,name:string,icon:string,charId:string,star:number,lv:number,awa:number}>>}
  */
 export async function fetchFriendRentals() {
   if (!firebaseEnabled() || !myUid) return [];
@@ -136,7 +149,7 @@ export async function fetchFriendRentals() {
       if (charId) {
         results.push({
           uid: f.uid, name: d.name || f.name, icon: d.icon || f.icon,
-          charId, star: d.rentalStar || null, lv: d.rentalLv || 1
+          charId, star: d.rentalStar || null, lv: d.rentalLv || 1, awa: d.rentalAwa || 0
         });
       }
     } catch (e) { /* noop */ }
