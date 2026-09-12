@@ -35,6 +35,7 @@ let bstate = 'idle';       // idle | dragging | resolving | over
 let selected = null, floatPos = null, dragStart = 0, autoReleased = false;
 let grabbed = false;       // 操作時間内で「今まさに指がオーブを掴んでいるか」
 let clearingCells = [], clearStart = 0;
+let chainLabels = [];          // 盤面に浮かべる「N Chain」
 let run = null;
 
 /* ===================== 起動 ===================== */
@@ -68,20 +69,17 @@ function dragTimeMs() {
 function loop(t) {
   if (currentScreen === 'battle' && run) {
     const clearT = clearingCells.length ? (t - clearStart) / 260 : 0;
-    drawBoard({ board, t, selected, floatPos, dragging: bstate === 'dragging', clearingCells, clearT });
-    if (bstate === 'dragging' && !autoReleased) {
-      const total = dragTimeMs();
-      const remain = Math.max(0, total - (t - dragStart));
-      const ratio = remain / total;
-      $('timerFill').style.width = (ratio * 100) + '%';
-      $('timerNum').textContent = (remain / 1000).toFixed(1) + 's';
-      $('timerRow').classList.toggle('danger', remain <= 3000);
-      // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
-      if (remain <= 0) {
-        autoReleased = true; grabbed = false; selected = null; floatPos = null;
-        $('timerRow').classList.remove('danger');
-        resolveTurn();
-      }
+    const dragging = bstate === 'dragging' && !autoReleased;
+    const total = dragTimeMs();
+    const remain = dragging ? Math.max(0, total - (t - dragStart)) : 0;
+    drawBoard({
+      board, t, selected, floatPos, dragging: bstate === 'dragging',
+      clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total
+    });
+    // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
+    if (dragging && remain <= 0) {
+      autoReleased = true; grabbed = false; selected = null; floatPos = null;
+      resolveTurn();
     }
   }
   requestAnimationFrame(loop);
@@ -203,6 +201,7 @@ function loadFloor() {
   bstate = 'idle';
   grabbed = false;
   clearingCells = [];
+  chainLabels = [];
   run.turnTimeBonusMs = 0;
   hideBanner();
   resetTimerUI();
@@ -222,12 +221,7 @@ function renderFloorPips() {
   }
 }
 
-function resetTimerUI() {
-  const total = dragTimeMs();
-  $('timerFill').style.width = '100%';
-  $('timerNum').textContent = (total / 1000).toFixed(1) + 's';
-  $('timerRow').classList.remove('danger');
-}
+function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更新は不要 */ }
 
 /* ===================== HP表示 ===================== */
 function updateHPUI(flashEnemy, flashPlayer) {
@@ -262,12 +256,6 @@ function useSkill(i) {
   if (sk.timeThisTurn) {
     run.turnTimeBonusMs += sk.timeThisTurn * 1000;
     logs.push(`操作時間+${sk.timeThisTurn}秒`);
-    if (bstate === 'dragging') {
-      const total = dragTimeMs();
-      $('timerNum').textContent = (Math.max(0, total - (performance.now() - dragStart)) / 1000).toFixed(1) + 's';
-    } else {
-      resetTimerUI();
-    }
   }
   if (sk.healPct) {
     const amount = Math.round(run.maxHP * sk.healPct);
@@ -394,9 +382,9 @@ function resolveStep(groups, chain) {
 
 async function resolveTurn() {
   bstate = 'resolving';
-  $('timerFill').style.width = '0%';
   run.stats.turns++;
 
+  chainLabels = [];
   let chain = 0, turnDamage = 0, turnHeal = 0, anyAction = false;
   while (true) {
     const groups = findGroups(board, run.matchMin);
@@ -419,6 +407,10 @@ async function resolveTurn() {
 
     clearingCells = groups.flatMap(g => g.cells);
     clearStart = performance.now();
+    // 消えた位置の中心に連鎖数を出す。前の表示も少し残るので進み方が追える
+    const cr = clearingCells.reduce((s, [r]) => s + r, 0) / clearingCells.length;
+    const cc = clearingCells.reduce((s, [, c]) => s + c, 0) / clearingCells.length;
+    chainLabels.push({ r: cr, c: cc, n: chain, born: clearStart });
     actions.forEach(a => popUnit(a.index, (a.kind === 'heal' ? '+' : '') + a.value, a.kind));
     await sleep(270);
 

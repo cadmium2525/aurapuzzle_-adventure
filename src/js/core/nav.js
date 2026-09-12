@@ -45,6 +45,7 @@ export function updateStatusBar() {
   tickStamina();
   const max = maxStamina();
   const over = state.stamina > max;     // ランクアップでオーバーフロー中
+  $('statusPlayerName').textContent = state.profile.name || 'プレイヤー';
   $('curStamina').textContent = `${state.stamina}/${max}`;
   $('curStamina').classList.toggle('over', over);
   const next = staminaNextInMs();

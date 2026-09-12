@@ -12,11 +12,14 @@ import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 /** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
 let frontIndex = 0;
 
-/** 1人ぶんの立ち絵(イラストが無ければ絵文字にフォールバック) */
-function slotHTML(m, cls) {
+/**
+ * 1人ぶんの立ち絵(イラストが無ければ絵文字にフォールバック)。
+ * 前面に出す人は入れ替えられるので、リーダーは足元の光で示す。
+ */
+function slotHTML(m, cls, isLeader) {
   if (!m) return '';
   const aura = AURAS[m.aura];
-  return `<div class="hp-slot ${cls}" style="--aura:${COLOR_HEX[aura.key]}">
+  return `<div class="hp-slot ${cls}${isLeader ? ' is-leader' : ''}" style="--aura:${COLOR_HEX[aura.key]}">
     ${artImg(m.art && m.art.full, m.portrait, 'hp')}
   </div>`;
 }
@@ -37,10 +40,11 @@ export function renderHome() {
   navs.forEach(b => { if (b) b.hidden = mons.length < 2; });
 
   const at = i => mons[(frontIndex + i) % mons.length];
+  const leader = mons[0];                       // 編成の先頭が常にリーダー
   // 後ろの2人を先に描き、前面の1人を最後に重ねる
-  art.innerHTML = (mons.length > 1 ? slotHTML(at(1), 'sub left') : '')
-    + (mons.length > 2 ? slotHTML(at(2), 'sub right') : '')
-    + slotHTML(at(0), 'lead');
+  art.innerHTML = (mons.length > 1 ? slotHTML(at(1), 'sub left',  at(1) === leader) : '')
+    + (mons.length > 2 ? slotHTML(at(2), 'sub right', at(2) === leader) : '')
+    + slotHTML(at(0), 'lead', at(0) === leader);
 }
 
 /** 前面に出す人をずらす(リーダーは変わらない) */

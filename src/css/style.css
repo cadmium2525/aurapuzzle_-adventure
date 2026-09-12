@@ -87,6 +87,8 @@ body{
 #statusBar.hidden{display:none;}
 .status-main{display:flex;align-items:center;gap:12px;}
 .stamina-block{flex:1;min-width:0;}
+.player-name{font-size:12px;font-weight:800;color:var(--ink);margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stamina-head{display:flex;align-items:baseline;gap:7px;font-size:10.5px;color:var(--ink-dim);}
 .stamina-head .slabel{flex-shrink:0;}
 .stamina-head b{color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums;}
@@ -146,7 +148,7 @@ body.in-battle main{padding-left:7px;padding-right:7px;}
 /* ===================== ホーム ===================== */
 /* ホーム: 編成中の3人を1枚絵で見せる */
 #screen-home{flex:1;min-height:0;}
-#homePartyStage{position:relative;flex:1;min-height:240px;display:flex;}
+#homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
 #homeEditBtn{position:absolute;right:2px;top:0;z-index:5;}
 #homePartyArt{position:relative;flex:1;min-width:0;}
 /* 立ち絵は縦横比がまちまちなので、枠を決めて object-fit で内側に収める。
@@ -174,31 +176,40 @@ body.in-battle main{padding-left:7px;padding-right:7px;}
   background:none;border:none;padding:0;
   opacity:.26;transition:opacity .18s ease;
 }
-.hp-nav.left {left:0;  transform:translateY(-50%) rotate(-9deg);}
-.hp-nav.right{right:0; transform:translateY(-50%) rotate(9deg);}
+.hp-nav.left {left:0;  transform:translateY(-50%);}
+.hp-nav.right{right:0; transform:translateY(-50%);}
 .hp-nav::before{content:'';display:block;border-style:solid;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));}
 .hp-nav.left::before {border-width:10px 14px 10px 0;border-color:transparent var(--ink) transparent transparent;}
 .hp-nav.right::before{border-width:10px 0 10px 14px;border-color:transparent transparent transparent var(--ink);}
 .hp-nav:active{opacity:.8;}
 .hp-img{width:100%;height:100%;max-width:100%;object-fit:contain;object-position:bottom center;display:block;}
+/* 前面の人は入れ替えられるので、リーダーは足元の光で示す */
+.hp-slot.is-leader::after{
+  content:'';position:absolute;left:50%;bottom:1%;transform:translateX(-50%);
+  width:58%;height:8%;border-radius:50%;pointer-events:none;z-index:-1;
+  background:radial-gradient(ellipse at center,
+    color-mix(in srgb, var(--aura) 85%, transparent) 0%,
+    color-mix(in srgb, var(--aura) 35%, transparent) 45%, transparent 72%);
+  filter:blur(5px);
+}
 .hp-emoji{font-size:104px;line-height:1;}
 .hp-slot.sub .hp-emoji{font-size:70px;}
 #homePartyArt .empty{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;}
 
 /* メニュー */
-.menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;flex:1 1 auto;grid-auto-rows:1fr;align-content:stretch;}
 .menu-tile{
   position:relative;overflow:hidden;
   background:linear-gradient(165deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035));
   border:1px solid var(--panel-border);border-radius:var(--r-md);
-  padding:12px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;
-  font-size:9.5px;font-weight:700;color:var(--ink);
+  padding:14px 2px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  font-size:10.5px;font-weight:700;color:var(--ink);
   box-shadow:var(--shadow-1);
   transition:transform .13s ease, border-color .2s ease;
 }
 .menu-tile::before{content:'';position:absolute;left:50%;top:-22px;transform:translateX(-50%);
   width:60px;height:44px;border-radius:50%;filter:blur(20px);opacity:.55;background:var(--tile,#7A47D9);}
-.menu-tile .emoji{position:relative;font-size:23px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));}
+.menu-tile .emoji{position:relative;font-size:30px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));}
 .menu-tile span:last-child{position:relative;}
 .menu-tile:active{transform:translateY(2px) scale(.97);}
 .t-dungeon{--tile:#FF7A59;} .t-event{--tile:#FFC65C;} .t-char{--tile:#5BE08C;}
@@ -337,7 +348,8 @@ button{font-family:inherit;cursor:pointer;}
 #battleInfoBtn{position:absolute;right:8px;top:6px;z-index:2;}
 
 #enemyStage{
-  position:relative;flex:1 1 auto;min-height:0;
+  /* 盤面は縦で頭打ちになるので、敵フィールドの取り分に上限を設けて盤面へ回す */
+  position:relative;flex:1 1 auto;min-height:0;max-height:25vh;
   background:radial-gradient(ellipse at 50% 26%, rgba(255,107,107,0.18), transparent 62%),
     linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
   border:1px solid var(--panel-border);border-radius:var(--r-lg);
@@ -376,9 +388,9 @@ button{font-family:inherit;cursor:pointer;}
 .unit.ready{border-color:rgba(255,198,92,.65);box-shadow:inset 0 0 18px -9px var(--aura), 0 0 12px -3px rgba(255,198,92,.45);}
 .unit:active{transform:scale(.95);}
 .unit-face{position:relative;display:flex;align-items:center;justify-content:center;}
-.unit-portrait{font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
-  width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
-.unit-img{width:100%;height:100%;border-radius:9px;object-fit:cover;display:block;}
+.unit-portrait{font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
+  width:46px;height:46px;display:flex;align-items:center;justify-content:center;}
+.unit-img{width:100%;height:100%;border-radius:13px;object-fit:cover;display:block;}
 .unit-aura{position:absolute;right:-7px;bottom:-3px;font-size:10px;}
 .unit-badge{
   position:absolute;left:-9px;top:-4px;width:15px;height:15px;border-radius:50%;
@@ -427,15 +439,6 @@ button{font-family:inherit;cursor:pointer;}
 @keyframes shakeIt{10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(3px);}
   30%,50%,70%{transform:translateX(-5px);}40%,60%{transform:translateX(5px);}}
 
-#timerRow{width:100%;display:flex;align-items:center;gap:8px;}
-.timer-label{font-size:12px;}
-#timerTrack{flex:1;height:8px;border-radius:5px;background:rgba(0,0,0,0.34);overflow:hidden;border:1px solid var(--panel-border);}
-#timerFill{height:100%;width:100%;border-radius:5px;
-  background:linear-gradient(90deg,var(--accent-3),var(--accent));transition:width .08s linear;}
-#timerNum{font-size:11px;font-weight:700;color:var(--ink-dim);width:42px;text-align:right;font-variant-numeric:tabular-nums;}
-#timerRow.danger #timerFill{background:linear-gradient(90deg,#FF6B6B,#FFA36B);}
-#timerRow.danger #timerNum{color:#FF9A9A;}
-#timerRow.danger{animation:lowPulse .7s ease-in-out infinite;}
 
 #banner{
   position:absolute;left:8px;right:8px;top:50%;
@@ -726,7 +729,7 @@ input[type=range]{accent-color:var(--accent);}
   #enemyStage{padding:6px 11px 9px;gap:4px;}
   #enemyMeta{font-size:9.5px;}
   .unit{padding:5px 2px 4px;}
-  .unit-portrait{font-size:19px;width:26px;height:26px;}
+  .unit-portrait{font-size:25px;width:38px;height:38px;}
   #screen-battle{gap:5px;}
   main{padding:9px 13px 4px;}
   .enemy-ring{display:none;}

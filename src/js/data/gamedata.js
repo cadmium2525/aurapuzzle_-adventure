@@ -26,7 +26,7 @@ export const ORB_BONUS = 0.35;
 /** コンボごとの倍率上昇 */
 export const COMBO_BONUS = 0.6;
 /** 同時消し1グループごとの倍率上昇 */
-export const SIMUL_BONUS = 0.15;
+export const SIMUL_BONUS = 0.05;
 /** パーティの基礎HP(キャラのHP合計に加算) */
 export const BASE_PARTY_HP = 100;
 /** 消滅に必要な同オーラの連結数(リーダースキルで緩和されることがある) */

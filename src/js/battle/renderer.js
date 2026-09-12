@@ -185,12 +185,72 @@ function drawSelectionCell(r, c, t) {
   ctx.restore();
 }
 
+/** 消えた位置に「N Chain」を浮かべる(連鎖の進み方を見えるようにする) */
+function drawChainLabels(labels, now) {
+  if (!labels || !labels.length) return;
+  labels.forEach(l => {
+    const age = (now - l.born) / 1100;
+    if (age < 0 || age >= 1) return;
+    const alpha = age < 0.12 ? age / 0.12 : Math.max(0, 1 - (age - 0.12) / 0.88);
+    const size = Math.max(13, CELL * 0.44);
+    const x = Math.min(CELL * COLS - size, Math.max(size, l.c * CELL + CELL / 2));
+    const y = Math.max(size, l.r * CELL + CELL / 2 - age * CELL * 0.6);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `900 ${size}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = Math.max(3, size * 0.3);
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeText(`${l.n} Chain`, x, y);
+    ctx.fillStyle = l.n >= 5 ? '#FFC65C' : (l.n >= 3 ? '#8FD8FF' : '#FFFFFF');
+    ctx.fillText(`${l.n} Chain`, x, y);
+    ctx.restore();
+  });
+}
+
+/** 掴んでいるオーブの上に残り操作時間を出す(画面下の時間バーの代わり) */
+function drawDragTimer(pos, radius, remainMs, totalMs) {
+  const secs = (remainMs / 1000).toFixed(1);
+  const low = remainMs <= 3000;
+  const color = low ? '#FF9A9A' : '#FFFFFF';
+
+  // 残り時間のリング
+  if (totalMs > 0) {
+    const ratio = Math.max(0, Math.min(1, remainMs / totalMs));
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, radius * 1.42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+    ctx.strokeStyle = low ? '#FF8A8A' : '#65E0FF';
+    ctx.lineWidth = Math.max(2, radius * 0.16);
+    ctx.lineCap = 'round';
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  const size = Math.max(12, CELL * 0.38);
+  const y = Math.max(size, pos.y - radius * 2.0);
+  ctx.save();
+  ctx.font = `900 ${size}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.lineWidth = Math.max(3, size * 0.3);
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.strokeText(secs, pos.x, y);
+  ctx.fillStyle = color;
+  ctx.fillText(secs, pos.x, y);
+  ctx.restore();
+}
+
 /**
  * 盤面全体を1フレーム描画する。
  * @param {object} v {board, t, selected, floatPos, dragging, clearingCells, clearT}
  */
 export function drawBoard(v) {
-  const { board, t, selected, floatPos, dragging, clearingCells, clearT = 0 } = v;
+  const { board, t, selected, floatPos, dragging, clearingCells, clearT = 0,
+          chainLabels, remainMs = null, totalMs = 0 } = v;
   ctx.clearRect(0, 0, CELL * COLS, CELL * ROWS);
 
   // 背景の市松模様
@@ -242,5 +302,8 @@ export function drawBoard(v) {
     ctx.stroke();
     ctx.restore();
     drawOrb(floatPos.x, floatPos.y, radius * 1.12, val, { glowing: true });
+    if (remainMs !== null) drawDragTimer(floatPos, radius * 1.12, remainMs, totalMs);
   }
+
+  drawChainLabels(chainLabels, t);
 }
