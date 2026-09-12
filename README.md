@@ -12,6 +12,7 @@
 ├── sw.js                   Service Worker(アプリ本体は network-first)
 ├── assets/
 │   ├── icons/              アプリアイコン
+│   ├── ui/                 メニューアイコンのアトラスとダンジョン背景
 │   └── chars/              キャラクターイラスト(置くと自動で使われる)
 └── src/
     ├── css/style.css       全画面のスタイル
@@ -66,6 +67,15 @@ NPCサポートはプレイヤーランクで順次解放される。
   (専用の強化版が無いキャラは `skills.js` の規則で自動的に強化される)。
 - **レベルと進化でイラストが変わる**。`assets/chars/` に画像を置くと使われ、
   無い場合は絵文字で表示される(詳しくは `assets/chars/README.md`)。
+
+### 画像まわりの決めごと
+- 画像はすべて **WebP**。PNG原本は `_original/` に置き `.gitignore` で除外する。
+- ホームのメニューアイコンは **1枚のアトラス**(`assets/ui/menu_atlas.webp`、
+  256px × 4列2行)にまとめ、CSSの `background-position` で切り出している。
+  8枚を個別に置くとリクエストが8回になるため。並び順は style.css の
+  `.t-*  .tile-icon` を参照。
+- ダンジョン背景は `body.in-battle #app::before` に敷き、上から暗幕を重ねて
+  UIの可読性を保っている。
 
 ### 開眼
 - **同じキャラクターを重ねて行う強化**。最大4段階で、段階ごとに別々の効果が付く。

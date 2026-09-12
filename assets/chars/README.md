@@ -28,6 +28,17 @@ PNG / JPEG でも動くので、拡張子に合わせて `characters.js` のパ�
 | ミオ | `mio_1_icon.webp` | `mio_2_icon.webp` | `mio_1.webp` | `mio_2.webp` |
 | ノア | `noa_1_icon.webp` | `noa_2_icon.webp` | `noa_1.webp` | `noa_2.webp` |
 
+## 初期メンバー(`fl_rito` / `aq_mio` / `lm_mina`)
+
+リト・シズク・ミナは★1スタートなので、★1のあいだと★2へ進化したあとの2段階。
+`characters.js` の `starterArt()` が下の命名から自動で組み立てる。
+
+| キャラ | ★1 | ★2(進化後) |
+| --- | --- | --- |
+| リト | `rito_1.webp` / `rito_1_icon.webp` | `rito_2.webp` / `rito_2_icon.webp` |
+| シズク | `shizuku_1.webp` / `shizuku_1_icon.webp` | `shizuku_2.webp` / `shizuku_2_icon.webp` |
+| ミナ | `mina_1.webp` / `mina_1_icon.webp` | `mina_2.webp` / `mina_2_icon.webp` |
+
 ## 他のキャラクターにイラストを付ける
 
 `src/js/data/characters.js` の `mk(...)` の最後の引数に `artStages` を渡します。
