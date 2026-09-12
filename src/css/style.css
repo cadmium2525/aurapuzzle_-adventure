@@ -571,6 +571,12 @@ input[type=range]{accent-color:var(--accent);}
   color:var(--ink);padding:9px 11px;font-size:13px;font-family:inherit;width:100%;
 }
 #profileNameInput:focus{outline:none;border-color:rgba(255,198,92,.55);}
+/* アカウント(ID/パスワード登録) */
+.acc-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.acc-warn{color:#FFC98C;}
+.acc-msg{color:var(--ink);background:rgba(0,0,0,0.22);border-radius:10px;padding:8px 10px;}
+.acc-msg.ng{color:#FF9A9A;}
+
 .icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:12px;}
 .icon-choice{
   width:100%;aspect-ratio:1;border-radius:13px;font-size:21px;

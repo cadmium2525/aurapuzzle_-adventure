@@ -139,6 +139,15 @@ export function saveState() {
   saveListeners.forEach(fn => { try { fn(); } catch (e) { /* noop */ } });
 }
 export function resetState() { Store.set(SAVE_KEY, null); }
+
+/**
+ * クラウドから取得したセーブでローカル保存を丸ごと置き換える(別端末での引き継ぎ用)。
+ * migrate() を通すので、欠けている項目は初期値で補完され形式も現行に揃う。
+ * 反映されるのは次回読み込みからなので、呼び出し側で location.reload() すること。
+ */
+export function replaceSavedState(raw) {
+  Store.set(SAVE_KEY, migrate(raw || {}));
+}
 if (!loaded || loaded.version !== SAVE_VERSION) saveState();
 
 /* ===================== 所持キャラ ===================== */

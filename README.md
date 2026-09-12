@@ -144,35 +144,108 @@ Firebase は**設定済みのときだけ**動的 import で読み込むため�
 `src/js/core/firebase.js` の `firebaseConfig` を、ご自身の Firebase プロジェクトの
 設定値に置き換えると有効になる。
 
+**すべて無料枠(Spark プラン)の範囲で動く構成にしている。** Cloud Functions は
+Blaze プラン(従量課金)が必須なので使っていない。したがってサーバーサイドでの
+検証は行えず、防御は Firestore のセキュリティルールだけが担っている。
+
+### セットアップ手順
+
 1. Firebase コンソールでプロジェクトを作成
-2. Authentication → Sign-in method で「匿名」を有効化
-3. Firestore Database を作成(本番モードでOK)
-4. 下記のセキュリティルールを設定(簡易的な公開ルール。運用時は要調整)
+2. Authentication → Sign-in method で **「匿名」と「メール/パスワード」の両方**を有効化
+3. Firestore Database を作成
+   - **本番環境モード**で開始する(テストモードは30日間だれでも全データを読み書きできる)
+   - ロケーションは後から変更できない。国内向けなら `asia-northeast1`(東京)
+4. Firestore → ルール に下記を貼り付けて公開
+5. `firebaseConfig` にプロジェクトの設定値(apiKey 等)を貼り付け
+
+apiKey はクライアントに埋め込む前提の識別子なので、公開リポジトリに入っていても
+問題ない。ただし裏を返すと**実際の防御はセキュリティルールだけ**になるため、
+公開前に Google Cloud Console でのAPIキー制限(HTTPリファラー)と App Check の
+設定を検討すること。
+
+### セキュリティルール
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid)  { return signedIn() && request.auth.uid == uid; }
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+    // 他人が加算できるのはフレンド報酬の固定額だけ
+    function isFriendReward() {
+      return onlyChanged(['pendingFrepo'])
+        && request.resource.data.pendingFrepo is int
+        && (request.resource.data.pendingFrepo == resource.data.pendingFrepo + 300
+         || request.resource.data.pendingFrepo == resource.data.pendingFrepo + 10);
+    }
+
     match /users/{uid} {
-      allow read: if true;
-      allow write: if request.auth != null;
-      match /friends/{friendId} {
-        allow read: if true;
-        allow write: if request.auth != null;
+      // 名前・アイコン・貸し出しキャラはフレンドが読む必要がある
+      allow read:   if signedIn();
+      allow create: if isMe(uid);
+      allow update: if isMe(uid) || (signedIn() && isFriendReward());
+      allow delete: if false;
+
+      match /friends/{friendUid} {
+        allow read:  if isMe(uid);
+        // 自分の一覧は自由に。他人は「自分自身を相手の一覧に追加する」ことだけできる
+        allow write: if isMe(uid) || (signedIn() && friendUid == request.auth.uid);
       }
+
       match /save/{doc} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if isMe(uid);   // セーブデータ本体は本人のみ
       }
     }
+
     match /friendCodes/{code} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;      // 一度発行したコードの奪取を防ぐ
     }
   }
 }
 ```
 
-5. `firebaseConfig` にプロジェクトの設定値(apiKey等)を貼り付け
+このルールで防げるのは「他人のセーブデータの読み書き」「他人のプロフィール改竄」
+「フレンドコードの乗っ取り」「任意額のフレポ付与」。
+
+一方、Cloud Functions を使わない以上、**次の2つは防ぎきれない**。
+- 自分のセーブデータの改竄(クライアントが書く値をそのまま保存しているため)
+- フレンド報酬の連打による稼ぎ(1回あたりの額は固定できるが、回数を制限できない)
+
+いずれも同期型の対人要素が無い現状では実害が小さいため、無料枠を優先して許容している。
+ランキング等を入れる場合はここが前提から崩れるので、設計を見直すこと。
+
+### アカウント(ID / パスワード)
+
+メールアドレスは入力させず、IDを実在しないドメイン(`.invalid` は RFC 2606 で
+永久に予約済み)のアドレスへ変換して Firebase のメール/パスワード認証に渡している。
+
+```
+起動           匿名でサインイン(すぐ遊べる。uid にセーブが紐づく)
+  ↓
+マイページで登録  linkWithCredential で匿名アカウントを昇格
+                → uid が変わらないので、セーブもフレンドも引き継がれる
+  ↓
+別端末          signInWithEmailAndPassword で同じ uid に戻り、
+                クラウドのセーブでその端末を上書きする
+```
+
+登録に `createUserWithEmailAndPassword` を使ってはいけない。**新しい uid が
+発行され、それまでのセーブが孤児になる。**
+
+ID の重複チェックは Firebase が `auth/email-already-in-use` を返すため、
+Firestore 側でユニーク制約を作る必要がない。ただし Authentication の
+**Email enumeration protection** を有効にするとエラーが曖昧になり
+「そのIDは使用済み」を出せなくなるので、その場合は別途 ID 予約用の
+コレクションが必要になる。
+
+**架空アドレスのためパスワード再設定メールは送れない。** 忘れると復旧できない
+ことをマイページの登録欄に明示している。
 
 ### フレンドでできること
 - マイページで発行される「フレンドコード」を交換して友達を登録する

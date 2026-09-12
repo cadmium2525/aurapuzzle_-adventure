@@ -231,4 +231,39 @@ export async function greetAllFriends() {
   return count;
 }
 
+/**
+ * 指定uidのクラウドデータを丸ごと取得し、ローカル保存と同じ形に組み立てて返す。
+ * ログイン直後の引き継ぎで使う。ここでは state を書き換えず、生データだけ返す。
+ */
+export async function fetchCloudState(uid) {
+  if (!firebaseEnabled() || !uid) return null;
+  const [profSnap, saveSnap, friendSnaps] = await Promise.all([
+    FB.getDoc(FB.doc(FB.db, 'users', uid)),
+    FB.getDoc(FB.doc(FB.db, 'users', uid, 'save', 'state')),
+    FB.getDocs(FB.collection(FB.db, 'users', uid, 'friends'))
+  ]);
+  if (!profSnap.exists() && !saveSnap.exists()) return null;
+
+  const prof = profSnap.exists() ? profSnap.data() : {};
+  const save = saveSnap.exists() ? Object.assign({}, saveSnap.data()) : {};
+  delete save.updatedAt;                   // Firestore の Timestamp は持ち帰らない
+
+  const friends = [];
+  friendSnaps.forEach(d => {
+    const f = d.data();
+    if (!f.removed) friends.push(Object.assign({ uid: d.id }, f));
+  });
+
+  return Object.assign({}, save, {
+    // フレンドコードは端末ではなくアカウントに紐づくので、必ずクラウド側を使う
+    settings: prof.friendCode ? { playerId: prof.friendCode } : {},
+    profile: {
+      name: prof.name || 'プレイヤー',
+      icon: prof.icon || '🙂',
+      rentalCharId: prof.rentalCharId || null,
+      friends
+    }
+  });
+}
+
 export function isCloudReady() { return ready; }

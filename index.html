@@ -245,6 +245,42 @@
       </div>
 
       <div class="card">
+        <div class="cardtitle"><span>アカウント</span></div>
+        <div class="mstats mb8" id="accountStatusText">確認中...</div>
+
+        <div id="accountForm" hidden>
+          <div class="idbox mb8">
+            <input type="text" id="accountIdInput" maxlength="16" autocomplete="username"
+                   placeholder="ID(半角英数字と _ - / 3〜16文字)">
+          </div>
+          <div class="idbox">
+            <input type="password" id="accountPwInput" maxlength="64" autocomplete="current-password"
+                   placeholder="パスワード(6文字以上)">
+          </div>
+          <div class="acc-actions mt8">
+            <button class="btn" id="accountRegisterBtn">このデータで登録</button>
+            <button class="btn secondary" id="accountLoginBtn">ログイン</button>
+          </div>
+          <div class="mstats mt8 acc-warn">
+            パスワードを忘れると復旧できません。この方式では再設定メールを送れないため、
+            IDとパスワードは必ず控えてください。<br>
+            「ログイン」は別のアカウントへ切り替える操作です。この端末の進行データは
+            ログイン先のデータで上書きされます。
+          </div>
+        </div>
+
+        <div id="accountSignedIn" hidden>
+          <button class="btn secondary block" id="accountLogoutBtn">ログアウト</button>
+          <div class="mstats mt8">
+            ログアウトするとこの端末のデータは消えますが、アカウントのデータはクラウドに残ります。
+            同じIDでログインすればいつでも元に戻せます。
+          </div>
+        </div>
+
+        <div class="mstats mt8 acc-msg" id="accountMessage" hidden></div>
+      </div>
+
+      <div class="card">
         <div class="cardtitle"><span>フレンドコード</span></div>
         <div class="idbox"><span id="playerIdText">-</span><button class="btn secondary tiny" id="copyIdBtn">コピー</button></div>
         <div class="mstats mt6">このコードを友達に教えてフレンド登録してもらいましょう。</div>
