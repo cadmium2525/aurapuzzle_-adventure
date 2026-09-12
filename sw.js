@@ -1,9 +1,11 @@
-const CACHE_NAME = 'aura-connect-v7';
+const CACHE_NAME = 'aura-connect-v8';
 const ASSETS = [
   './index.html',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
+  './assets/icons/icon-maskable-192.png',
+  './assets/icons/icon-maskable-512.png',
   './src/css/style.css',
   './src/js/main.js',
   './src/js/core/storage.js',
