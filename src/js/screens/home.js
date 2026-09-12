@@ -19,7 +19,10 @@ let frontIndex = 0;
 function slotHTML(m, cls, isLeader) {
   if (!m) return '';
   const aura = AURAS[m.aura];
-  return `<div class="hp-slot ${cls}${isLeader ? ' is-leader' : ''}" style="--aura:${COLOR_HEX[aura.key]}">
+  // イラストごとに余白の量が違うので、キャラ側の artScale で寄せ具合を補正する
+  const scale = m.artScale || 1;
+  return `<div class="hp-slot ${cls}${isLeader ? ' is-leader' : ''}"
+    style="--aura:${COLOR_HEX[aura.key]};--art-scale:${scale}">
     ${artImg(m.art && m.art.full, m.portrait, 'hp')}
   </div>`;
 }
@@ -47,12 +50,27 @@ export function renderHome() {
     + slotHTML(at(0), 'lead', at(0) === leader);
 }
 
-/** 前面に出す人をずらす(リーダーは変わらない) */
+/**
+ * 前面に出す人をずらす(リーダーは変わらない)。
+ * ターンテーブルのように回して見せたいので、回転の中間で中身を差し替える。
+ */
+let spinning = false;
 function shiftFront(step) {
   const n = ownCharacters().length;
-  if (n < 2) return;
-  frontIndex = (frontIndex + step + n) % n;
-  renderHome();
+  if (n < 2 || spinning) return;
+  const art = $('homePartyArt');
+  spinning = true;
+  art.classList.remove('spin-r', 'spin-l');
+  void art.offsetWidth;                       // アニメーションを確実に作り直す
+  art.classList.add(step > 0 ? 'spin-r' : 'spin-l');
+  setTimeout(() => {
+    frontIndex = (frontIndex + step + n) % n;
+    renderHome();
+  }, 190);                                    // 横を向いた瞬間に差し替える
+  setTimeout(() => {
+    art.classList.remove('spin-r', 'spin-l');
+    spinning = false;
+  }, 420);
 }
 
 export function initHome() {

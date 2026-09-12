@@ -60,7 +60,7 @@ export const LEADER_SKILLS = {
   ls_paladin: { name: '聖騎士の盾',   desc: '最大HP1.5倍・被ダメージ15%減',              hp: 1.5, damageCut: 0.15 },
   ls_aurora:  { name: '大聖女の福音', desc: '全オーラ1.4倍・回復2.0倍・操作時間+2.0秒',  allAtk: 1.4, rcv: 2.0, time: 2.0 },
 
-  /* --- 看板キャラ「不器用なカイ」専用(★4 / ★5進化後) --- */
+  /* --- 看板キャラ「カイ」専用(★4 / ★5進化後) --- */
   ls_kai4: {
     name: '不器用な誓い',
     desc: 'オーラ操作時間+3.0秒・水オーラ1.8倍・被ダメージ15%減',
@@ -110,7 +110,7 @@ export const ACTIVE_SKILLS = {
   sk_grace:       { name: '光明の導き',   desc: '最大HPの60%を回復・このターンの操作時間+4.0秒',  cooldown: 12, healPct: 0.6, timeThisTurn: 4.0 },
   sk_miracle:     { name: '暁の奇跡',     desc: 'HP全回復・1ターン無敵・このターンの操作時間+5.0秒', cooldown: 15, healPct: 1, guard: { rate: 1, turns: 1 }, timeThisTurn: 5.0 },
 
-  /* --- 看板キャラ「不器用なカイ」専用(★4 / ★5進化後) --- */
+  /* --- 看板キャラ「カイ」専用(★4 / ★5進化後) --- */
   sk_kai4: {
     name: '不完全な斬撃',
     desc: '火と木のオーラを水に変化・このターンの操作時間+3.0秒',

@@ -80,7 +80,7 @@ function mk(id, name, job, portrait, aura, rarity, role, ls, sk, extra) {
 }
 
 /**
- * 「不器用なカイ」のイラスト。
+ * 看板キャラ「カイ」のイラスト。
  * 画像ファイルを assets/chars/ に置くと自動的に使われ、
  * 無い場合は絵文字にフォールバックする(src/js/screens/parts.js)。
  */
@@ -131,15 +131,15 @@ export const CHARACTERS = [
   mk('aq_aqualis','アクアリス', '蒼海の賢者',   '🧙',   1, 4, 'balance',  'ls_aquaris', 'sk_maelstrom'),
   mk('aq_mio_x',  'ミオ',       '氷華の姫',     '❄️',   1, 4, 'balance',  'ls_mio_x',   'sk_mio_x', {
     artStages: MIO_ART,
+    artScale: 1.22,             // 周囲の演出が広く、他より小さく見えるので少し寄せる
     evoJob: '永久氷河の女王',
     flavor: '凍らせているのは水ではなく時間のほうだと、本人だけが言い張っている。'
   }),
   /* 看板キャラ。進化で専用のリーダースキル/スキルに変化する */
-  mk('aq_kai_x',  '不器用なカイ', '虚空の剣士', '⚔️',  1, 4, 'attacker', 'ls_kai4',    'sk_kai4', {
+  mk('aq_kai_x',  'カイ',       '虚空の剣士', '⚔️',  1, 4, 'attacker', 'ls_kai4',    'sk_kai4', {
     artStages: KAI_ART,
     evoLeaderSkillId: 'ls_kai5',
     evoSkillId: 'sk_kai5',
-    evoName: '虚空剣のカイ',
     evoJob: '虚空を断つ者',
     featured: true,
     flavor: '剣の腕は確かなのに、言葉だけはいつまでも不器用な青年。'
