@@ -28,6 +28,7 @@ export function showScreen(name, push) {
   $('backBtn').classList.toggle('hidden', name === 'home' || name === 'battle');
   $('statusBar').classList.toggle('hidden', name === 'battle');
   document.body.classList.toggle('in-battle', name === 'battle');
+  document.body.dataset.screen = name;          // 画面ごとの背景切り替えに使う
   currentScreen = name;
   if (renderers[name]) renderers[name]();
   updateStatusBar();
