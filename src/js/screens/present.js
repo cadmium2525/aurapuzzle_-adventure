@@ -6,7 +6,7 @@
 import { $, toast } from '../core/ui.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
-  giftList, giftCount, claimGift, claimAllGifts, giftRewardText, loginStreak
+  giftList, giftCount, claimGift, claimAllGifts, giftRewardText, giftRewardHTML, loginStreak
 } from '../core/gifts.js';
 import { characterById } from '../data/gamedata.js';
 
@@ -39,7 +39,7 @@ function renderList() {
       <div class="gift-main">
         <div class="gift-title">${g.title}</div>
         ${g.note ? `<div class="gift-note">${g.note}</div>` : ''}
-        <div class="gift-reward">${giftRewardText(g)}</div>
+        <div class="gift-reward">${giftRewardHTML(g)}</div>
       </div>
       <button class="btn tiny" data-gift="${g.id}">受け取る</button>
     </div>`).join('');

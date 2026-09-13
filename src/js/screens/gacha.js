@@ -7,7 +7,7 @@
  * 期待度は集まるオーブの色で示す(青=通常 / 金=SR以上 / 虹=SSR)。
  * 画面タップでいつでもスキップできる。
  * =======================================================*/
-import { $, toast, sleep } from '../core/ui.js';
+import { $, toast, sleep, itemIcon } from '../core/ui.js';
 import { state, addCharacter, saveState, resolveOwned } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
@@ -264,8 +264,8 @@ export function renderGacha() {
   const rates = $('gachaRates');
   if (!rates) return;
   const rows = [
-    { label: '🎗️ フレポガチャ', weights: FREPO_WEIGHTS },
-    { label: '💎 オーブガチャ', weights: ORB_WEIGHTS }
+    { label: `${itemIcon('frepo')} フレポガチャ`, weights: FREPO_WEIGHTS },
+    { label: `${itemIcon('orb')} オーブガチャ`, weights: ORB_WEIGHTS }
   ];
   rates.innerHTML = rows.map(r => {
     const total = Object.values(r.weights).reduce((s, v) => s + v, 0);

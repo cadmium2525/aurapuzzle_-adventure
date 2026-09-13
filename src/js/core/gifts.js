@@ -20,6 +20,7 @@
  * =======================================================*/
 import { state, saveState, addCharacter } from './state.js';
 import { FB, firebaseEnabled } from './firebase.js';
+import { itemIcon } from './ui.js';
 import { loginBonusFor, BUILTIN_GIFTS, characterById } from '../data/gamedata.js';
 
 /** 運営プレゼントの取得件数の上限(無料枠の読み取り数を抑える) */
@@ -83,6 +84,20 @@ export function giftRewardText(g) {
   if (g.frepo) parts.push(`🎗️${g.frepo}`);
   if (g.orb) parts.push(`💎${g.orb}`);
   if (g.stamina) parts.push(`⚡${g.stamina}`);
+  return parts.join(' ');
+}
+
+/** プレゼント一覧用。通知は textContent なので上の文字列表現を使う。 */
+export function giftRewardHTML(g) {
+  const parts = [];
+  if (g.char) {
+    const ch = characterById(g.char);
+    if (ch) parts.push(`${ch.portrait}${ch.name}(★${ch.rarity})`);
+  }
+  if (g.coin) parts.push(`${itemIcon('coin')}${g.coin}`);
+  if (g.frepo) parts.push(`${itemIcon('frepo')}${g.frepo}`);
+  if (g.orb) parts.push(`${itemIcon('orb')}${g.orb}`);
+  if (g.stamina) parts.push(`${itemIcon('stamina')}${g.stamina}`);
   return parts.join(' ');
 }
 

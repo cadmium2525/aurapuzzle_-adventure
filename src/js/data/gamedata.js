@@ -166,7 +166,7 @@ export function dailyStagesFor(day) {
       day,
       tier: d.tier,
       requireRank: d.rank,
-      name: `${t.emoji} ${t.title} ${d.name}`,
+      name: `${t.title} ${d.name}`,
       floors,
       stamina: d.stamina,
       coinReward: Math.round((t.dropType === 'gold' ? 3000 : 400) * d.mult),

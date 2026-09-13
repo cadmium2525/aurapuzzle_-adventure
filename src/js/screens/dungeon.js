@@ -3,7 +3,7 @@
  * サポート枠はフレンドの貸し出しキャラに加えて、いつでも選べる
  * NPCサポートを用意している(フレンドがいなくても困らない)。
  * =======================================================*/
-import { $, toast, artImg } from '../core/ui.js';
+import { $, toast, artImg, itemIcon } from '../core/ui.js';
 import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
@@ -216,7 +216,7 @@ function renderDailyList() {
   const today = new Date().getDay();
   const theme = todayTheme();
   $('dailyHead').innerHTML = `
-    <div class="daily-title">${theme.emoji} ${theme.title}<span class="daily-day">${theme.label}曜</span></div>
+    <div class="daily-title">${dailyThemeIcon(theme)} ${theme.title}<span class="daily-day">${theme.label}曜</span></div>
     <div class="daily-note">${theme.note}</div>
     <div class="daily-week">${DAILY_THEMES.map(t =>
       `<span class="dw${t.day === today ? ' now' : ''}">${t.label}</span>`).join('')}</div>`;
@@ -244,7 +244,7 @@ function renderStageCards(list, stages) {
     const enough = state.stamina >= cost;
     const rewardCoin = Math.round(stage.coinReward * (hard ? HARD_REWARD_MULT : 1));
     const orb = stage.orbReward
-      ? ` 💎${hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward}` : '';
+      ? ` ${itemIcon('orb')}${hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward}` : '';
     const record = state.records[stage.id + '_' + (hard ? 'hard' : 'normal')];
     const dropText = dropLabel(stage);
 
@@ -256,12 +256,12 @@ function renderStageCards(list, stages) {
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
-        <div class="ssub">${auraChips(stage)} ・ 💰${rewardCoin}${orb}</div>
+        <div class="ssub">${auraChips(stage)} ・ ${itemIcon('coin')}${rewardCoin}${orb}</div>
         <div class="ssub dim">${dropText} ・ ${isLocked && stage.daily ? `ランク${stage.requireRank}で解放`
           : (record ? `最高コンボ ${record.maxChain}` : '未挑戦')}</div>
       </div>
       <div class="scost">
-        <span class="stcost${enough || isLocked ? '' : ' short'}">⚡${cost}</span>
+        <span class="stcost${enough || isLocked ? '' : ' short'}">${itemIcon('stamina')}${cost}</span>
         <span class="starrow">${isLocked ? '🔒' : '▶'}</span>
       </div>`;
 
@@ -305,8 +305,14 @@ function auraChips(stage) {
 
 /** そのステージで何が手に入るかの1行表示 */
 function dropLabel(stage) {
-  if (stage.dropType === 'gold') return '💰 ゴールド特化';
-  if (stage.dropType === 'exp') return '📗 キャラ経験値アイテム';
+  if (stage.dropType === 'gold') return `${itemIcon('coin')} ゴールド特化`;
+  if (stage.dropType === 'exp') return `${itemIcon('mt_exp2')} キャラ経験値アイテム`;
   const mat = materialById(crystalIdFor(stage.dropAura));
-  return `${mat.emoji}${mat.name} ドロップ`;
+  return `${itemIcon(mat.id)}${mat.name} ドロップ`;
+}
+
+function dailyThemeIcon(theme) {
+  if (theme.dropType === 'gold') return itemIcon('coin');
+  if (theme.dropType === 'exp') return itemIcon('mt_exp2');
+  return itemIcon(crystalIdFor(theme.dropAura));
 }

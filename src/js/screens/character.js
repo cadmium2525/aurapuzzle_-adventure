@@ -2,7 +2,7 @@
  * character.js — キャラクター画面(編成 / 図鑑 / 進化)
  * 自陣は人物キャラクター3人。先頭がリーダーでリーダースキルが発動する。
  * =======================================================*/
-import { $, toast } from '../core/ui.js';
+import { $, toast, itemIcon } from '../core/ui.js';
 import {
   state, saveState, ownedCharacters, ownCharacters, resolveOwned,
   entryOf, evolveCheck, evolveCharacter, materialCount,
@@ -116,9 +116,9 @@ function renderEvolveBox(id) {
       <span class="evo-next">${RARITY_TITLE[check.nextStar]}</span></div>
     <div class="evo-reqs">
       ${req(lvOK, 'レベル', e.lv, need.level)}
-      ${req(cOK, `${crystal.emoji} ${crystal.name}`, materialCount(need.crystalId), need.crystal)}
-      ${req(sOK, '💠 進化の輝石', materialCount('mt_star'), need.shard)}
-      ${req(coinOK, '💰 コイン', state.coin.toLocaleString(), need.coin.toLocaleString())}
+      ${req(cOK, `${itemIcon(crystal.id)} ${crystal.name}`, materialCount(need.crystalId), need.crystal)}
+      ${req(sOK, `${itemIcon('mt_star')} 進化の輝石`, materialCount('mt_star'), need.shard)}
+      ${req(coinOK, `${itemIcon('coin')} コイン`, state.coin.toLocaleString(), need.coin.toLocaleString())}
     </div>
     <div class="evo-preview">
       <div class="evo-col"><span>ATK</span><b>${now.atk}</b><i>→</i><b class="up">${after.atk}</b></div>
@@ -172,7 +172,7 @@ function renderAwakenBox(id) {
       <span>同じキャラクター(手持ち)</span><b>${e.n || 0} / 2</b>${(e.n || 0) >= 2 ? '<i>✔</i>' : ''}
     </div>
     <div class="evo-req${tokenCheck.ok ? ' ok' : ''}">
-      <span>👁️ 開眼の証</span><b>${materialCount('mt_awaken')} / ${check.tokenCost}</b>${tokenCheck.ok ? '<i>✔</i>' : ''}
+      <span>${itemIcon('mt_awaken')} 開眼の証</span><b>${materialCount('mt_awaken')} / ${check.tokenCost}</b>${tokenCheck.ok ? '<i>✔</i>' : ''}
     </div>
     <div class="evo-note">同じキャラクター1体、または開眼の証${check.tokenCost}個のどちらかを使います。</div>`;
 
@@ -212,7 +212,7 @@ function renderExpBox(id) {
     <div class="aw-list">${items.map(k => {
       const mt = materialById(k);
       return `<div class="aw-row next" data-item="${k}">
-        <span class="aw-eff">${mt.emoji} ${mt.name} <b>×${materialCount(k)}</b>(1個 +${EXP_ITEMS[k]}exp)</span>
+        <span class="aw-eff">${itemIcon(mt.id)} ${mt.name} <b>×${materialCount(k)}</b>(1個 +${EXP_ITEMS[k]}exp)</span>
         <button class="btn ghost tiny expbtn" data-item="${k}">1個使う</button>
         <button class="btn ghost tiny expbtn" data-item="${k}" data-all="1">全部使う</button>
       </div>`;
@@ -243,10 +243,10 @@ function renderDismissBox(id) {
   const r = check.reward;
   const crystal = materialById(crystalIdFor(base.aura));
   const parts = [
-    `${crystal.emoji} ${crystal.name} ×${r.crystal}`,
-    r.shard ? `💠 進化の輝石 ×${r.shard}` : '',
-    r.awaken ? `👁️ 開眼の証 ×${r.awaken}` : '',
-    `💰 ${r.coin.toLocaleString()}`
+    `${itemIcon(crystal.id)} ${crystal.name} ×${r.crystal}`,
+    r.shard ? `${itemIcon('mt_star')} 進化の輝石 ×${r.shard}` : '',
+    r.awaken ? `${itemIcon('mt_awaken')} 開眼の証 ×${r.awaken}` : '',
+    `${itemIcon('coin')} ${r.coin.toLocaleString()}`
   ].filter(Boolean);
 
   box.style.display = 'block';
@@ -437,7 +437,7 @@ function renderMaterials() {
   if (!box) return;
   box.innerHTML = MATERIALS.map(mt => `
     <div class="mt-chip" style="--mt:${mt.color}">
-      <span class="mt-emoji">${mt.emoji}</span>
+      ${itemIcon(mt.id, 'material')}
       <span class="mt-name">${mt.name}</span>
       <b class="mt-count">${materialCount(mt.id)}</b>
     </div>`).join('');

@@ -32,6 +32,11 @@ export function artImg(src, emoji, cls) {
     onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls}-emoji',textContent:'${emoji}'}))">`;
 }
 
+/** 共有アイテムアトラス内のアイコン。id は game data 側の固定値を渡す。 */
+export function itemIcon(id, cls = '') {
+  return `<span class="item-icon i-${id}${cls ? ` ${cls}` : ''}" aria-hidden="true"></span>`;
+}
+
 let toastTimer = null;
 export function toast(msg) {
   const t = $('toast');

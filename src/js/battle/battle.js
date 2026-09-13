@@ -10,7 +10,7 @@
  *  - 発動するリーダースキルは「自陣リーダー」と「サポート」の2つ。
  *  - オーラ操作の基本時間は10秒。リーダースキルとスキルで延長して戦う。
  * =======================================================*/
-import { $, sleep, randInt, toast, artImg } from '../core/ui.js';
+import { $, sleep, randInt, toast, artImg, itemIcon } from '../core/ui.js';
 import {
   state, saveState, gainExp, maxStamina, gainCharExp, addMaterials
 } from '../core/state.js';
@@ -646,11 +646,11 @@ function finishRun() {
     <div class="rstat"><span>残りHP</span><b>${run.playerHP} / ${run.maxHP}</b></div>`;
   const dropHTML = Object.keys(drops).map(id => {
     const mt = materialById(id);
-    return `<div class="rrow drop" style="--mt:${mt.color}">${mt.emoji} ${mt.name} <b>×${drops[id]}</b></div>`;
+    return `<div class="rrow drop" style="--mt:${mt.color}">${itemIcon(mt.id)} ${mt.name} <b>×${drops[id]}</b></div>`;
   }).join('');
   $('resultRewards').innerHTML = `
-    <div class="rrow">💰 <b>${coin}</b></div>
-    ${orb ? `<div class="rrow">💎 <b>${orb}</b></div>` : ''}
+    <div class="rrow">${itemIcon('coin')} <b>${coin}</b></div>
+    ${orb ? `<div class="rrow">${itemIcon('orb')} <b>${orb}</b></div>` : ''}
     <div class="rrow">⭐ <b>EXP ${exp}</b></div>
     <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
     ${dropHTML}`;

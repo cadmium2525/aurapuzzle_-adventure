@@ -29,6 +29,22 @@
   --safe-top:env(safe-area-inset-top, 0px);
   --safe-bottom:env(safe-area-inset-bottom, 0px);
 }
+
+/* 13種を1リクエストで読む4x4アイテムアトラス */
+.item-icon{
+  --item-pos:0% 0%;display:inline-block;width:1.25em;height:1.25em;flex:0 0 auto;
+  background:url('../../assets/items/item_atlas.webp') var(--item-pos)/400% 400% no-repeat;
+  vertical-align:-.28em;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+.i-mt_c0{--item-pos:0% 0%}.i-mt_c1{--item-pos:33.333% 0%}
+.i-mt_c2{--item-pos:66.667% 0%}.i-mt_c3{--item-pos:100% 0%}
+.i-mt_c4{--item-pos:0% 33.333%}.i-mt_star{--item-pos:33.333% 33.333%}
+.i-mt_awaken{--item-pos:66.667% 33.333%}.i-mt_exp1{--item-pos:100% 33.333%}
+.i-mt_exp2{--item-pos:0% 66.667%}.i-stamina{--item-pos:33.333% 66.667%}
+.i-coin{--item-pos:66.667% 66.667%}.i-frepo{--item-pos:100% 66.667%}
+.i-orb{--item-pos:0% 100%}
+.item-icon.material{width:30px;height:30px;vertical-align:middle}
+.item-icon.shop{width:46px;height:46px;vertical-align:middle}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 /* スマホで長押しすると範囲選択やコピー候補が出てゲームの操作を邪魔するので止める */
 html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
@@ -931,8 +947,9 @@ input[type=range]{accent-color:var(--accent);}
 .portrait.evolved::after{
   content:'';position:absolute;inset:-4px;border-radius:inherit;pointer-events:none;
   background:conic-gradient(from 0deg, transparent, var(--rare), transparent 40%, var(--aura), transparent 75%);
-  filter:blur(6px);opacity:.65;animation:spinBurst 5s linear infinite;z-index:-1;
+  filter:blur(6px);opacity:.65;transform-origin:50% 50%;animation:evolvedAuraSpin 5s linear infinite;z-index:-1;
 }
+@keyframes evolvedAuraSpin{to{transform:rotate(360deg)}}
 .cd-art{
   display:block;width:100%;max-width:230px;margin:0 auto 4px;border-radius:18px;overflow:hidden;
   background:radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--aura) 28%, transparent), transparent 70%);

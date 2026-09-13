@@ -30,7 +30,7 @@
         <div class="stamina-block">
           <div class="player-name" id="statusPlayerName">プレイヤー</div>
           <div class="stamina-head">
-            <span class="slabel">⚡ スタミナ</span>
+            <span class="slabel"><span class="item-icon i-stamina"></span> スタミナ</span>
             <b id="curStamina">0/0</b>
             <span id="staminaTimer">MAX</span>
           </div>
@@ -42,9 +42,9 @@
         </div>
       </div>
       <div id="currencyRow">
-        <span class="cpill">💰<b id="curCoin">0</b></span>
-        <span class="cpill">🎗️<b id="curFrepo">0</b></span>
-        <span class="cpill">💎<b id="curOrb">0</b></span>
+        <span class="cpill"><span class="item-icon i-coin"></span><b id="curCoin">0</b></span>
+        <span class="cpill"><span class="item-icon i-frepo"></span><b id="curFrepo">0</b></span>
+        <span class="cpill"><span class="item-icon i-orb"></span><b id="curOrb">0</b></span>
       </div>
     </div>
   </header>
@@ -189,20 +189,20 @@
       <div class="pickup-card" id="pickupBox"></div>
 
       <div class="gacha-card g-orb">
-        <div class="gtitle">💎 オーブ召喚</div>
+        <div class="gtitle"><span class="item-icon i-orb"></span> オーブ召喚</div>
         <div class="gcost">ピックアップ開催中 ・ 最高レア SSR(★4)</div>
         <div class="gbtns">
-          <button class="btn secondary" id="orbGacha1Btn">1回 <b id="orbCost1">5</b>💎</button>
-          <button class="btn" id="orbGacha10Btn">10連 <b id="orbCost10">45</b>💎<i>★3以上確定</i></button>
+          <button class="btn secondary" id="orbGacha1Btn">1回 <b id="orbCost1">5</b><span class="item-icon i-orb"></span></button>
+          <button class="btn" id="orbGacha10Btn">10連 <b id="orbCost10">45</b><span class="item-icon i-orb"></span><i>★3以上確定</i></button>
         </div>
       </div>
 
       <div class="gacha-card g-frepo">
-        <div class="gtitle">🎗️ フレポ召喚</div>
+        <div class="gtitle"><span class="item-icon i-frepo"></span> フレポ召喚</div>
         <div class="gcost">N〜SR中心 ・ 毎日のあいさつで引ける</div>
         <div class="gbtns">
-          <button class="btn secondary" id="frepoGacha1Btn">1回 <b id="frepoCost1">300</b></button>
-          <button class="btn" id="frepoGacha10Btn">10連 <b id="frepoCost10">2700</b><i>★2以上確定</i></button>
+          <button class="btn secondary" id="frepoGacha1Btn">1回 <b id="frepoCost1">300</b><span class="item-icon i-frepo"></span></button>
+          <button class="btn" id="frepoGacha10Btn">10連 <b id="frepoCost10">2700</b><span class="item-icon i-frepo"></span><i>★2以上確定</i></button>
         </div>
       </div>
 
