@@ -7,6 +7,7 @@ const SOURCES = {
   field: './assets/Welcome_to_the_Puzzle.mp3',
   battle: './assets/Circuit_Breaker.mp3'
 };
+const SCENE_GAIN = { field: 1, battle: 1 / 3 };
 
 let players = null;
 let desiredScene = 'field';
@@ -19,6 +20,10 @@ function currentVolume() {
   return volumeLevel ?? Math.max(0, Math.min(100, Number(state.settings.bgm) || 0)) / 100;
 }
 
+function sceneVolume(scene) {
+  return currentVolume() * (SCENE_GAIN[scene] ?? 1);
+}
+
 function ensurePlayers() {
   if (players) return players;
   players = Object.fromEntries(Object.entries(SOURCES).map(([scene, src]) => {
@@ -26,7 +31,7 @@ function ensurePlayers() {
     audio.loop = true;
     audio.preload = 'auto';
     audio.playsInline = true;
-    audio.volume = currentVolume();
+    audio.volume = sceneVolume(scene);
     return [scene, audio];
   }));
   return players;
@@ -40,7 +45,7 @@ function syncBgm(restart = false) {
   });
   const next = all[desiredScene];
   if (!next) return;
-  next.volume = currentVolume();
+  next.volume = sceneVolume(desiredScene);
   if (next.volume <= 0) { next.pause(); return; }
   if (restart && activeScene !== desiredScene) next.currentTime = 0;
   activeScene = desiredScene;
@@ -78,7 +83,9 @@ export function setBgmScene(scene) {
 export function setBgmVolume(value) {
   const volume = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
   volumeLevel = volume;
-  Object.values(ensurePlayers()).forEach(audio => { audio.volume = volume; });
+  Object.entries(ensurePlayers()).forEach(([scene, audio]) => {
+    audio.volume = volume * (SCENE_GAIN[scene] ?? 1);
+  });
   if (volume > 0) syncBgm();
   else Object.values(players).forEach(audio => audio.pause());
 }
