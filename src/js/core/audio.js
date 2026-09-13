@@ -1,101 +1,108 @@
-/* =========================================================
- * audio.js — ユーザー操作後に開始するBGM管理
- * =======================================================*/
+/* Ambient Web Audio respects the iPhone Ring/Silent switch. */
 import { state } from './state.js';
-
-const SOURCES = {
-  field: './assets/Welcome_to_the_Puzzle.mp3',
-  battle: './assets/Circuit_Breaker.mp3'
-};
+const SOURCES = { field: './assets/Welcome_to_the_Puzzle.mp3', battle: './assets/Circuit_Breaker.mp3' };
 const SCENE_GAIN = { field: 1, battle: 1 / 3 };
+let context, gain, source;
+let desiredScene = 'field', unlocked = false, initialized = false, volumeLevel = null;
+let offset = 0, startedAt = 0;
+const buffers = new Map(), pending = new Map();
 
-let players = null;
-let desiredScene = 'field';
-let activeScene = null;
-let unlocked = false;
-let initialized = false;
-let volumeLevel = null;
+function ambientSession() {
+  // WebKit maps transient to Ambient; older Safari defaults Web Audio to ambient.
+  try { if (navigator.audioSession) navigator.audioSession.type = 'transient'; } catch {}
+}
 
-function currentVolume() {
+function ensureContext() {
+  if (context) return context;
+  ambientSession();
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) return null;
+  context = new Context();
+  gain = context.createGain();
+  gain.connect(context.destination);
+  return context;
+}
+
+function volume() {
   return volumeLevel ?? Math.max(0, Math.min(100, Number(state.settings.bgm) || 0)) / 100;
 }
 
-function sceneVolume(scene) {
-  return currentVolume() * (SCENE_GAIN[scene] ?? 1);
+function pause() {
+  if (!source) return;
+  offset += context.currentTime - startedAt;
+  source.stop();
+  source.disconnect();
+  source = null;
 }
 
-function ensurePlayers() {
-  if (players) return players;
-  players = Object.fromEntries(Object.entries(SOURCES).map(([scene, src]) => {
-    const audio = new Audio(src);
-    audio.loop = true;
-    audio.preload = 'auto';
-    audio.playsInline = true;
-    audio.volume = sceneVolume(scene);
-    return [scene, audio];
-  }));
-  return players;
+function syncBgm() {
+  if (!unlocked || document.hidden || !ensureContext()) return;
+  gain.gain.value = volume() * SCENE_GAIN[desiredScene];
+  if (volume() === 0) { pause(); return; }
+  if (!buffers.has(desiredScene)) { loadTrack(desiredScene).catch(() => {}); return; }
+  if (source) return;
+  const buffer = buffers.get(desiredScene);
+  source = context.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(gain);
+  startedAt = context.currentTime;
+  source.start(0, offset % buffer.duration);
 }
 
-function syncBgm(restart = false) {
-  if (!unlocked || document.hidden) return;
-  const all = ensurePlayers();
-  Object.entries(all).forEach(([scene, audio]) => {
-    if (scene !== desiredScene) audio.pause();
-  });
-  const next = all[desiredScene];
-  if (!next) return;
-  next.volume = sceneVolume(desiredScene);
-  if (next.volume <= 0) { next.pause(); return; }
-  if (restart && activeScene !== desiredScene) next.currentTime = 0;
-  activeScene = desiredScene;
-  next.play().catch(() => {});
+function loadTrack(scene) {
+  if (buffers.has(scene)) return Promise.resolve();
+  if (pending.has(scene)) return pending.get(scene);
+  const task = (async () => {
+    if (!ensureContext()) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(SOURCES[scene], { signal: controller.signal });
+      if (!response.ok) throw new Error('BGM load failed: ' + response.status);
+      const bytes = await response.arrayBuffer();
+      buffers.set(scene, await context.decodeAudioData(bytes));
+    } finally { clearTimeout(timer); }
+  })().finally(() => pending.delete(scene));
+  pending.set(scene, task);
+  task.then(() => { if (scene === desiredScene) syncBgm(); }, () => {});
+  return task;
 }
 
-/** ローディング画面が進捗として待てる、2曲の読み込みPromise。 */
 export function preloadBgm() {
-  return Object.values(ensurePlayers()).map(audio => new Promise(resolve => {
-    if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) { resolve(); return; }
-    const done = () => { cleanup(); resolve(); };
-    const cleanup = () => {
-      clearTimeout(timer);
-      audio.removeEventListener('loadeddata', done);
-      audio.removeEventListener('error', done);
-    };
-    const timer = setTimeout(done, 10000);
-    audio.addEventListener('loadeddata', done, { once: true });
-    audio.addEventListener('error', done, { once: true });
-    audio.load();
-  }));
+  return Object.keys(SOURCES).map(scene => loadTrack(scene).catch(() => {}));
 }
 
-/** TAP TO START のクリックハンドラ内から同期的に呼ぶ。 */
 export function startBgm() {
   unlocked = true;
-  syncBgm(true);
+  ambientSession();
+  if (ensureContext()) context.resume().then(syncBgm).catch(() => {});
+  syncBgm();
 }
 
 export function setBgmScene(scene) {
-  desiredScene = scene === 'battle' ? 'battle' : 'field';
-  syncBgm(true);
+  const next = scene === 'battle' ? 'battle' : 'field';
+  if (next !== desiredScene) { pause(); offset = 0; }
+  desiredScene = next;
+  syncBgm();
 }
 
 export function setBgmVolume(value) {
-  const volume = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
-  volumeLevel = volume;
-  Object.entries(ensurePlayers()).forEach(([scene, audio]) => {
-    audio.volume = volume * (SCENE_GAIN[scene] ?? 1);
-  });
-  if (volume > 0) syncBgm();
-  else Object.values(players).forEach(audio => audio.pause());
+  volumeLevel = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
+  syncBgm();
 }
 
 export function initAudio() {
-  ensurePlayers();
   if (initialized) return;
   initialized = true;
+  ensureContext();
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) Object.values(ensurePlayers()).forEach(audio => audio.pause());
-    else syncBgm();
+    if (document.hidden) {
+      pause();
+      if (context) context.suspend().catch(() => {});
+    } else if (unlocked) {
+      ambientSession();
+      if (context) context.resume().then(syncBgm).catch(() => {});
+    }
   });
 }
