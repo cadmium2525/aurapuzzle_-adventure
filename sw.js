@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v12';
+const CACHE_NAME = 'aura-connect-v13';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -7,10 +7,16 @@ const ASSETS = [
   './assets/icons/icon-maskable-192.png',
   './assets/icons/icon-maskable-512.png',
   './assets/items/item_atlas.webp',
+  './assets/ui/loading.webp',
+  './assets/ui/title.webp',
+  './assets/Welcome_to_the_Puzzle.mp3',
+  './assets/Circuit_Breaker.mp3',
   './src/css/style.css',
   './src/js/main.js',
   './src/js/core/storage.js',
   './src/js/core/ui.js',
+  './src/js/core/audio.js',
+  './src/js/core/boot.js',
   './src/js/core/state.js',
   './src/js/core/nav.js',
   './src/js/core/sysmodal.js',

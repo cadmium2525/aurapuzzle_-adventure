@@ -5,6 +5,7 @@
 import { $ } from './ui.js';
 import { state, saveState } from './state.js';
 import { currentScreen } from './nav.js';
+import { setBgmVolume } from './audio.js';
 
 let retreatHandler = null;
 /** バトル側からリタイア処理を登録する */
@@ -23,7 +24,9 @@ export function initSysModal() {
   $('sysBtn').addEventListener('click', openSysModal);
   $('sysCloseBtn').addEventListener('click', closeSysModal);
   $('sysModal').addEventListener('click', e => { if (e.target === $('sysModal')) closeSysModal(); });
-  $('sysBgm').addEventListener('input', e => { state.settings.bgm = Number(e.target.value); saveState(); });
+  $('sysBgm').addEventListener('input', e => {
+    state.settings.bgm = Number(e.target.value); setBgmVolume(state.settings.bgm); saveState();
+  });
   $('sysSe').addEventListener('input', e => { state.settings.se = Number(e.target.value); saveState(); });
   $('sysRetreatBtn').addEventListener('click', () => {
     if (!confirm('ダンジョンからリタイアします。報酬は受け取れません。よろしいですか?')) return;

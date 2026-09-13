@@ -17,6 +17,8 @@ import { initCloud, takeRentalClaim } from './core/friends.js';
 import { checkLoginBonus, checkBuiltinGifts, fetchOperatorGifts } from './core/gifts.js';
 import { applyAdminGrant } from './core/account.js';
 import { toast } from './core/ui.js';
+import { runBoot } from './core/boot.js';
+import { initAudio, startBgm } from './core/audio.js';
 
 registerScreen('home', renderHome);
 registerScreen('dungeon', renderDungeon);
@@ -39,30 +41,34 @@ document.getElementById('statusProfileIcon')
 initFriends();
 initPresent();
 initBattle();
+initAudio();
 
 // その日はじめての起動ならログインボーナスをプレゼントボックスへ入れる
 const login = checkLoginBonus();
 // まだ配っていない配布ぶん(闇のキャラクターなど)も入れておく
 checkBuiltinGifts();
 
-showScreen('home');
-updateStatusBar();
-if (login) toast(`ログインボーナス ${login.streak}日目 🎁 プレゼントボックスへ`);
+function startCloudSync() {
+  // Firebase(匿名ログイン+データ同期)は失敗してもゲーム本体に影響させない
+  initCloud()
+    .then(async () => {
+      const granted = applyAdminGrant();
+      if (granted) { updateStatusBar(); toast(`管理者アカウント: 💎${granted} を付与しました`); }
+      const claim = takeRentalClaim();
+      if (claim) toast(`貸し出しキャラが${claim.uses}回使われました 🎁 プレゼントボックスへ`);
+      await fetchOperatorGifts();
+      updatePresentBadge();
+    })
+    .catch(() => {});
+}
 
-// Firebase(匿名ログイン+データ同期)は失敗してもゲーム本体に影響しないよう非同期で初期化
-initCloud()
-  .then(async () => {
-    // 別端末でのログイン後など、起動時点で管理者だった場合はここで付与する
-    const granted = applyAdminGrant();
-    if (granted) { updateStatusBar(); toast(`管理者アカウント: 💎${granted} を付与しました`); }
-    // 自分のキャラが借りられたぶんのフレポ(前日までの合計)
-    const claim = takeRentalClaim();
-    if (claim) toast(`貸し出しキャラが${claim.uses}回使われました 🎁 プレゼントボックスへ`);
-    // 運営からのプレゼント(あれば箱に入る)
-    await fetchOperatorGifts();
-    updatePresentBadge();
-  })
-  .catch(() => {});
+runBoot(() => {
+  startBgm();
+  showScreen('home');
+  updateStatusBar();
+  if (login) toast(`ログインボーナス ${login.streak}日目 🎁 プレゼントボックスへ`);
+  startCloudSync();
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

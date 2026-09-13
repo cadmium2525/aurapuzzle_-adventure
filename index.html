@@ -14,9 +14,31 @@
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
+<!-- ===================== 起動演出 ===================== -->
+<div id="loadingScreen" class="boot-screen loading-screen" aria-live="polite">
+  <img id="loadingVisual" src="./assets/ui/loading.webp" alt="">
+  <div class="boot-vignette"></div>
+  <div class="loading-ui">
+    <div class="boot-brand"><span>AURA CONNECT</span><b>オーラコネクト</b></div>
+    <div class="loading-status"><span id="loadingLabel">起動データを読み込み中</span><b id="loadingPercent">0%</b></div>
+    <div class="loading-track"><span id="loadingProgress"></span></div>
+  </div>
+</div>
+
+<button id="titleScreen" class="boot-screen title-screen" type="button" aria-label="ゲームを開始" hidden>
+  <img src="./assets/ui/title.webp" alt="">
+  <div class="boot-vignette"></div>
+  <div class="title-logo">
+    <span>AURA CONNECT</span>
+    <b>オーラコネクト</b>
+    <i>PUZZLE ADVENTURE</i>
+  </div>
+  <span class="title-start">TAP TO START</span>
+</button>
+
 <div id="bg-aura" aria-hidden="true"><i></i><i></i><i></i></div>
 
-<div id="app">
+<div id="app" class="boot-app" aria-hidden="true">
   <!-- ===================== トップバー ===================== -->
   <header id="topbar">
     <div id="topRow">

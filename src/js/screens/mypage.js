@@ -4,6 +4,7 @@ import {
   state, saveState, resetState, maxStamina, ownedCharacters, resolveOwned
 } from '../core/state.js';
 import { updateProfile, updateRentalCharacter, cloudEnabled } from '../core/friends.js';
+import { setBgmVolume } from '../core/audio.js';
 import {
   accountStatus, registerAccount, loginAccount, logoutAccount
 } from '../core/account.js';
@@ -150,7 +151,9 @@ export function openRentalPicker() {
 }
 
 export function initMypage() {
-  $('bgmRange').addEventListener('input', e => { state.settings.bgm = Number(e.target.value); saveState(); });
+  $('bgmRange').addEventListener('input', e => {
+    state.settings.bgm = Number(e.target.value); setBgmVolume(state.settings.bgm); saveState();
+  });
   $('seRange').addEventListener('input', e => { state.settings.se = Number(e.target.value); saveState(); });
 
   $('copyIdBtn').addEventListener('click', async () => {

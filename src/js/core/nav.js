@@ -3,6 +3,7 @@
  * =======================================================*/
 import { $, formatMMSS, artImg, toast } from './ui.js';
 import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
+import { setBgmScene } from './audio.js';
 
 const TITLES = {
   home: 'ホーム', dungeon: 'ダンジョン', battle: 'バトル', event: 'イベント',
@@ -35,6 +36,7 @@ export function showScreen(name, options = {}) {
   document.body.classList.toggle('in-battle', name === 'battle');
   document.body.dataset.screen = name;          // 画面ごとの背景切り替えに使う
   currentScreen = name;
+  setBgmScene(name === 'battle' ? 'battle' : 'field');
   armDeviceBack();                              // 端末の戻る操作を受け止める場所を確保する
   if (renderers[name]) renderers[name](options);
   updateStatusBar();
