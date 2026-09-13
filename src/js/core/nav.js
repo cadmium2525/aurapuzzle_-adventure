@@ -6,7 +6,7 @@ import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from '.
 import { setBgmScene } from './audio.js';
 
 const TITLES = {
-  home: 'ホーム', dungeon: 'ダンジョン', battle: 'バトル', event: 'イベント',
+  home: 'ホーム', dungeon: 'ダンジョン', training: 'トレーニング', battle: 'バトル', event: 'イベント',
   character: 'キャラクター', gacha: 'ガチャ', shop: 'ショップ',
   mypage: 'マイページ', friends: 'フレンド', guide: 'あそびかた'
 };
