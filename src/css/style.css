@@ -401,10 +401,14 @@ button{font-family:inherit;cursor:pointer;}
 /* そのステージの盤面に出るオーラ(3章からは闇が増えて5つになる) */
 .aura-dots{display:inline-flex;align-items:center;gap:3px;vertical-align:-1px;}
 .aura-dot{
-  width:9px;height:9px;border-radius:50%;display:inline-block;
-  background:radial-gradient(circle at 32% 30%, #fff9, var(--aura) 62%);
-  box-shadow:0 0 4px color-mix(in srgb, var(--aura) 60%, transparent);
+  width:12px;height:12px;border-radius:50%;display:inline-block;position:relative;
+  /* ハイライトを広く取ると火と癒がどちらも白っぽいピンクに寄るので、色を濃いまま残す */
+  background:linear-gradient(160deg,
+    color-mix(in srgb, var(--aura) 86%, #fff),
+    color-mix(in srgb, var(--aura) 76%, #000));
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 0 5px color-mix(in srgb, var(--aura) 45%, transparent);
 }
+.aura-dot svg{position:absolute;inset:0;width:100%;height:100%;fill:rgba(255,255,255,.9);}
 .stage-card.locked{opacity:.36;}
 .stage-card .scost{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
 .stcost{font-size:12px;font-weight:800;color:var(--stamina1);font-variant-numeric:tabular-nums;}

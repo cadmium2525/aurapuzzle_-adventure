@@ -277,6 +277,20 @@ function renderStageCards(list, stages) {
 }
 
 /**
+ * 盤面のオーブと同じ形。小さな丸は色だけだと火と癒が似て見えるので、
+ * バトルと同じグリフを載せて形でも区別できるようにしている。
+ * (座標は renderer.js の drawGlyph を 24x24 に写したもの)
+ */
+const AURA_GLYPH = {
+  c0: '<path d="M12 5.7Q17.5 11.5 15.4 15Q12 18.3 8.6 15Q6.5 11.5 12 5.7Z"/>',
+  c1: '<path d="M12 5.7Q17.2 13.1 12 18.1Q6.8 13.1 12 5.7Z"/>',
+  c2: '<path d="M6.5 16.1Q10.9 5.1 17.5 7.9Q13.1 18.9 6.5 16.1Z"/>',
+  c3: '<path d="M6.2 10.1h11.6v3.8H6.2zM10.1 6.2h3.8v11.6h-3.8z"/>',
+  c4: '<path fill-rule="evenodd" d="M6.4 12a5.6 5.6 0 1 1 11.2 0a5.6 5.6 0 1 1 -11.2 0'
+    + 'M10 10.5a5.1 5.1 0 1 1 10.2 0a5.1 5.1 0 1 1 -10.2 0Z"/>'
+};
+
+/**
  * そのステージの盤面に出るオーラ。
  * 1〜2章は4色、3章から闇が加わるので、どの色が落ちてくるかをここで示す。
  */
@@ -284,7 +298,8 @@ function auraChips(stage) {
   const list = stage.auras || BASE_AURAS;
   return `<span class="aura-dots">${list.map(a => {
     const au = AURAS[a];
-    return `<i class="aura-dot" style="--aura:${COLOR_HEX[au.key]}" title="${au.name}"></i>`;
+    return `<i class="aura-dot" style="--aura:${COLOR_HEX[au.key]}" title="${au.name}">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${AURA_GLYPH[au.key] || ''}</svg></i>`;
   }).join('')}</span>`;
 }
 
