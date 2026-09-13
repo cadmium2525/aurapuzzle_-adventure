@@ -60,6 +60,9 @@ export const LEADER_SKILLS = {
   ls_paladin: { name: '聖騎士の盾',   desc: '最大HP1.5倍・被ダメージ15%減',              hp: 1.5, damageCut: 0.15 },
   ls_aurora:  { name: '大聖女の福音', desc: '全オーラ1.4倍・回復2.0倍・操作時間+2.0秒',  allAtk: 1.4, rcv: 2.0, time: 2.0 },
 
+  /* --- 闇 --- */
+  ls_umbra:   { name: '宵闇の帳',     desc: '闇オーラ1.6倍・操作時間+0.5秒',             auraAtk: { c4: 1.6 }, time: 0.5 },
+
   /* --- 看板キャラ「カイ」専用(★4 / ★5進化後) --- */
   ls_kai4: {
     name: '不器用な誓い',
@@ -84,6 +87,9 @@ export const ACTIVE_SKILLS = {
   sk_ember_time:  { name: '熱狂',         desc: 'このターンの操作時間+3.0秒',                     cooldown: 6,  timeThisTurn: 3.0 },
   sk_ignition:    { name: '業火解放',     desc: 'ランダム8個を火オーラに変化・操作時間+2.0秒',    cooldown: 11, spawn: { to: 'c0', count: 8 }, timeThisTurn: 2.0 },
   sk_gald_x:      { name: '獅子奮迅',     desc: '3ターンの間、攻撃力1.8倍・敵に攻撃力×6のダメージ', cooldown: 10, atkBuff: { mult: 1.8, turns: 3 }, fixedDamage: 6 },
+
+  /* --- 闇 --- */
+  sk_shadow_call: { name: '影の手招き',   desc: 'ランダム6個を闇オーラに変化・操作時間+1.0秒',    cooldown: 9,  spawn: { to: 'c4', count: 6 }, timeThisTurn: 1.0 },
 
   /* --- 水 --- */
   sk_calm:        { name: '静心',         desc: 'このターンの操作時間+4.0秒',                     cooldown: 5,  timeThisTurn: 4.0 },
@@ -139,7 +145,7 @@ function describeLeaderSkill(ls) {
   const parts = [];
   if (ls.time) parts.push(`オーラ操作時間+${ls.time.toFixed(1)}秒`);
   if (ls.auraAtk) {
-    const AURA_NAME = { c0: '火', c1: '水', c2: '木', c3: '癒' };
+    const AURA_NAME = { c0: '火', c1: '水', c2: '木', c3: '癒', c4: '闇' };
     Object.keys(ls.auraAtk).forEach(k => parts.push(`${AURA_NAME[k]}オーラ${ls.auraAtk[k]}倍`));
   }
   if (ls.allAtk) parts.push(`全オーラ${ls.allAtk}倍`);

@@ -83,6 +83,10 @@ function drawGlyph(x, y, radius, colorIndex, alpha) {
     ctx.quadraticCurveTo(x - s * 0.2, y - s * 1.25, x + s, y - s * 0.75);
     ctx.quadraticCurveTo(x + s * 0.2, y + s * 1.25, x - s, y + s * 0.75);
     ctx.fill();
+  } else if (colorIndex === 4) {     // 闇:三日月(円を逆回りの円で欠けさせる)
+    ctx.arc(x, y, s * 1.02, 0, Math.PI * 2, false);
+    ctx.arc(x + s * 0.55, y - s * 0.28, s * 0.92, 0, Math.PI * 2, true);
+    ctx.fill();
   } else {                            // 癒:十字
     const a = s * 1.05, b = s * 0.34;
     ctx.rect(x - a, y - b, a * 2, b * 2);

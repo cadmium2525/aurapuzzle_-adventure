@@ -20,8 +20,8 @@
   --hp-low1:#FFB36B; --hp-low2:#D9522B;
   --stamina1:#8FE0FF; --stamina2:#2F7FD1;
   /* オーラ4色 */
-  --c0:#FF7A59; --c1:#45C8F1; --c2:#5BE08C; --c3:#FF86C8;
-  --c0d:#B8341F; --c1d:#125E86; --c2d:#1E8C4F; --c3d:#A62E71;
+  --c0:#FF7A59; --c1:#45C8F1; --c2:#5BE08C; --c3:#FF86C8; --c4:#A76BFF;
+  --c0d:#B8341F; --c1d:#125E86; --c2d:#1E8C4F; --c3d:#A62E71; --c4d:#43207F;
   /* 形状 */
   --r-lg:20px; --r-md:15px; --r-sm:11px;
   --shadow-1:0 10px 28px -12px rgba(0,0,0,0.75);
@@ -398,6 +398,13 @@ button{font-family:inherit;cursor:pointer;}
 .stage-card .sname{font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .stage-card .ssub{font-size:10.5px;color:var(--ink-dim);margin-top:3px;}
 .stage-card .ssub.dim{color:var(--ink-faint);}
+/* そのステージの盤面に出るオーラ(3章からは闇が増えて5つになる) */
+.aura-dots{display:inline-flex;align-items:center;gap:3px;vertical-align:-1px;}
+.aura-dot{
+  width:9px;height:9px;border-radius:50%;display:inline-block;
+  background:radial-gradient(circle at 32% 30%, #fff9, var(--aura) 62%);
+  box-shadow:0 0 4px color-mix(in srgb, var(--aura) 60%, transparent);
+}
 .stage-card.locked{opacity:.36;}
 .stage-card .scost{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
 .stcost{font-size:12px;font-weight:800;color:var(--stamina1);font-variant-numeric:tabular-nums;}

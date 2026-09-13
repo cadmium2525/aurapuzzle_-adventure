@@ -3,13 +3,25 @@
  * 消滅に必要な連結数(min)はリーダースキルで緩和されることがあるため、
  * どの関数も外から受け取れるようにしている。
  * =======================================================*/
-import { COLORS, MATCH_MIN_DEFAULT } from '../data/gamedata.js';
+import { MATCH_MIN_DEFAULT, BASE_AURAS } from '../data/gamedata.js';
 
 export const COLS = 7;
 export const ROWS = 8;
 export const MATCH_MIN = MATCH_MIN_DEFAULT;
 
-export function randColor() { return Math.floor(Math.random() * COLORS.length); }
+/**
+ * 盤面に出るオーラ(AURAS のインデックスの配列)。
+ * ステージによって変わる(1〜2章は4色、3章から闇を加えた5色)ので、
+ * バトル開始時に setPalette() で差し替える。生成と補充だけがこれを見る。
+ * スキルによる変換・生成は対象外で、盤面に無い色も作り出せる。
+ */
+let PALETTE = BASE_AURAS.slice();
+export function setPalette(auras) {
+  PALETTE = (auras && auras.length ? auras : BASE_AURAS).slice();
+}
+export function palette() { return PALETTE; }
+
+export function randColor() { return PALETTE[Math.floor(Math.random() * PALETTE.length)]; }
 
 const NEIGHBORS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
@@ -110,7 +122,7 @@ export function refillBoard(bd, min = MATCH_MIN) {
   for (let c = 0; c < COLS; c++) {
     for (let r = ROWS - 1; r >= 0; r--) {
       if (bd[r][c] !== -1) continue;
-      const order = COLORS.map((_, i) => i).sort(() => Math.random() - 0.5);
+      const order = PALETTE.slice().sort(() => Math.random() - 0.5);
       let placed = false;
       for (const color of order) {
         bd[r][c] = color;

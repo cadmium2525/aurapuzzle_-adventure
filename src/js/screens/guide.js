@@ -1,6 +1,6 @@
 /* ===================== あそびかた画面 ===================== */
 import { $ } from '../core/ui.js';
-import { AURAS, COLOR_HEX, CHARACTERS } from '../data/gamedata.js';
+import { AURAS, COLOR_HEX, CHARACTERS, DARK_AURA, DARK_FROM_CHAPTER } from '../data/gamedata.js';
 
 export function renderGuide() {
   const box = $('guideAuraList');
@@ -15,7 +15,8 @@ export function renderGuide() {
         <div class="cname">${a.name}オーラ <span class="aura-label">${a.label}</span></div>
         <div class="cmeta">${a.role === 'heal'
           ? 'このオーラを消すと、癒オーラの仲間がパーティを回復します。'
-          : 'このオーラを消すと、同じオーラの仲間が敵を攻撃します。'}</div>
+          : 'このオーラを消すと、同じオーラの仲間が敵を攻撃します。'}${
+          i === DARK_AURA ? `<br>第${DARK_FROM_CHAPTER}章から盤面に加わります。` : ''}</div>
         <div class="cstats">登場キャラクター ${members}人</div>
       </div>`;
     box.appendChild(div);

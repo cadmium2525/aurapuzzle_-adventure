@@ -1,10 +1,14 @@
 /* =========================================================
  * gifts.js — プレゼントボックス
  *
- * 受け取りを1か所にまとめる箱。中身は次の3種類。
+ * 受け取りを1か所にまとめる箱。中身は次の4種類。
  *   1. ログインボーナス(その日はじめての起動で1つ入る)
  *   2. フレンド由来のフレポ(あいさつされたぶん / 貸し出しキャラが使われたぶん)
- *   3. 運営からのプレゼント(Firestore の gifts コレクション)
+ *   3. 配布(BUILTIN_GIFTS。コードに書いた内容を全員へ)
+ *   4. 運営からのプレゼント(Firestore の gifts コレクション)
+ *
+ * 中身はゴールド/フレポ/オーブ/スタミナに加えて、キャラクターも配れる。
+ * 受け取るとそのまま所持キャラへ加わるので、すぐに編成して使える。
  *
  * 「配る」と「受け取る」を分けているのが要点で、起動時に所持数を直接
  * 増やさない。受け取りはプレイヤーの操作で行われるので、増えたことに
@@ -14,9 +18,9 @@
  * 全員が読めるコレクションを置き、受け取り済みかどうかは端末側の
  * giftLog(クラウドのセーブにも乗る)で管理している。
  * =======================================================*/
-import { state, saveState } from './state.js';
+import { state, saveState, addCharacter } from './state.js';
 import { FB, firebaseEnabled } from './firebase.js';
-import { loginBonusFor } from '../data/gamedata.js';
+import { loginBonusFor, BUILTIN_GIFTS, characterById } from '../data/gamedata.js';
 
 /** 運営プレゼントの取得件数の上限(無料枠の読み取り数を抑える) */
 const NOTICE_LIMIT = 20;
@@ -46,7 +50,7 @@ export function giftCount() { return giftList().length; }
 
 /**
  * プレゼントを1つ入れる。
- * @param {{title:string, note?:string, coin?:number, orb?:number, frepo?:number, stamina?:number, key?:string}} gift
+ * @param {{title:string, note?:string, coin?:number, orb?:number, frepo?:number, stamina?:number, char?:string, key?:string}} gift
  *        key を渡すと、同じ key のものが既に入っているときは重ねない。
  */
 export function addGift(gift) {
@@ -64,11 +68,17 @@ function applyGift(g) {
   if (g.orb) state.orb += g.orb;
   if (g.frepo) state.frepo += g.frepo;
   if (g.stamina) state.stamina += g.stamina;   // 上限超過はそのまま保持される
+  // キャラクターはそのまま所持に加わるので、受け取ればすぐ編成できる
+  if (g.char) addCharacter(g.char);
 }
 
 /** 受け取り内容を「💰300 💎2」のような表示にする */
 export function giftRewardText(g) {
   const parts = [];
+  if (g.char) {
+    const ch = characterById(g.char);
+    if (ch) parts.push(`${ch.portrait}${ch.name}(★${ch.rarity})`);
+  }
   if (g.coin) parts.push(`💰${g.coin}`);
   if (g.frepo) parts.push(`🎗️${g.frepo}`);
   if (g.orb) parts.push(`💎${g.orb}`);
@@ -87,14 +97,15 @@ export function claimGift(id) {
   return g;
 }
 
-/** すべて受け取る。合計を返す */
+/** すべて受け取る。合計(受け取ったキャラのIDを含む)を返す */
 export function claimAllGifts() {
   const list = giftList();
   if (!list.length) return null;
-  const total = { count: list.length, coin: 0, orb: 0, frepo: 0, stamina: 0 };
+  const total = { count: list.length, coin: 0, orb: 0, frepo: 0, stamina: 0, chars: [] };
   list.forEach(g => {
     applyGift(g);
     ['coin', 'orb', 'frepo', 'stamina'].forEach(k => { total[k] += g[k] || 0; });
+    if (g.char) total.chars.push(g.char);
   });
   state.gifts = [];
   saveState();
@@ -128,6 +139,31 @@ export function checkLoginBonus() {
 /** 表示用の連続ログイン日数 */
 export function loginStreak() { return (state.login && state.login.streak) || 0; }
 
+/* ===================== 配布(コードに埋め込むプレゼント) ===================== */
+/**
+ * まだ配っていない BUILTIN_GIFTS をプレゼントボックスへ入れる。
+ * Firestore を介さないので、オフラインでも初回起動時に必ず届く。
+ * 配布済みかどうかは運営プレゼントと同じ giftLog で持つ。
+ * @returns {number} 新しく入れた件数
+ */
+export function checkBuiltinGifts() {
+  if (!state.giftLog) state.giftLog = {};
+  let added = 0;
+  BUILTIN_GIFTS.forEach(g => {
+    if (state.giftLog[g.key]) return;
+    state.giftLog[g.key] = todayStr();
+    addGift({
+      title: g.title, note: g.note || '',
+      char: g.char || null,
+      coin: g.coin || 0, orb: g.orb || 0,
+      frepo: g.frepo || 0, stamina: g.stamina || 0
+    });
+    added++;
+  });
+  if (added) saveState();
+  return added;
+}
+
 /* ===================== 運営からのプレゼント ===================== */
 /**
  * Firestore の gifts コレクションを読み、まだ受け取っていないものを箱へ入れる。
@@ -152,6 +188,7 @@ export async function fetchOperatorGifts() {
       addGift({
         title: v.title || '運営からのプレゼント',
         note: v.note || '',
+        char: v.char || null,           // キャラクターIDを書けば配布できる
         coin: v.coin || 0, orb: v.orb || 0,
         frepo: v.frepo || 0, stamina: v.stamina || 0
       });

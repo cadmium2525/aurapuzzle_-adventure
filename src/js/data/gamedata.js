@@ -57,7 +57,21 @@ const STAGE_NAMES = [
   ['大樹の根',     '螺旋の枝道',   '天枝の宿り木', '星の見える葉', '世界樹の頂']
 ];
 /** ステージごとに主に落ちる結晶のオーラ(章のなかで一巡させる) */
-const STAGE_AURA = [0, 1, 2, 3, 0];
+const STAGE_AURA      = [0, 1, 2, 3, 0];   // 1〜2章(4色)
+const STAGE_AURA_DARK = [0, 1, 2, 3, 4];   // 3章以降(闇を含む5色)
+
+/* --- 盤面に出るオーラ ---
+   1〜2章は火・水・木・癒の4色。3章から闇が加わって5色になる。
+   ステージが持つ auras がそのまま盤面の生成・補充に使われ(board.js の
+   setPalette)、ダンジョン選択画面にも表示される。 */
+export const BASE_AURAS = [0, 1, 2, 3];
+export const DARK_AURA = 4;
+export const DARK_FROM_CHAPTER = 3;
+export const AURAS_WITH_DARK = BASE_AURAS.concat([DARK_AURA]);
+/** その章で盤面に出るオーラ */
+export function aurasForChapter(ch) {
+  return ch >= DARK_FROM_CHAPTER ? AURAS_WITH_DARK : BASE_AURAS;
+}
 
 export const CHAPTER_COUNT = CHAPTER_NAMES.length;
 export const STAGES_PER_CHAPTER = 5;
@@ -93,7 +107,8 @@ export const STAGES = (() => {
         orbReward: i === STAGES_PER_CHAPTER ? 2 : 0,   // 各章の最終ステージだけオーブ
         expReward: 25 + step * 14,
         charExpReward: 80 + step * 95,
-        dropAura: STAGE_AURA[(i - 1) % STAGE_AURA.length],
+        auras: aurasForChapter(ch),
+        dropAura: (ch >= DARK_FROM_CHAPTER ? STAGE_AURA_DARK : STAGE_AURA)[(i - 1) % STAGE_AURA.length],
         shardRate: Math.min(0.85, 0.18 + step * 0.045),
         crystalBase: 2 + Math.floor(step / 6),   // 奥へ進むほど結晶も増える
         dropType: 'normal'
@@ -159,6 +174,8 @@ export function dailyStagesFor(day) {
       expReward: Math.round(40 * d.mult),
       charExpReward: Math.round(200 * d.mult),
       dropAura: t.dropAura,
+      // 初級は4色のまま。中級(ランク8)以上は通常ダンジョンの3章以降に合わせて闇も出る
+      auras: d.tier >= 2 ? AURAS_WITH_DARK : BASE_AURAS,
       shardRate: t.dropType === 'crystal' ? Math.min(0.9, 0.35 * d.mult) : 0,
       dropType: t.dropType,
       dropMult: d.mult
@@ -180,6 +197,7 @@ export const MATERIALS = [
   { id: 'mt_c1',   name: '蒼海の結晶', emoji: '🔵', aura: 1,    color: '#45C8F1' },
   { id: 'mt_c2',   name: '翠緑の結晶', emoji: '🟢', aura: 2,    color: '#5BE08C' },
   { id: 'mt_c3',   name: '聖光の結晶', emoji: '🩷', aura: 3,    color: '#FF86C8' },
+  { id: 'mt_c4',   name: '常闇の結晶', emoji: '🟣', aura: 4,    color: '#A76BFF' },
   { id: 'mt_star',   name: '進化の輝石', emoji: '💠', aura: null, color: '#FFC65C' },
   { id: 'mt_awaken', name: '開眼の証',   emoji: '👁️', aura: null, color: '#B6EEFF' },
   { id: 'mt_exp1',   name: '経験の雫',   emoji: '🔹', aura: null, color: '#8FD8FF' },
@@ -241,8 +259,8 @@ export const SHOP_ITEMS = [
 ];
 
 /* ===================== ガチャ ===================== */
-/** ★5はガチャから出ない(進化専用) */
-export const GACHA_POOL = CHARACTERS.filter(c => c.rarity <= MAX_GACHA_RARITY);
+/** ★5はガチャから出ない(進化専用)。giftOnly の配布キャラも対象外 */
+export const GACHA_POOL = CHARACTERS.filter(c => c.rarity <= MAX_GACHA_RARITY && !c.giftOnly);
 export const FREPO_POOL = GACHA_POOL.filter(c => c.rarity <= 3);
 
 export const FREPO_WEIGHTS = { 1: 58, 2: 30, 3: 12 };
@@ -273,6 +291,22 @@ export const MAX_FRIENDS = 30;
 export const FRIEND_GREET_REWARD = 20;        // あいさつした側
 export const FRIEND_GREET_REWARD_OTHER = 10;  // あいさつされた側
 export const FRIEND_RENTAL_REWARD = 50;       // 貸し出しキャラが1回使われるごと
+
+/* ===================== 配布プレゼント ===================== */
+/**
+ * コードに埋め込む配布。key ごとに一度だけプレゼントボックスへ入る
+ * (Firestore を使わないので、オフラインでも全員に届く)。
+ * 追加で配りたくなったら新しい key の行を足す。既存の key を書き換えても
+ * 受け取り済みの人には届かないので、配り直しは新しい key で行うこと。
+ */
+export const BUILTIN_GIFTS = [
+  {
+    key: 'gift_dark_debut',
+    title: '闇のオーラ解禁記念',
+    note: '3章から盤面に闇のオーラが加わります。闇のキャラクターをお受け取りください。',
+    char: 'dk_shion'
+  }
+];
 
 /* ===================== ログインボーナス ===================== */
 /**

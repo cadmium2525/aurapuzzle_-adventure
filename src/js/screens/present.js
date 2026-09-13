@@ -8,6 +8,7 @@ import { updateStatusBar } from '../core/nav.js';
 import {
   giftList, giftCount, claimGift, claimAllGifts, giftRewardText, loginStreak
 } from '../core/gifts.js';
+import { characterById } from '../data/gamedata.js';
 
 /** 箱のバッジ(未受け取り件数)を更新する */
 export function updatePresentBadge() {
@@ -69,7 +70,10 @@ export function initPresent() {
   $('presentClaimAllBtn').addEventListener('click', () => {
     const total = claimAllGifts();
     if (!total) return;
-    toast(`${total.count}件受け取りました ${giftRewardText(total)}`);
+    // キャラクターは名前で出す(数字だけだと何を手に入れたのか分からない)
+    const chars = total.chars.map(id => (characterById(id) || {}).name).filter(Boolean).join('・');
+    const detail = [chars, giftRewardText(total)].filter(Boolean).join(' ');
+    toast(`${total.count}件受け取りました ${detail}`.trim());
     updateStatusBar();
     updatePresentBadge();
     renderList();

@@ -11,12 +11,15 @@ import {
   LEADER_SKILLS, ACTIVE_SKILLS, evolvedLeaderSkill, evolvedActiveSkill
 } from './skills.js';
 
-/* --- オーラは4色。c3(癒)は攻撃ではなく回復を担当する --- */
+/* --- オーラは5色。c3(癒)は攻撃ではなく回復を担当する。
+       c4(闇)は3章から盤面に加わる後発のオーラ(ステージごとの出現色は
+       gamedata.js の auras で決まる) --- */
 export const AURAS = [
   { key: 'c0', name: '火', emoji: '🔥', role: 'attack', label: 'FLAME' },
   { key: 'c1', name: '水', emoji: '💧', role: 'attack', label: 'AQUA'  },
   { key: 'c2', name: '木', emoji: '🌿', role: 'attack', label: 'WOOD'  },
-  { key: 'c3', name: '癒', emoji: '💗', role: 'heal',   label: 'LUMEN' }
+  { key: 'c3', name: '癒', emoji: '💗', role: 'heal',   label: 'LUMEN' },
+  { key: 'c4', name: '闇', emoji: '🌑', role: 'attack', label: 'NOX'   }
 ];
 
 /** 盤面で使うオーラキー(AURAS と同じ並び) */
@@ -24,9 +27,9 @@ export const COLORS = AURAS.map(a => a.key);
 export const HEAL_COLOR = AURAS.findIndex(a => a.role === 'heal');
 export const auraIndexOf = key => COLORS.indexOf(key);
 
-export const COLOR_HEX  = { c0: '#FF7A59', c1: '#45C8F1', c2: '#5BE08C', c3: '#FF86C8' };
-export const COLOR_DARK = { c0: '#B8341F', c1: '#125E86', c2: '#1E8C4F', c3: '#A62E71' };
-export const COLOR_GLOW = { c0: '#FFC48A', c1: '#B6EEFF', c2: '#C2FFD6', c3: '#FFD0EA' };
+export const COLOR_HEX  = { c0: '#FF7A59', c1: '#45C8F1', c2: '#5BE08C', c3: '#FF86C8', c4: '#A76BFF' };
+export const COLOR_DARK = { c0: '#B8341F', c1: '#125E86', c2: '#1E8C4F', c3: '#A62E71', c4: '#43207F' };
+export const COLOR_GLOW = { c0: '#FFC48A', c1: '#B6EEFF', c2: '#C2FFD6', c3: '#FFD0EA', c4: '#DCC2FF' };
 
 /** ガチャで出る最高レアリティ。★5は進化専用。 */
 export const MAX_GACHA_RARITY = 4;
@@ -223,6 +226,16 @@ export const CHARACTERS = [
   }),
   mk('lm_aurora', 'アウロラ',   '大聖女',       '👼',   3, 4, 'healer',   'ls_aurora',  'sk_miracle', {
     artStages: staticArt('aurora', 4)
+  }),
+
+  /* ===== 闇 =====
+     3章で闇のオーラが解禁されるのに合わせた配布キャラクター。
+     ガチャからは出さず(giftOnly)、プレゼントボックスから受け取る。 */
+  /* イラストを用意したら artStages: staticArt('shion', 3) を足す(それまでは絵文字) */
+  mk('dk_shion',  'シオン',     '影渡り',       '🌒',   4, 3, 'attacker', 'ls_umbra',   'sk_shadow_call', {
+    giftOnly: true,
+    evoJob: '夜を継ぐ者',
+    flavor: '影から影へ渡り歩く手練れ。頼まれごとは断らないが、理由だけは必ず聞く。'
   })
 ];
 

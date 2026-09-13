@@ -25,7 +25,7 @@ import {
 } from '../data/gamedata.js';
 import {
   COLS, ROWS, genBoard, findGroups, applyGravityNoRefill, refillBoard,
-  convertColor, spawnColor, shuffleBoard
+  convertColor, spawnColor, shuffleBoard, setPalette
 } from './board.js';
 import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
@@ -130,6 +130,8 @@ export function startDungeonRun(stage, hard, support) {
   // 誰かの貸し出しキャラを借りたら、その人の使用回数を1つ増やす(相手は翌日フレポを受け取る)
   if (support && support.ownerUid) countRentalUse(support.ownerUid);
 
+  // 盤面に出るオーラはステージごと(3章から闇が加わる)
+  setPalette(stage.auras);
   board = null;                 // 新しいダンジョンでは盤面を作り直す
   renderParty();
   showScreen('battle');
@@ -598,7 +600,9 @@ function rollDrops(stage, hard) {
   add(crystalIdFor(stage.dropAura), ((stage.crystalBase || 2) + randInt(0, 2)) * mult);
   // 他オーラの結晶もたまに落ちる(どのキャラも育てられるように)
   if (Math.random() < 0.55) {
-    const other = randInt(0, AURAS.length - 1);
+    // 他オーラはそのステージに出る色から選ぶ(闇の結晶は闇が出る階層だけ)
+    const pool = stage.auras || [0, 1, 2, 3];
+    const other = pool[randInt(0, pool.length - 1)];
     add(crystalIdFor(other), randInt(1, Math.max(2, Math.round((stage.crystalBase || 2) * 0.6))) * mult);
   }
   if (Math.random() < shardChance) add('mt_star', randInt(1, 2) * mult);

@@ -14,7 +14,7 @@ import { initMypage, renderMypage, openRentalPicker } from './screens/mypage.js'
 import { initFriends, renderFriends } from './screens/friends.js';
 import { initPresent, updatePresentBadge } from './screens/present.js';
 import { initCloud, takeRentalClaim } from './core/friends.js';
-import { checkLoginBonus, fetchOperatorGifts } from './core/gifts.js';
+import { checkLoginBonus, checkBuiltinGifts, fetchOperatorGifts } from './core/gifts.js';
 import { applyAdminGrant } from './core/account.js';
 import { toast } from './core/ui.js';
 
@@ -42,6 +42,8 @@ initBattle();
 
 // その日はじめての起動ならログインボーナスをプレゼントボックスへ入れる
 const login = checkLoginBonus();
+// まだ配っていない配布ぶん(闇のキャラクターなど)も入れておく
+checkBuiltinGifts();
 
 showScreen('home', false);
 updateStatusBar();

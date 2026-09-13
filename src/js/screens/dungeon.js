@@ -7,8 +7,8 @@ import { $, toast, artImg } from '../core/ui.js';
 import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
-  STAGES, FLOORS_PER_STAGE, HARD_REWARD_MULT, HARD_STAMINA_MULT,
-  AURAS, COLOR_HEX, characterById, resolveCharacter,
+  STAGES, HARD_REWARD_MULT, HARD_STAMINA_MULT, FLOORS_PER_STAGE,
+  AURAS, COLOR_HEX, BASE_AURAS, characterById, resolveCharacter,
   availableNpcSupports, NPC_SUPPORTS, materialById, crystalIdFor,
   CHAPTER_COUNT, STAGES_PER_CHAPTER, chapterNameOf, chapterLastStageId,
   dailyStagesFor, DAILY_THEMES, todayTheme
@@ -256,7 +256,7 @@ function renderStageCards(list, stages) {
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
-        <div class="ssub">全${FLOORS_PER_STAGE}フロア ・ 💰${rewardCoin}${orb}</div>
+        <div class="ssub">${auraChips(stage)} ・ 💰${rewardCoin}${orb}</div>
         <div class="ssub dim">${dropText} ・ ${isLocked && stage.daily ? `ランク${stage.requireRank}で解放`
           : (record ? `最高コンボ ${record.maxChain}` : '未挑戦')}</div>
       </div>
@@ -274,6 +274,18 @@ function renderStageCards(list, stages) {
     }
     list.appendChild(div);
   });
+}
+
+/**
+ * そのステージの盤面に出るオーラ。
+ * 1〜2章は4色、3章から闇が加わるので、どの色が落ちてくるかをここで示す。
+ */
+function auraChips(stage) {
+  const list = stage.auras || BASE_AURAS;
+  return `<span class="aura-dots">${list.map(a => {
+    const au = AURAS[a];
+    return `<i class="aura-dot" style="--aura:${COLOR_HEX[au.key]}" title="${au.name}"></i>`;
+  }).join('')}</span>`;
 }
 
 /** そのステージで何が手に入るかの1行表示 */
