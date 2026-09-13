@@ -24,7 +24,15 @@ let spinning = false;
 const POSITIONS = ['pos-front', 'pos-right', 'pos-left'];
 
 function memberKey(m) {
-  return `${m.id}:${(m.art && m.art.full) || m.portrait}:${m.artScale || 1}`;
+  return `${m.id}:${(m.art && m.art.full) || m.portrait}:${artScaleOf(m)}`;
+}
+
+/**
+ * イラストの寄せ具合。進化で構図が変わることがあるので、
+ * 段階ごとの scale があればそちらを優先する。
+ */
+function artScaleOf(m) {
+  return (m.art && m.art.scale) || m.artScale || 1;
 }
 
 /** 3人ぶんの要素を作る。中身の作り直しはここだけ */
@@ -36,7 +44,7 @@ function build(art, mons) {
     el.className = 'hp-slot';
     // イラストごとに余白の量が違うので、キャラ側の artScale で寄せ具合を補正する
     el.style.setProperty('--aura', COLOR_HEX[aura.key]);
-    el.style.setProperty('--art-scale', m.artScale || 1);
+    el.style.setProperty('--art-scale', artScaleOf(m));
     el.innerHTML = artImg(m.art && m.art.full, m.portrait, 'hp');
     art.appendChild(el);
   });

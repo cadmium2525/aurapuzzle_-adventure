@@ -110,10 +110,14 @@ const NOA_ART = [
   { star: 5, minLevel: 1,  icon: 'assets/chars/noa_2_icon.webp', full: 'assets/chars/noa_2.webp', label: '進化' }
 ];
 
-/** ★1キャラのイラスト。★1のあいだと、★2へ進化したあとの2段階 */
-const twoStageArt = (name) => ([
-  { star: 1, minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '初期' },
-  { star: 2, minLevel: 1, icon: `assets/chars/${name}_2_icon.webp`, full: `assets/chars/${name}_2.webp`, label: '進化' }
+/**
+ * 2段階のイラスト。素のあいだと、1段階進化したあと。
+ * ★1キャラは 1→2、シオンのような★3キャラは 3→4 で切り替える
+ * (それ以降に進化しても2枚目を使い続ける)。
+ */
+const twoStageArt = (name, base = 1, scale2 = 0) => ([
+  { star: base,     minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '初期' },
+  { star: base + 1, minLevel: 1, icon: `assets/chars/${name}_2_icon.webp`, full: `assets/chars/${name}_2.webp`, label: '進化', scale: scale2 || undefined }
 ]);
 
 /** 進化後も同じイラストを使うキャラクターの1段階構成 */
@@ -231,8 +235,9 @@ export const CHARACTERS = [
   /* ===== 闇 =====
      3章で闇のオーラが解禁されるのに合わせた配布キャラクター。
      ガチャからは出さず(giftOnly)、プレゼントボックスから受け取る。 */
-  /* イラストを用意したら artStages: staticArt('shion', 3) を足す(それまでは絵文字) */
   mk('dk_shion',  'シオン',     '影渡り',       '🌒',   4, 3, 'attacker', 'ls_umbra',   'sk_shadow_call', {
+    // 進化後は横に広い構図で人物が小さく見えるので、ホームでは少し寄せる
+    artStages: twoStageArt('shion', 3, 1.15),
     giftOnly: true,
     evoJob: '夜を継ぐ者',
     flavor: '影から影へ渡り歩く手練れ。頼まれごとは断らないが、理由だけは必ず聞く。'
