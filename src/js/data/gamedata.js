@@ -105,7 +105,8 @@ export const STAGES = (() => {
         stamina: 5 + Math.floor(step * 0.9),
         coinReward: 150 + step * 110,
         orbReward: i === STAGES_PER_CHAPTER ? 2 : 0,   // 各章の最終ステージだけオーブ
-        expReward: 25 + step * 14,
+        // 全50ステージを順に初回クリアすると、おおむねランク16前後になる配分
+        expReward: 18 + step * 5,
         charExpReward: 80 + step * 95,
         auras: aurasForChapter(ch),
         dropAura: (ch >= DARK_FROM_CHAPTER ? STAGE_AURA_DARK : STAGE_AURA)[(i - 1) % STAGE_AURA.length],
@@ -171,7 +172,7 @@ export function dailyStagesFor(day) {
       stamina: d.stamina,
       coinReward: Math.round((t.dropType === 'gold' ? 3000 : 400) * d.mult),
       orbReward: 0,
-      expReward: Math.round(40 * d.mult),
+      expReward: Math.round(25 * d.mult),
       charExpReward: Math.round(200 * d.mult),
       dropAura: t.dropAura,
       // 初級は4色のまま。中級(ランク8)以上は通常ダンジョンの3章以降に合わせて闇も出る

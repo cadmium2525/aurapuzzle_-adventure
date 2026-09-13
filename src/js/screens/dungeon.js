@@ -5,7 +5,7 @@
  * =======================================================*/
 import { $, toast, artImg, itemIcon } from '../core/ui.js';
 import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js';
-import { updateStatusBar } from '../core/nav.js';
+import { updateStatusBar, registerBackHandler } from '../core/nav.js';
 import {
   STAGES, HARD_REWARD_MULT, HARD_STAMINA_MULT, FLOORS_PER_STAGE,
   AURAS, COLOR_HEX, BASE_AURAS, characterById, resolveCharacter,
@@ -19,6 +19,7 @@ import { portraitHTML, awakenPipsHTML } from './parts.js';
 
 let dungeonHard = false;
 let dungeonMode = 'story';     // 'story' = 章ごとの通常 / 'daily' = 曜日ダンジョン
+let dungeonView = 'menu';      // ホームからはまず種別選択を開く
 let chapter = 1;
 let pendingStage = null, pendingHard = false;
 let supportTab = 'friend';
@@ -26,10 +27,12 @@ let friendRentals = null;      // 取得済みのフレンド貸し出しキャ�
 let strangerRentals = null;    // フレンド以外のプレイヤー(読み取り数を抑えるため使い回す)
 
 export function initDungeon() {
-  $('modeStoryBtn').addEventListener('click', () => { dungeonMode = 'story'; renderDungeon(); });
-  $('modeDailyBtn').addEventListener('click', () => { dungeonMode = 'daily'; renderDungeon(); });
-  $('diffNormalBtn').addEventListener('click', () => { dungeonHard = false; renderDungeon(); });
-  $('diffHardBtn').addEventListener('click', () => { dungeonHard = true; renderDungeon(); });
+  $('openStoryDungeonBtn').addEventListener('click', () => openDungeonType('story'));
+  $('openDailyDungeonBtn').addEventListener('click', () => openDungeonType('daily'));
+  $('dungeonCategoryBackBtn').addEventListener('click', showDungeonMenu);
+  $('diffNormalBtn').addEventListener('click', () => { dungeonHard = false; renderDungeon({ preserve: true }); });
+  $('diffHardBtn').addEventListener('click', () => { dungeonHard = true; renderDungeon({ preserve: true }); });
+  registerBackHandler('dungeon', handleDungeonBack);
   $('supportSkipBtn').addEventListener('click', () => confirmAndStart(null));
   $('supportCloseBtn').addEventListener('click', closeSupportPick);
   $('supportPickModal').addEventListener('click', e => {
@@ -38,6 +41,25 @@ export function initDungeon() {
   $('supTabFriendBtn').addEventListener('click', () => { supportTab = 'friend'; renderSupportList(); });
   $('supTabOtherBtn').addEventListener('click', () => { supportTab = 'other'; renderSupportList(); });
   $('supTabNpcBtn').addEventListener('click', () => { supportTab = 'npc'; renderSupportList(); });
+}
+
+function openDungeonType(mode) {
+  dungeonMode = mode;
+  dungeonView = 'stages';
+  renderDungeon({ preserve: true });
+  window.scrollTo({ top: 0 });
+}
+
+function showDungeonMenu() {
+  dungeonView = 'menu';
+  renderDungeon({ preserve: true });
+  window.scrollTo({ top: 0 });
+}
+
+function handleDungeonBack() {
+  if (dungeonView !== 'stages') return false;
+  showDungeonMenu();
+  return true;
 }
 
 export function staminaCost(stage, hard) {
@@ -187,14 +209,18 @@ function renderChapterBar() {
     const b = document.createElement('button');
     b.className = 'chapter-btn' + (c === chapter ? ' active' : '') + (ok ? '' : ' locked');
     b.innerHTML = ok ? `<b>${c}</b><span>${chapterNameOf(c)}</span>` : `<b>${c}</b><span>🔒</span>`;
-    if (ok) b.addEventListener('click', () => { chapter = c; renderDungeon(); });
+    if (ok) b.addEventListener('click', () => { chapter = c; renderDungeon({ preserve: true }); });
     bar.appendChild(b);
   }
 }
 
-export function renderDungeon() {
-  $('modeStoryBtn').classList.toggle('active', dungeonMode === 'story');
-  $('modeDailyBtn').classList.toggle('active', dungeonMode === 'daily');
+export function renderDungeon(options = {}) {
+  if (!options.preserve) dungeonView = 'menu';
+  const choosing = dungeonView === 'menu';
+  $('dungeonMenu').hidden = !choosing;
+  $('dungeonStages').hidden = choosing;
+  if (choosing) return;
+
   $('storyControls').hidden = dungeonMode !== 'story';
   $('dailyHead').hidden = dungeonMode !== 'daily';
 

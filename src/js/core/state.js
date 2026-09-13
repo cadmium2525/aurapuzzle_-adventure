@@ -15,7 +15,7 @@ import {
 } from '../data/gamedata.js';
 
 const SAVE_KEY = 'acb_state';
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 
 export const DEFAULT_ICONS = ['🙂', '🔥', '💧', '🌿', '💗', '🦸', '🧙', '👑', '🎩', '🐲'];
 
@@ -121,6 +121,10 @@ function migrate(old) {
   s.rank = old.rank || 1;
   s.exp = old.exp || 0;
   s.stamina = typeof old.stamina === 'number' ? old.stamina : maxStaminaFor(s.rank);
+  // v7まではランクアップごとに最大値を丸ごと加算していたため、移行時に正常な上限へ戻す。
+  if ((old.version || 0) < 8 && s.stamina > maxStaminaFor(s.rank)) {
+    s.stamina = maxStaminaFor(s.rank);
+  }
   s.staminaAt = old.staminaAt || Date.now();
   s.records = old.records || {};
   s.grants = old.grants || {};
@@ -396,8 +400,7 @@ export function maxStamina() { return maxStaminaFor(state.rank); }
 
 /**
  * 経験値を加算する。
- * ランクアップ時は「現在のスタミナ + ランクアップ後の最大スタミナ」を加算するので、
- * スタミナが最大値を超えてオーバーフローする。
+ * ランクアップ時は新しい最大値まで回復する。最大値を丸ごと加算しない。
  * @returns {{ups:number, staminaGained:number}}
  */
 export function gainExp(amount) {
@@ -408,7 +411,8 @@ export function gainExp(amount) {
     state.exp -= expToNextRank(state.rank);
     state.rank++;
     ups++;
-    const bonus = maxStaminaFor(state.rank);   // ランクアップ後の最大スタミナぶんを上乗せ
+    const newMax = maxStaminaFor(state.rank);
+    const bonus = Math.max(0, newMax - state.stamina);
     state.stamina += bonus;
     staminaGained += bonus;
   }

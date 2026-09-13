@@ -48,7 +48,8 @@ export async function initCloud() {
       rentalStar: rentalEntry ? rentalEntry.star : null,
       rentalLv: rentalEntry ? rentalEntry.lv : null,
       rentalAwa: rentalEntry ? (rentalEntry.awa || 0) : null,
-      createdAt: FB.serverTimestamp(), updatedAt: FB.serverTimestamp()
+      rank: state.rank,
+      createdAt: FB.serverTimestamp(), lastLoginAt: FB.serverTimestamp(), updatedAt: FB.serverTimestamp()
     });
     await FB.setDoc(FB.doc(FB.db, 'friendCodes', code), { uid: myUid });
   } else {
@@ -63,6 +64,7 @@ export async function initCloud() {
     if (!data.friendCode) await FB.updateDoc(myRef, { friendCode: code });
     // 自分のキャラが使われたぶんを翌日まとめて受け取る
     lastRentalClaim = await claimRentalReward(myRef, data);
+    await FB.updateDoc(myRef, { rank: state.rank, lastLoginAt: FB.serverTimestamp() });
   }
 
   await pushCloudSave();
@@ -83,6 +85,7 @@ async function pushCloudSave() {
   if (!firebaseEnabled() || !myUid) return;
   try {
     await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'save', 'state'), {
+      version: state.version,
       coin: state.coin, frepo: state.frepo, orb: state.orb,
       rank: state.rank, exp: state.exp,
       stamina: state.stamina, staminaAt: state.staminaAt,
@@ -102,6 +105,7 @@ async function pushCloudSave() {
       rentalStar: rental ? rental.star : null,
       rentalLv: rental ? rental.lv : null,
       rentalAwa: rental ? (rental.awa || 0) : null,
+      rank: state.rank,
       updatedAt: FB.serverTimestamp()
     });
   } catch (e) { console.warn('[friends] cloud save failed', e); }
@@ -170,7 +174,26 @@ export async function refreshFriendsList() {
   try {
     const snaps = await FB.getDocs(FB.collection(FB.db, 'users', myUid, 'friends'));
     const list = [];
-    snaps.forEach(d => list.push({ uid: d.id, ...d.data() }));
+    snaps.forEach(d => {
+      const data = d.data();
+      if (!data.removed) list.push({ uid: d.id, ...data });
+    });
+    // サブコレクションは登録時の情報なので、プロフィール本体から現在値を補う。
+    await Promise.all(list.map(async f => {
+      try {
+        const snap = await FB.getDoc(FB.doc(FB.db, 'users', f.uid));
+        if (!snap.exists()) return;
+        const profile = snap.data();
+        f.name = profile.name || f.name;
+        f.icon = profile.icon || f.icon;
+        f.rank = Number(profile.rank) || Number(f.rank) || null;
+        f.lastLoginAt = profile.lastLoginAt || profile.updatedAt || f.lastLoginAt || null;
+        if (!f.rank) {
+          const saveSnap = await FB.getDoc(FB.doc(FB.db, 'users', f.uid, 'save', 'state'));
+          if (saveSnap.exists()) f.rank = Number(saveSnap.data().rank) || null;
+        }
+      } catch (e) { /* キャッシュ済み情報で表示を続ける */ }
+    }));
     state.profile.friends = list;
     saveState();
   } catch (e) { console.warn('[friends] list fetch failed', e); }

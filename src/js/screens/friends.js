@@ -12,6 +12,27 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function timestampMs(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value._seconds === 'number') return value._seconds * 1000;
+  if (typeof value === 'number') return value;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function lastLoginText(value) {
+  const ms = timestampMs(value);
+  if (!ms) return '不明';
+  const minutes = Math.max(0, Math.floor((Date.now() - ms) / 60000));
+  if (minutes < 1) return 'たった今';
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  return `${Math.floor(hours / 24)}日前`;
+}
+
 export async function renderFriends() {
   $('friendCloudNotice').style.display = cloudEnabled() ? 'none' : 'block';
   $('friendCountText').textContent = `${state.profile.friends.length} / ${MAX_FRIENDS} 人`;
@@ -39,6 +60,7 @@ function renderList() {
       <div class="cinfo">
         <div class="cname">${f.name || 'プレイヤー'}</div>
         <div class="cmeta">${f.code || ''}</div>
+        <div class="friend-status"><span>ランク:${f.rank || '--'}</span><span>最終ログイン ${lastLoginText(f.lastLoginAt)}</span></div>
       </div>
       <button class="btn ${greeted ? 'secondary' : ''} greetbtn" ${greeted ? 'disabled' : ''}>${greeted ? '済み' : 'あいさつ'}</button>
       <button class="friend-del" aria-label="削除">✕</button>`;

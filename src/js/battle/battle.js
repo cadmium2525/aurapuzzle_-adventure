@@ -61,7 +61,7 @@ export function initBattle() {
   });
   $('resultBtn').addEventListener('click', () => {
     $('resultModal').classList.remove('show');
-    showScreen('dungeon');
+    showScreen('dungeon', { preserve: true });
   });
   $('battleInfoBtn').addEventListener('click', openPartyInfo);
   $('skillCancelBtn').addEventListener('click', closeSkillConfirm);
@@ -670,7 +670,7 @@ function finishRun() {
   }
   $('resultRank').innerHTML =
     (ups > 0
-      ? `<div class="rankup">🎉 ランクアップ! Rank ${state.rank}
+      ? `<div class="rankup">🎉 ランクアップ! ランク:${state.rank}
           <span>スタミナ +${staminaGained}(現在 ${state.stamina} / 上限 ${maxStamina()})</span></div>`
       : '')
     + (levelUps.length
@@ -702,7 +702,7 @@ function retreat() {
   if (bstate === 'resolving') return;
   bstate = 'over';
   run = null;
-  showScreen('dungeon');
+  showScreen('dungeon', { preserve: true });
 }
 
 /* ===================== 入力 ===================== */

@@ -16,12 +16,12 @@ export function renderMypage() {
   $('bgmRange').value = state.settings.bgm;
   $('seRange').value = state.settings.se;
   $('playerIdText').textContent = state.settings.playerId;
-  $('mypageRank').textContent = `Rank ${state.rank}(EXP ${state.exp}/${expToNextRank(state.rank)})`;
+  $('mypageRank').textContent = `ランク:${state.rank}(EXP ${state.exp}/${expToNextRank(state.rank)})`;
   const over = state.stamina > maxStamina();
   $('mypageStamina').innerHTML = `${state.stamina} / ${maxStamina()}`
     + (over ? ' <span class="overtag">OVER</span>' : '');
   $('profileNameInput').value = state.profile.name;
-  $('profileRankText').textContent = `Rank ${state.rank} ・ ${state.settings.playerId}`;
+  $('profileRankText').textContent = `ランク:${state.rank} ・ ${state.settings.playerId}`;
   renderProfileAvatar();
   renderRentalNow();
   $('cloudStatusText').textContent = cloudEnabled()

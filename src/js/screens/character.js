@@ -2,7 +2,7 @@
  * character.js — キャラクター画面(編成 / 図鑑 / 進化)
  * 自陣は人物キャラクター3人。先頭がリーダーでリーダースキルが発動する。
  * =======================================================*/
-import { $, toast, itemIcon } from '../core/ui.js';
+import { $, toast, itemIcon, artImg } from '../core/ui.js';
 import {
   state, saveState, ownedCharacters, ownCharacters, resolveOwned,
   entryOf, evolveCheck, evolveCharacter, materialCount,
@@ -12,7 +12,7 @@ import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
   BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE,
-  AWAKEN_MAX, awakenStepsFor, EXP_ITEMS, maxLevelFor, crystalIdFor
+  AWAKEN_MAX, awakenStepsFor, EXP_ITEMS, maxLevelFor, crystalIdFor, finalStarOf
 } from '../data/gamedata.js';
 import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML, awakenPipsHTML } from './parts.js';
 
@@ -41,7 +41,11 @@ export function initCharacter() {
   });
 }
 
-function closeDetail() { $('charDetailModal').classList.remove('show'); detailId = null; }
+function closeDetail() {
+  $('charDetailModal').classList.remove('show');
+  detailId = null;
+  renderCharacterScreen();
+}
 
 /** 編成へ入れる / 外す */
 function toggleTeam(id) {
@@ -225,8 +229,8 @@ function renderExpBox(id) {
       if (!res.ok) { toast(res.message); return; }
       toast(res.to > res.from ? `Lv${res.from} → Lv${res.to}` : `経験値+${res.exp}`);
       updateStatusBar();
-      openDetail(detailId, detailOwned);
-      renderTeamPane();
+      openDetail(detailId, detailOwned, null, false);
+      renderCharacterScreen();
     });
   });
 }
@@ -271,8 +275,8 @@ function doDismiss() {
     .map(k => `${materialById(k).emoji}${res.gained[k]}`).join(' ');
   toast(`送還: ${names} 💰${res.coin.toLocaleString()}`);
   updateStatusBar();
-  openDetail(detailId, detailOwned);
-  renderTeamPane();
+  openDetail(detailId, detailOwned, null, false);
+  renderCharacterScreen();
 }
 
 function doAwaken(useToken) {
@@ -281,8 +285,8 @@ function doAwaken(useToken) {
   if (!res.ok) { toast(res.message); return; }
   toast(`開眼 ${res.to} 段階目: ${res.step ? res.step.label : ''}`);
   updateStatusBar();
-  openDetail(detailId, detailOwned);
-  renderTeamPane();
+  openDetail(detailId, detailOwned, null, false);
+  renderCharacterScreen();
 }
 
 function doEvolve() {
@@ -292,8 +296,8 @@ function doEvolve() {
   saveState();
   updateStatusBar();
   showEvolveResult(res.before, res.after);
-  openDetail(detailId, detailOwned);
-  renderTeamPane();
+  openDetail(detailId, detailOwned, null, false);
+  renderCharacterScreen();
 }
 
 /** 進化の演出モーダル */
@@ -319,26 +323,42 @@ function showEvolveResult(before, after) {
 }
 
 /* ===================== 詳細モーダル ===================== */
-function openDetail(id, canEquip) {
+function openDetail(id, canEquip, previewStar = null, resetScroll = true) {
   detailId = id;
   detailOwned = canEquip;
+  const base = characterById(id);
   const owned = !!entryOf(id);
-  const ch = owned ? resolveOwned(id) : resolveCharacter(id, null, 1);
+  const isCatalogPreview = Number.isFinite(previewStar);
+  const ch = isCatalogPreview
+    ? resolveCharacter(id, previewStar, 1, 0)
+    : (owned ? resolveOwned(id) : resolveCharacter(id, null, 1));
   const inTeam = state.team.includes(id);
 
-  $('charDetailBody').innerHTML = charDetailHTML(ch,
-    owned ? '' : '<div class="cd-note">まだ仲間にしていません。ガチャやショップで探しましょう。</div>');
+  const formSwitch = isCatalogPreview ? `
+    <div class="segmented small catalog-switch">
+      <button data-catalog-star="${base.rarity}" class="${previewStar === base.rarity ? 'active' : ''}">進化前 ★${base.rarity}</button>
+      <button data-catalog-star="${finalStarOf(base)}" class="${previewStar === finalStarOf(base) ? 'active' : ''}">進化後 ★${finalStarOf(base)}</button>
+    </div>` : '';
+  const note = isCatalogPreview
+    ? '<div class="cd-note">図鑑プレビューです。育成状況は編成タブの詳細で確認できます。</div>'
+    : (owned ? '' : '<div class="cd-note">まだ仲間にしていません。ガチャやショップで探しましょう。</div>');
+  $('charDetailBody').innerHTML = formSwitch + charDetailHTML(ch, note);
+  $('charDetailBody').querySelectorAll('[data-catalog-star]').forEach(button => {
+    button.addEventListener('click', () => openDetail(id, false, Number(button.dataset.catalogStar)));
+  });
   const btn = $('charDetailActionBtn');
-  btn.style.display = (canEquip && owned) ? 'block' : 'none';
+  btn.style.display = (canEquip && owned && !isCatalogPreview) ? 'block' : 'none';
   btn.textContent = inTeam ? '編成から外す' : '編成に入れる';
   btn.className = 'btn block' + (inTeam ? ' secondary' : '');
-  if (owned) { renderEvolveBox(id); renderAwakenBox(id); renderExpBox(id); renderDismissBox(id); }
+  if (owned && !isCatalogPreview) { renderEvolveBox(id); renderAwakenBox(id); renderExpBox(id); renderDismissBox(id); }
   else {
     ['charEvolveBox','charAwakenBox','charExpBox','charDismissBox',
      'charEvolveBtn','charAwakenBtn','charAwakenTokenBtn','charDismissBtn']
       .forEach(k => { $(k).style.display = 'none'; });
   }
-  $('charDetailModal').classList.add('show');
+  const modal = $('charDetailModal');
+  modal.classList.add('show');
+  if (resetScroll) modal.querySelector('.modal-card').scrollTop = 0;
 }
 
 /* ===================== 編成タブ ===================== */
@@ -451,11 +471,31 @@ function renderListPane() {
     .sort((a, b) => a.aura - b.aura || a.rarity - b.rarity)
     .forEach(base => {
       const e = entryOf(base.id);
-      const ch = e ? resolveOwned(base.id) : resolveCharacter(base.id, null, 1);
-      const row = document.createElement('div');
-      row.className = 'char-row' + (e ? '' : ' locked');
-      row.innerHTML = charRowHTML(ch, e ? e.n : 0);
-      row.addEventListener('click', () => openDetail(base.id, false));
-      el.appendChild(row);
+      const before = resolveCharacter(base, base.rarity, 1, 0);
+      const afterStar = finalStarOf(base);
+      const after = resolveCharacter(base, afterStar, 1, 0);
+      const aura = AURAS[base.aura];
+      const card = document.createElement('div');
+      card.className = 'catalog-card' + (e ? '' : ' unowned');
+      card.style.setProperty('--aura', COLOR_HEX[aura.key]);
+      const form = (ch, label) => `
+        <button class="catalog-form" data-star="${ch.star}">
+          <span class="catalog-portrait">${artImg(ch.art && ch.art.icon, ch.portrait, 'catalog')}</span>
+          <span><b>${label}</b><i>★${ch.star}</i></span>
+        </button>`;
+      card.innerHTML = `
+        <div class="catalog-head">
+          <span><b>${base.name}</b><i>${aura.emoji}${aura.name} ・ ${base.job}</i></span>
+          <em>${e ? `所持 ★${e.star}` : '未所持'}</em>
+        </div>
+        <div class="catalog-forms">
+          ${form(before, '進化前')}
+          <span class="catalog-arrow">›</span>
+          ${form(after, '進化後')}
+        </div>`;
+      card.querySelectorAll('[data-star]').forEach(button => {
+        button.addEventListener('click', () => openDetail(base.id, false, Number(button.dataset.star)));
+      });
+      el.appendChild(card);
     });
 }

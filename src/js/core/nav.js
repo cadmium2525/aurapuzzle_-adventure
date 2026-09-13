@@ -3,7 +3,6 @@
  * =======================================================*/
 import { $, formatMMSS, artImg } from './ui.js';
 import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
-import { expToNextRank } from '../data/gamedata.js';
 
 const TITLES = {
   home: 'ホーム', dungeon: 'ダンジョン', battle: 'バトル', event: 'イベント',
@@ -12,17 +11,20 @@ const TITLES = {
 };
 
 const renderers = {};
+const backHandlers = {};
 /** 画面表示時に呼ぶ描画関数を登録する */
 export function registerScreen(name, fn) { renderers[name] = fn; }
+/** 画面内の階層を1つ戻す処理。true を返した場合はホームへ戻らない。 */
+export function registerBackHandler(name, fn) { backHandlers[name] = fn; }
 
 export let currentScreen = 'home';
 
 /**
  * 画面を切り替える。
- * ダンジョンもキャラクターもショップも、すべてホームのメニューから
- * 1段だけ潜る構成なので、履歴は持たない(戻る = ホーム)。
+ * 基本はホームから1段だけ潜る。ダンジョンだけは種別選択を挟むため、
+ * backHandlers で画面内階層を先に戻す。
  */
-export function showScreen(name) {
+export function showScreen(name, options = {}) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = $('screen-' + name);
   if (!el) return;
@@ -33,14 +35,18 @@ export function showScreen(name) {
   document.body.classList.toggle('in-battle', name === 'battle');
   document.body.dataset.screen = name;          // 画面ごとの背景切り替えに使う
   currentScreen = name;
-  if (renderers[name]) renderers[name]();
+  if (renderers[name]) renderers[name](options);
   updateStatusBar();
   // 画面切り替え時は先頭へ戻す
   window.scrollTo({ top: 0 });
 }
 
-/** トップバーの ‹ 。どの画面からでも1回でホームへ戻る */
-export function goBack() { showScreen('home'); }
+/** トップバーの ‹ 。画面内階層があればそこへ、無ければホームへ戻る。 */
+export function goBack() {
+  const handler = backHandlers[currentScreen];
+  if (handler && handler()) return;
+  showScreen('home');
+}
 
 /* ===================== トップバー ===================== */
 /**
@@ -85,8 +91,6 @@ export function updateStatusBar() {
   $('curCoin').textContent = state.coin.toLocaleString();
   $('curFrepo').textContent = state.frepo.toLocaleString();
   $('curOrb').textContent = state.orb.toLocaleString();
-  const expEl = $('rankExpFill');
-  if (expEl) expEl.style.width = (state.exp / expToNextRank(state.rank) * 100) + '%';
 }
 
 export function initNav() {

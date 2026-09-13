@@ -36,10 +36,7 @@
           </div>
           <div class="stamina-track"><div id="staminaFill"></div></div>
         </div>
-        <div class="rank-block">
-          <div class="rank-ring"><span id="curRank">1</span></div>
-          <div class="rank-exp"><div id="rankExpFill"></div></div>
-        </div>
+        <div class="rank-block">ランク:<b id="curRank">1</b></div>
       </div>
       <div id="currencyRow">
         <span class="cpill"><span class="item-icon i-coin"></span><b id="curCoin">0</b></span>
@@ -76,19 +73,32 @@
 
     <!-- ===================== ダンジョン ===================== -->
     <section class="screen" id="screen-dungeon">
-      <div class="segmented">
-        <button id="modeStoryBtn" class="active">ノーマル</button>
-        <button id="modeDailyBtn">曜日</button>
+      <div id="dungeonMenu" class="dungeon-menu">
+        <div class="dungeon-menu-lead">挑戦するダンジョンを選択</div>
+        <button id="openStoryDungeonBtn" class="dungeon-entry story">
+          <span class="dungeon-entry-kicker">STORY</span>
+          <b>ノーマルダンジョン</b>
+          <span>章を進めて新しい敵と報酬を解放</span><i>›</i>
+        </button>
+        <button id="openDailyDungeonBtn" class="dungeon-entry daily">
+          <span class="dungeon-entry-kicker">DAILY</span>
+          <b>曜日ダンジョン</b>
+          <span>曜日ごとに進化・育成素材を獲得</span><i>›</i>
+        </button>
       </div>
-      <div id="storyControls">
-        <div class="segmented sub">
-          <button id="diffNormalBtn" class="active">ノーマル</button>
-          <button id="diffHardBtn">ハード</button>
+
+      <div id="dungeonStages" hidden>
+        <button id="dungeonCategoryBackBtn" class="dungeon-category-back">‹ ダンジョン選択</button>
+        <div id="storyControls">
+          <div class="segmented sub">
+            <button id="diffNormalBtn" class="active">ノーマル</button>
+            <button id="diffHardBtn">ハード</button>
+          </div>
+          <div id="chapterBar" class="chapter-bar"></div>
         </div>
-        <div id="chapterBar" class="chapter-bar"></div>
+        <div id="dailyHead" class="daily-head" hidden></div>
+        <div id="stageList" class="stack"></div>
       </div>
-      <div id="dailyHead" class="daily-head" hidden></div>
-      <div id="stageList" class="stack"></div>
     </section>
 
     <!-- ===================== バトル ===================== -->
@@ -178,7 +188,7 @@
 
       <div id="characterListPane" style="display:none;">
         <div class="card">
-          <div class="cardtitle"><span>図鑑(全キャラクター)</span></div>
+          <div class="cardtitle"><span>図鑑(進化前 / 進化後)</span></div>
           <div id="allCharacterList" class="stack"></div>
         </div>
       </div>

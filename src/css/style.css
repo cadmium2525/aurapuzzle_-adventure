@@ -118,17 +118,8 @@ body{
   background:linear-gradient(90deg,var(--stamina2),var(--stamina1));transition:width .4s ease;}
 #staminaFill.over{background:linear-gradient(90deg,var(--gold-2),var(--gold-1));
   box-shadow:0 0 14px rgba(255,198,92,.65);}
-.rank-block{display:flex;flex-direction:column;align-items:center;gap:4px;width:54px;}
-.rank-ring{
-  width:34px;height:34px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 40% 30%, rgba(255,255,255,.2), transparent 60%), rgba(255,198,92,.14);
-  border:1.5px solid rgba(255,198,92,.55);
-  font-size:13px;font-weight:800;color:var(--accent);
-  font-variant-numeric:tabular-nums;
-}
-.rank-exp{width:100%;height:3px;border-radius:3px;background:rgba(255,255,255,0.09);overflow:hidden;}
-#rankExpFill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-2),var(--gold-1));transition:width .4s ease;}
+.rank-block{display:flex;align-items:center;gap:2px;flex-shrink:0;font-size:11px;color:var(--ink-dim);}
+.rank-block b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;}
 #currencyRow{display:flex;justify-content:flex-end;gap:6px;}
 .cpill{
   display:inline-flex;align-items:center;gap:3px;
@@ -221,14 +212,14 @@ body[data-screen="home"] #app::before{
 /* 回転台の3つの位置。位置クラスを付け替えるとここへ向かって動く。
    要素を作り直すとトランジションが効かないので、home.js は中身を作り直さない。 */
 .hp-slot{
-  position:absolute;bottom:0;left:50%;width:66%;height:86%;
+  position:absolute;bottom:0;left:50%;width:69%;height:92%;
   display:flex;align-items:flex-end;justify-content:center;
   pointer-events:none;transform-origin:bottom center;will-change:transform;
   transition:transform .46s cubic-bezier(.32,.02,.26,1),
              filter .46s ease, opacity .46s ease;
 }
 .hp-slot.pos-front{
-  transform:translateX(-50%) rotateY(0deg) scale(1);
+  transform:translateX(-50%) rotateY(0deg) scale(1.12);
   z-index:3;opacity:1;
   /* 奥と同じ関数の並びにしておく。構成が違うと補間できず、
      前面に戻っても暗いままになることがある */
@@ -394,6 +385,27 @@ button{font-family:inherit;cursor:pointer;}
 .row-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
 .selbtn{padding:7px 12px;font-size:11px;}
 .detailbtn{padding:5px 12px;font-size:10px;}
+
+/* 図鑑は編成リストと分け、進化前後を横並びで見せる */
+.catalog-card{padding:11px;border-radius:var(--r-md);background:linear-gradient(160deg,
+  color-mix(in srgb,var(--aura) 10%,rgba(255,255,255,.05)),rgba(255,255,255,.025));
+  border:1px solid color-mix(in srgb,var(--aura) 34%,var(--panel-border));}
+.catalog-card.unowned{filter:saturate(.55);opacity:.62;}
+.catalog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px;}
+.catalog-head>span{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.catalog-head b{font-size:13px;}.catalog-head i{font-style:normal;font-size:9.5px;color:var(--ink-dim);}
+.catalog-head em{font-style:normal;font-size:8.5px;color:var(--accent);border:1px solid rgba(255,198,92,.32);
+  border-radius:6px;padding:2px 6px;white-space:nowrap;}
+.catalog-forms{display:grid;grid-template-columns:1fr 14px 1fr;align-items:center;gap:5px;}
+.catalog-form{border:1px solid var(--panel-border);border-radius:12px;padding:7px;background:rgba(0,0,0,.18);
+  color:var(--ink);display:flex;align-items:center;gap:7px;text-align:left;min-width:0;}
+.catalog-form:active{transform:scale(.98);}.catalog-portrait{width:42px;height:42px;border-radius:10px;overflow:hidden;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);}
+.catalog-img{width:100%;height:100%;object-fit:cover;display:block;}.catalog-emoji{font-size:23px;}
+.catalog-form>span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.catalog-form b{font-size:10px;white-space:nowrap;}.catalog-form i{font-style:normal;font-size:9px;color:var(--accent);}
+.catalog-arrow{text-align:center;color:var(--ink-faint);font-size:18px;}
+.catalog-switch{margin-bottom:12px;}
 
 /* ===================== ダンジョン ===================== */
 .stage-card{
@@ -685,6 +697,29 @@ input[type=range]{accent-color:var(--accent);}
 .acc-msg.ng{color:#FF9A9A;}
 
 /* ダンジョン: 章タブと曜日ダンジョン */
+.dungeon-menu{display:flex;flex-direction:column;gap:12px;padding-top:4px;}
+.dungeon-menu-lead{font-size:11px;color:var(--ink-dim);letter-spacing:.08em;padding:0 4px;}
+.dungeon-entry{
+  position:relative;min-height:124px;padding:22px 48px 20px 20px;text-align:left;overflow:hidden;
+  border-radius:22px;border:1px solid var(--panel-border-hi);color:var(--ink);
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:6px;
+  box-shadow:var(--shadow-1);transition:transform .13s ease,filter .2s ease;
+}
+.dungeon-entry::before{content:'';position:absolute;inset:0;opacity:.72;pointer-events:none;}
+.dungeon-entry.story{background:linear-gradient(135deg,#251441,#101A38);}
+.dungeon-entry.story::before{background:radial-gradient(circle at 85% 25%,rgba(101,224,255,.35),transparent 42%);}
+.dungeon-entry.daily{background:linear-gradient(135deg,#38203D,#24172F);}
+.dungeon-entry.daily::before{background:radial-gradient(circle at 85% 25%,rgba(255,198,92,.35),transparent 42%);}
+.dungeon-entry>*{position:relative;}
+.dungeon-entry-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--accent-3);}
+.dungeon-entry.daily .dungeon-entry-kicker{color:var(--accent);}
+.dungeon-entry b{font-size:18px;letter-spacing:.03em;}
+.dungeon-entry>span:not(.dungeon-entry-kicker){font-size:10.5px;color:var(--ink-dim);}
+.dungeon-entry i{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:34px;font-style:normal;color:rgba(255,255,255,.5);}
+.dungeon-entry:active{transform:scale(.985);filter:brightness(1.08);}
+.dungeon-category-back{border:none;background:none;color:var(--accent-3);font-size:11px;font-weight:800;padding:1px 2px 10px;}
+#dungeonStages{display:flex;flex-direction:column;gap:13px;}
+#dungeonStages[hidden]{display:none;}
 .segmented.sub{margin-bottom:9px;}
 .chapter-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
 .chapter-bar::-webkit-scrollbar{display:none;}
@@ -755,6 +790,8 @@ input[type=range]{accent-color:var(--accent);}
   display:flex;align-items:center;justify-content:center;
   background:rgba(255,255,255,0.07);border:1px solid var(--panel-border);}
 .friend-row .greetbtn{padding:8px 12px;font-size:11px;flex-shrink:0;}
+.friend-status{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:9.5px;color:var(--ink-faint);}
+.friend-status span:first-child{color:var(--accent);}
 .friend-del{
   width:27px;height:27px;border-radius:9px;flex-shrink:0;
   background:rgba(255,255,255,0.06);border:1px solid var(--panel-border);
