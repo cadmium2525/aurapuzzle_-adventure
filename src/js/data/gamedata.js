@@ -306,6 +306,12 @@ export const BUILTIN_GIFTS = [
     title: '闇のオーラ解禁記念',
     note: '3章から盤面に闇のオーラが加わります。闇のキャラクターをお受け取りください。',
     char: 'dk_shion'
+  },
+  {
+    key: 'gift_x_launch',
+    title: 'X公開記念',
+    note: '応援ありがとうございます!',
+    orb: 45
   }
 ];
 
