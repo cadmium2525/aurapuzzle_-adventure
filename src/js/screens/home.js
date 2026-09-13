@@ -12,6 +12,7 @@
 import { $, artImg } from '../core/ui.js';
 import { ownCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
+import { updatePresentBadge } from './present.js';
 
 /** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
 let frontIndex = 0;
@@ -54,6 +55,7 @@ function applyPositions(mons) {
 }
 
 export function renderHome() {
+  updatePresentBadge();
   const mons = ownCharacters();
   const art = $('homePartyArt');
   const navs = [$('homePrevBtn'), $('homeNextBtn')];

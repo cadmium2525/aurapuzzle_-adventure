@@ -12,7 +12,9 @@ import { renderShop } from './screens/shop.js';
 import { renderGuide } from './screens/guide.js';
 import { initMypage, renderMypage, openRentalPicker } from './screens/mypage.js';
 import { initFriends, renderFriends } from './screens/friends.js';
+import { initPresent, updatePresentBadge } from './screens/present.js';
 import { initCloud, takeRentalClaim } from './core/friends.js';
+import { checkLoginBonus, fetchOperatorGifts } from './core/gifts.js';
 import { applyAdminGrant } from './core/account.js';
 import { toast } from './core/ui.js';
 
@@ -35,23 +37,28 @@ initMypage();
 document.getElementById('statusProfileIcon')
   .addEventListener('click', openRentalPicker);
 initFriends();
+initPresent();
 initBattle();
+
+// その日はじめての起動ならログインボーナスをプレゼントボックスへ入れる
+const login = checkLoginBonus();
 
 showScreen('home', false);
 updateStatusBar();
+if (login) toast(`ログインボーナス ${login.streak}日目 🎁 プレゼントボックスへ`);
 
 // Firebase(匿名ログイン+データ同期)は失敗してもゲーム本体に影響しないよう非同期で初期化
 initCloud()
-  .then(() => {
+  .then(async () => {
     // 別端末でのログイン後など、起動時点で管理者だった場合はここで付与する
     const granted = applyAdminGrant();
     if (granted) { updateStatusBar(); toast(`管理者アカウント: 💎${granted} を付与しました`); }
     // 自分のキャラが借りられたぶんのフレポ(前日までの合計)
     const claim = takeRentalClaim();
-    if (claim) {
-      updateStatusBar();
-      toast(`貸し出しキャラが${claim.uses}回使われました 🎗️+${claim.gained}`);
-    }
+    if (claim) toast(`貸し出しキャラが${claim.uses}回使われました 🎁 プレゼントボックスへ`);
+    // 運営からのプレゼント(あれば箱に入る)
+    await fetchOperatorGifts();
+    updatePresentBadge();
   })
   .catch(() => {});
 

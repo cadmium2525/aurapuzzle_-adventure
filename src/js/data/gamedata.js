@@ -274,6 +274,28 @@ export const FRIEND_GREET_REWARD = 20;        // あいさつした側
 export const FRIEND_GREET_REWARD_OTHER = 10;  // あいさつされた側
 export const FRIEND_RENTAL_REWARD = 50;       // 貸し出しキャラが1回使われるごと
 
+/* ===================== ログインボーナス ===================== */
+/**
+ * 1日1回、その日はじめての起動でプレゼントボックスに入る。
+ * 連続でログインするほど増えるが、LOGIN_STREAK_MAX 日ぶんで頭打ちになる
+ * (それ以上続けても上限額のまま。途切れると1日目へ戻る)。
+ * オーブは LOGIN_ORB_EVERY 日ごとの区切りでだけ入る。
+ */
+export const LOGIN_STREAK_MAX = 10;
+export const LOGIN_COIN_BASE = 300;
+export const LOGIN_COIN_STEP = 100;
+export const LOGIN_ORB_EVERY = 5;
+export const LOGIN_ORB = 2;
+
+/** 連続n日目の受け取り内容 */
+export function loginBonusFor(streak) {
+  const day = Math.max(1, Math.min(streak, LOGIN_STREAK_MAX));
+  const reward = { coin: LOGIN_COIN_BASE + LOGIN_COIN_STEP * (day - 1) };
+  // 5日ごとの節目。上限に達したあとも節目は巡ってくるので streak 側で判定する
+  if (streak % LOGIN_ORB_EVERY === 0) reward.orb = LOGIN_ORB;
+  return reward;
+}
+
 /* ===================== スタミナ / ランク ===================== */
 export const STAMINA_REGEN_MS = 3 * 60 * 1000;  // 3分で1回復
 export const STAMINA_BASE_MAX = 100;            // ランク1の上限

@@ -1,11 +1,13 @@
 /* =========================================================
  * friends.js — フレンドシステム & Firestoreへのデータ保管
  * フレンドコード(= プレイヤーID)でフレンドを追加し、
- * 登録時ボーナス/毎日のあいさつでフレンドポイント(フレポ)を稼げる。
+ * 毎日のあいさつ/貸し出しキャラの使用でフレンドポイント(フレポ)を稼げる。
+ * 受け取りはプレゼントボックス経由。
  * =======================================================*/
 import { FB, firebaseEnabled, initFirebase, getUid } from './firebase.js';
 import { state, saveState, onSave, entryOf } from './state.js';
 import { characterById } from '../data/characters.js';
+import { addGift } from './gifts.js';
 import {
   FRIEND_GREET_REWARD, FRIEND_GREET_REWARD_OTHER,
   FRIEND_RENTAL_REWARD, MAX_FRIENDS
@@ -51,11 +53,10 @@ export async function initCloud() {
     await FB.setDoc(FB.doc(FB.db, 'friendCodes', code), { uid: myUid });
   } else {
     const data = snap.data();
-    // 保留中のフレポ(他プレイヤーからのボーナス)を受け取る
+    // 保留中のフレポ(フレンドからのあいさつ)はプレゼントボックスへ入れる
     const pending = data.pendingFrepo || 0;
     if (pending > 0) {
-      state.frepo += pending;
-      saveState();
+      addGift({ title: 'フレンドからのあいさつ', note: 'あいさつのお礼です', frepo: pending });
       await FB.updateDoc(myRef, { pendingFrepo: 0 });
     }
     // プロフィール名/アイコンが未登録ならこちらの値で補完
@@ -88,6 +89,9 @@ async function pushCloudSave() {
       characters: state.characters, materials: state.materials, team: state.team,
       progress: state.progress, records: state.records,
       grants: state.grants || {},        // 一度きりの付与が別端末で重複しないように運ぶ
+      gifts: state.gifts || [],          // 未受け取りのプレゼント
+      giftLog: state.giftLog || {},      // 受け取り済みの運営プレゼント
+      login: state.login || {},          // ログインボーナスの連続日数
       updatedAt: FB.serverTimestamp()
     });
     // 貸し出しキャラのレベル/開眼は後から変わるので、保存のたびに最新へ揃える
@@ -293,8 +297,11 @@ async function claimRentalReward(myRef, data) {
     return null;
   }
   const gained = uses * FRIEND_RENTAL_REWARD;
-  state.frepo += gained;
-  saveState();
+  addGift({
+    title: '貸し出しキャラのお礼',
+    note: `あなたのキャラクターが${uses}回使われました`,
+    frepo: gained
+  });
   await FB.updateDoc(myRef, {
     rentalRewardedCount: data.rentalUseCount || 0,
     lastRentalRewardDate: today

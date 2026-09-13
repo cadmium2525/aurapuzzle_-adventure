@@ -53,7 +53,10 @@
     <!-- ===================== ホーム ===================== -->
     <section class="screen active" id="screen-home">
       <div id="homePartyStage">
-        <button class="linkbtn" id="homeEditBtn" data-nav="character">編成する ›</button>
+        <button class="present-btn" id="homePresentBtn" aria-label="プレゼントボックス">
+          <img src="./assets/ui/present.webp" alt="">
+          <span class="present-badge" id="homePresentBadge" hidden>0</span>
+        </button>
         <button class="hp-nav left"  id="homePrevBtn" aria-label="前のキャラクターを前面に"></button>
         <button class="hp-nav right" id="homeNextBtn" aria-label="次のキャラクターを前面に"></button>
         <div id="homePartyArt"></div>
@@ -344,6 +347,17 @@
     <div class="mstats mb8">選んだ1人がフレンドのサポート枠に出て、あなたのアイコンにもなります。</div>
     <div id="rentalPickList" class="stack scroll-area"></div>
     <button class="btn secondary block mt8" id="rentalPickCloseBtn">閉じる</button>
+  </div>
+</div>
+
+<!-- ===================== プレゼントボックス ===================== -->
+<div class="modal" id="presentModal">
+  <div class="modal-card wide">
+    <h3>プレゼントボックス</h3>
+    <div class="mstats mb8" id="presentHead"></div>
+    <div id="presentList" class="stack scroll-area"></div>
+    <button class="btn block mt8" id="presentClaimAllBtn">すべて受け取る</button>
+    <button class="btn secondary block mt6" id="presentCloseBtn">閉じる</button>
   </div>
 </div>
 

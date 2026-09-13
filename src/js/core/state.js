@@ -15,7 +15,7 @@ import {
 } from '../data/gamedata.js';
 
 const SAVE_KEY = 'acb_state';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 
 export const DEFAULT_ICONS = ['🙂', '🔥', '💧', '🌿', '💗', '🦸', '🧙', '👑', '🎩', '🐲'];
 
@@ -49,6 +49,9 @@ function createInitialState() {
     progress: {},                      // {stageId:{normal:bool, hard:bool}}
     records: {},                       // {stageId_diff:{maxChain}}
     grants: {},                        // 一度きりの付与の記録(再ログインで重複させない)
+    gifts: [],                         // プレゼントボックスの中身(未受け取り)
+    giftLog: {},                       // 受け取り済みの運営プレゼントID
+    login: { date: '', streak: 0 },    // 最後にログインボーナスを配った日と連続日数
     settings: { bgm: 60, se: 80, playerId: uid() },
     profile: {
       name: 'プレイヤー',
@@ -121,6 +124,9 @@ function migrate(old) {
   s.staminaAt = old.staminaAt || Date.now();
   s.records = old.records || {};
   s.grants = old.grants || {};
+  s.gifts = Array.isArray(old.gifts) ? old.gifts : [];
+  s.giftLog = old.giftLog || {};
+  s.login = Object.assign({ date: '', streak: 0 }, old.login || {});
   s.settings = Object.assign(fresh.settings, old.settings || {});
   s.profile = Object.assign(fresh.profile, old.profile || {});
   s.profile.friends = Array.isArray(s.profile.friends) ? s.profile.friends : [];

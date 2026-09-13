@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v9';
+const CACHE_NAME = 'aura-connect-v10';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -15,6 +15,7 @@ const ASSETS = [
   './src/js/core/sysmodal.js',
   './src/js/core/firebase.js',
   './src/js/core/friends.js',
+  './src/js/core/gifts.js',
   './src/js/data/gamedata.js',
   './src/js/data/characters.js',
   './src/js/data/skills.js',
@@ -30,7 +31,8 @@ const ASSETS = [
   './src/js/screens/gacha.js',
   './src/js/screens/shop.js',
   './src/js/screens/mypage.js',
-  './src/js/screens/friends.js'
+  './src/js/screens/friends.js',
+  './src/js/screens/present.js'
 ];
 
 self.addEventListener('install', (e) => {

@@ -168,7 +168,38 @@ body[data-screen="home"] #app::before{
 /* ホーム: 編成中の3人を1枚絵で見せる */
 #screen-home{flex:1;min-height:0;}
 #homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
-#homeEditBtn{position:absolute;right:2px;top:0;z-index:5;}
+/* プレゼントボックス。編成ボタンがあった位置に置く */
+#homePresentBtn{
+  position:absolute;right:2px;top:0;z-index:5;
+  width:52px;height:52px;padding:0;border:none;background:none;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.45));
+}
+#homePresentBtn img{width:100%;height:100%;object-fit:contain;display:block;}
+#homePresentBtn:active{transform:scale(.94);}
+/* 未受け取りがあるときだけ、軽く弾ませて気づかせる */
+#homePresentBtn.has-gift img{animation:giftBounce 1.8s ease-in-out infinite;}
+@keyframes giftBounce{
+  0%,72%,100%{transform:translateY(0) rotate(0);}
+  80%{transform:translateY(-4px) rotate(-5deg);}
+  90%{transform:translateY(-2px) rotate(4deg);}
+}
+.present-badge{
+  position:absolute;top:-3px;right:-3px;min-width:19px;height:19px;padding:0 5px;
+  border-radius:10px;background:linear-gradient(180deg,#FF7B7B,#E63B3B);color:#fff;
+  font-size:11px;font-weight:900;line-height:19px;text-align:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+}
+
+/* プレゼントボックスの中身 */
+.gift-row{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,0.045);border:1px solid var(--panel-border);
+  border-radius:var(--r-md);padding:10px 11px;
+}
+.gift-main{flex:1;min-width:0;}
+.gift-title{font-size:12px;font-weight:800;}
+.gift-note{font-size:10px;color:var(--ink-dim);margin-top:2px;}
+.gift-reward{font-size:12px;font-weight:900;color:var(--accent);margin-top:4px;}
 #homePartyArt{position:relative;flex:1;min-width:0;perspective:1200px;}
 
 /* 回転台の3つの位置。位置クラスを付け替えるとここへ向かって動く。
