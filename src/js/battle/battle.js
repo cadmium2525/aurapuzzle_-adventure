@@ -61,7 +61,7 @@ export function initBattle() {
   });
   $('resultBtn').addEventListener('click', () => {
     $('resultModal').classList.remove('show');
-    showScreen('dungeon', false);
+    showScreen('dungeon');
   });
   $('battleInfoBtn').addEventListener('click', openPartyInfo);
   $('skillCancelBtn').addEventListener('click', closeSkillConfirm);
@@ -702,7 +702,7 @@ function retreat() {
   if (bstate === 'resolving') return;
   bstate = 'over';
   run = null;
-  showScreen('dungeon', false);
+  showScreen('dungeon');
 }
 
 /* ===================== 入力 ===================== */

@@ -16,10 +16,13 @@ const renderers = {};
 export function registerScreen(name, fn) { renderers[name] = fn; }
 
 export let currentScreen = 'home';
-const navStack = [];
 
-export function showScreen(name, push) {
-  if (push !== false && currentScreen !== name) navStack.push(currentScreen);
+/**
+ * 画面を切り替える。
+ * ダンジョンもキャラクターもショップも、すべてホームのメニューから
+ * 1段だけ潜る構成なので、履歴は持たない(戻る = ホーム)。
+ */
+export function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = $('screen-' + name);
   if (!el) return;
@@ -36,10 +39,8 @@ export function showScreen(name, push) {
   window.scrollTo({ top: 0 });
 }
 
-export function goBack() {
-  const prev = navStack.pop() || 'home';
-  showScreen(prev, false);
-}
+/** トップバーの ‹ 。どの画面からでも1回でホームへ戻る */
+export function goBack() { showScreen('home'); }
 
 /* ===================== トップバー ===================== */
 /**

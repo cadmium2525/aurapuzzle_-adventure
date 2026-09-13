@@ -45,7 +45,7 @@ const login = checkLoginBonus();
 // まだ配っていない配布ぶん(闇のキャラクターなど)も入れておく
 checkBuiltinGifts();
 
-showScreen('home', false);
+showScreen('home');
 updateStatusBar();
 if (login) toast(`ログインボーナス ${login.streak}日目 🎁 プレゼントボックスへ`);
 
