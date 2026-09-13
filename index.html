@@ -346,7 +346,7 @@
       <div class="cardtitle"><span>ダンジョン</span></div>
       <button class="btn danger block" id="sysRetreatBtn">リタイア</button>
     </div>
-    <button class="btn secondary block" id="sysCloseBtn">閉じる</button>
+    <button class="btn secondary block" id="sysCloseBtn" data-back-close>閉じる</button>
   </div>
 </div>
 
@@ -356,7 +356,7 @@
     <h3>貸し出しキャラクター</h3>
     <div class="mstats mb8">選んだ1人がフレンドのサポート枠に出て、あなたのアイコンにもなります。</div>
     <div id="rentalPickList" class="stack scroll-area"></div>
-    <button class="btn secondary block mt8" id="rentalPickCloseBtn">閉じる</button>
+    <button class="btn secondary block mt8" id="rentalPickCloseBtn" data-back-close>閉じる</button>
   </div>
 </div>
 
@@ -367,7 +367,7 @@
     <div class="mstats mb8" id="presentHead"></div>
     <div id="presentList" class="stack scroll-area"></div>
     <button class="btn block mt8" id="presentClaimAllBtn">すべて受け取る</button>
-    <button class="btn secondary block mt6" id="presentCloseBtn">閉じる</button>
+    <button class="btn secondary block mt6" id="presentCloseBtn" data-back-close>閉じる</button>
   </div>
 </div>
 
@@ -377,7 +377,7 @@
     <h3>スキルを使う?</h3>
     <div id="skillConfirmBody"></div>
     <div class="confirm-actions">
-      <button class="btn secondary" id="skillCancelBtn">やめる</button>
+      <button class="btn secondary" id="skillCancelBtn" data-back-close>やめる</button>
       <button class="btn" id="skillUseBtn">使う</button>
     </div>
   </div>
@@ -395,7 +395,7 @@
     </div>
     <div id="supportPickList" class="stack scroll-area"></div>
     <button class="btn secondary block mt8" id="supportSkipBtn">サポートなしで挑戦(3人)</button>
-    <button class="btn ghost block mt6" id="supportCloseBtn">キャンセル</button>
+    <button class="btn ghost block mt6" id="supportCloseBtn" data-back-close>キャンセル</button>
   </div>
 </div>
 
@@ -404,7 +404,7 @@
   <div class="modal-card wide">
     <h3>パーティ情報</h3>
     <div id="partyInfoList" class="stack scroll-area"></div>
-    <button class="btn secondary block mt8" id="partyInfoCloseBtn">閉じる</button>
+    <button class="btn secondary block mt8" id="partyInfoCloseBtn" data-back-close>閉じる</button>
   </div>
 </div>
 
@@ -422,7 +422,7 @@
       <button class="btn secondary block mt6" id="charAwakenTokenBtn">開眼の証で開眼</button>
       <button class="btn danger block mt6" id="charDismissBtn">送還する</button>
       <button class="btn block mt6" id="charDetailActionBtn">編成する</button>
-      <button class="btn secondary block mt6" id="charDetailCloseBtn">閉じる</button>
+      <button class="btn secondary block mt6" id="charDetailCloseBtn" data-back-close>閉じる</button>
     </div>
   </div>
 </div>
@@ -432,7 +432,7 @@
   <div class="modal-card" id="evoResultCard">
     <h3>EVOLUTION</h3>
     <div id="evoResultBody"></div>
-    <button class="btn block mt8" id="evoResultCloseBtn">閉じる</button>
+    <button class="btn block mt8" id="evoResultCloseBtn" data-back-close>閉じる</button>
   </div>
 </div>
 
@@ -447,7 +447,7 @@
       <div class="rfriend-note" id="resultFriendText"></div>
       <button class="btn block" id="resultAddFriendBtn">フレンド登録する</button>
     </div>
-    <button class="btn secondary block mt6" id="resultBtn">ダンジョンへ戻る</button>
+    <button class="btn secondary block mt6" id="resultBtn" data-back-close>ダンジョンへ戻る</button>
   </div>
 </div>
 
@@ -474,8 +474,8 @@
       <h3>召喚結果</h3>
       <div class="pull-summary" id="pullSummary"></div>
     </div>
-    <button class="btn ghost block mt6" id="pullSkipBtn">スキップ</button>
-    <button class="btn block mt6" id="pullCloseBtn">受け取る</button>
+    <button class="btn ghost block mt6" id="pullSkipBtn" data-back-close>スキップ</button>
+    <button class="btn block mt6" id="pullCloseBtn" data-back-close>受け取る</button>
   </div>
 </div>
 

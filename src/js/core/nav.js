@@ -1,7 +1,7 @@
 /* =========================================================
  * nav.js — 画面遷移とトップバー
  * =======================================================*/
-import { $, formatMMSS, artImg } from './ui.js';
+import { $, formatMMSS, artImg, toast } from './ui.js';
 import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
 
 const TITLES = {
@@ -35,6 +35,7 @@ export function showScreen(name, options = {}) {
   document.body.classList.toggle('in-battle', name === 'battle');
   document.body.dataset.screen = name;          // 画面ごとの背景切り替えに使う
   currentScreen = name;
+  armDeviceBack();                              // 端末の戻る操作を受け止める場所を確保する
   if (renderers[name]) renderers[name](options);
   updateStatusBar();
   // 画面切り替え時は先頭へ戻す
@@ -46,6 +47,65 @@ export function goBack() {
   const handler = backHandlers[currentScreen];
   if (handler && handler()) return;
   showScreen('home');
+}
+
+/* ===================== 端末の戻る操作 =====================
+ * Android の戻るは popstate として届く。履歴に「身代わり」を1つ積んでおき、
+ * 戻るたびにそれが消費される → こちらで処理して積み直す、という形にする。
+ *
+ * 受け止める順番は、手前に出ているものから。
+ *   1. モーダルが開いていれば、それを閉じる
+ *   2. バトル中は設定(リタイア)を開く。進行中のランを不意に捨てないため
+ *   3. ホーム以外なら goBack()(画面内階層があればそこへ、無ければホーム)
+ *   4. ホームなら、続けてもう一度でアプリを閉じる(1回目は知らせるだけ)
+ * ======================================================== */
+const BACK_GUARD = 'acb-back';
+const EXIT_WINDOW_MS = 2000;
+let exitHintAt = 0;
+
+/** 身代わりが積まれていなければ積む */
+function armDeviceBack() {
+  if (history.state && history.state.guard === BACK_GUARD) return;
+  history.pushState({ guard: BACK_GUARD }, '');
+}
+
+/** いちばん手前のモーダル(重なったときはDOMの後ろが手前) */
+function topModal() {
+  const open = document.querySelectorAll('.modal.show');
+  return open.length ? open[open.length - 1] : null;
+}
+
+/**
+ * モーダルを閉じる。閉じ方はモーダルごとに後始末が違うので、
+ * data-back-close を付けたボタン(表示されているもの)を押して任せる。
+ */
+function closeTopModal(modal) {
+  const btn = [...modal.querySelectorAll('[data-back-close]')]
+    .find(b => b.offsetParent !== null);
+  if (btn) btn.click();
+  else modal.classList.remove('show');
+}
+
+/** @returns {boolean} アプリ内に留まるなら true */
+function handleDeviceBack() {
+  const modal = topModal();
+  if (modal) { closeTopModal(modal); return true; }
+  // バトル中は戻るで抜けさせない。リタイアの確認を出せる設定を開く
+  if (currentScreen === 'battle') { $('sysBtn').click(); return true; }
+  if (currentScreen !== 'home') { goBack(); return true; }
+
+  if (Date.now() - exitHintAt < EXIT_WINDOW_MS) return false;
+  exitHintAt = Date.now();
+  toast('もう一度戻るでアプリを閉じます');
+  return true;
+}
+
+function initDeviceBack() {
+  window.addEventListener('popstate', () => {
+    if (handleDeviceBack()) armDeviceBack();
+    else history.back();      // 身代わりより手前へ。単独起動のPWAならここで閉じる
+  });
+  armDeviceBack();
 }
 
 /* ===================== トップバー ===================== */
@@ -95,6 +155,7 @@ export function updateStatusBar() {
 
 export function initNav() {
   $('backBtn').addEventListener('click', goBack);
+  initDeviceBack();
   document.querySelectorAll('[data-nav]').forEach(el => {
     el.addEventListener('click', () => showScreen(el.getAttribute('data-nav')));
   });
