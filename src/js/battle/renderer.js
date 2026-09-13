@@ -248,6 +248,60 @@ function drawDragTimer(pos, radius, remainMs, totalMs) {
   ctx.restore();
 }
 
+/** 指を離しても進む操作時間を、外周の燃え尽きる導火線で表示する。 */
+function drawBoardFuse(remainMs, totalMs) {
+  if (remainMs === null || totalMs <= 0) return;
+  const ratio = Math.max(0, Math.min(1, remainMs / totalMs));
+  const inset = 3, w = CELL * COLS, h = CELL * ROWS;
+  const radius = Math.min(14, CELL * 0.25);
+  // 上辺中央から時計回り。角も含めた実際の距離で時間を配分する。
+  const points = [{ x: w / 2, y: inset }];
+  for (const [cx, cy, start] of [
+    [w - inset - radius, inset + radius, -Math.PI / 2],
+    [w - inset - radius, h - inset - radius, 0],
+    [inset + radius, h - inset - radius, Math.PI / 2],
+    [inset + radius, inset + radius, Math.PI]
+  ]) {
+    for (let i = 0; i <= 12; i++) {
+      const angle = start + i / 12 * Math.PI / 2;
+      points.push({ x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius });
+    }
+  }
+  points.push(points[0]);
+  const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
+  let burned = lengths.reduce((sum, length) => sum + length, 0) * (1 - ratio);
+  let segment = 0;
+  while (segment < lengths.length - 1 && burned > lengths[segment]) burned -= lengths[segment++];
+  const a = points[segment], b = points[segment + 1];
+  const fraction = burned / lengths[segment];
+  const tip = { x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction };
+  const color = remainMs <= 3000 ? '#FF705E' : '#FFD278';
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.strokeStyle = 'rgba(15,8,5,.85)';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  if (ratio > 0) {
+    ctx.beginPath();
+    ctx.moveTo(tip.x, tip.y);
+    points.slice(segment + 1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    // 燃焼点は位置で時間を伝えるため、点滅させず常に明るく表示する。
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFF8D9';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /**
  * 盤面全体を1フレーム描画する。
  * @param {object} v {board, t, selected, floatPos, dragging, clearingCells, clearT}
@@ -310,4 +364,5 @@ export function drawBoard(v) {
   }
 
   drawChainLabels(chainLabels, t);
+  drawBoardFuse(remainMs, totalMs);
 }
