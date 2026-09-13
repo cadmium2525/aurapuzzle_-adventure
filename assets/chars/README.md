@@ -40,6 +40,19 @@ PNG / JPEG でも動くので、拡張子に合わせて `characters.js` のパ�
 | クルト | `kuruto_1.webp` / `kuruto_1_icon.webp` | `kuruto_2.webp` / `kuruto_2_icon.webp` |
 | ミナ | `mina_1.webp` / `mina_1_icon.webp` | `mina_2.webp` / `mina_2_icon.webp` |
 
+## 通常イラスト（進化後も共通）
+
+下記20体は、立ち絵と顔が見やすい専用アイコンを1組ずつ持つ。
+進化後も同じイラストを継続して使い、将来差分を追加する場合は
+`characters.js` の `staticArt(...)` を複数段階の `artStages` に置き換える。
+
+| 属性 | キャラクター | ファイル名の先頭 |
+| --- | --- | --- |
+| 火 | ゴラン / アイナ / ベルグ / ルネ / イグナス | `goran` / `aina` / `belg` / `rune` / `ignis` |
+| 水 | ナギ / シルカ / レイナ / ネレイド / アクアリス | `nagi` / `shirka` / `reina` / `nereid` / `aqualis` |
+| 木 | ハーミ / ジーク / エル / リーフィア / ユグド | `hami` / `zeek` / `el` / `leafia` / `yggd` |
+| 癒 | セラ / リリィ / ガウェイン / エルミナ / アウロラ | `sera` / `lily` / `gawain` / `elmina` / `aurora` |
+
 ## 他のキャラクターにイラストを付ける
 
 `src/js/data/characters.js` の `mk(...)` の最後の引数に `artStages` を渡します。

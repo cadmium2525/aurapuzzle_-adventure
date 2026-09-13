@@ -131,7 +131,7 @@ function renderEvolveBox(id) {
       <div class="skill-line on"><span class="skill-tag sk">SKILL</span>
         <span><b>${after.skill.name}</b>(CT ${after.skill.cooldown})<br>${after.skill.desc}</span></div>
     </div>
-    ${base.artStages ? '<div class="evo-note">✨ 進化でイラストが変化します</div>' : ''}
+    ${base.artStages && base.artStages.length > 1 ? '<div class="evo-note">✨ 進化でイラストが変化します</div>' : ''}
     ${check.ok ? '' : `<div class="evo-note warn">${check.reason}</div>`}`;
 
   btn.style.display = 'block';

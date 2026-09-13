@@ -113,17 +113,32 @@ const twoStageArt = (name) => ([
   { star: 2, minLevel: 1, icon: `assets/chars/${name}_2_icon.webp`, full: `assets/chars/${name}_2.webp`, label: '進化' }
 ]);
 
+/** 進化後も同じイラストを使うキャラクターの1段階構成 */
+const staticArt = (name, star) => ([
+  { star, minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '通常' }
+]);
+
 /* --- キャラクター図鑑 --- */
 export const CHARACTERS = [
   /* ===== 火 ===== */
   mk('fl_rito',   'リト',       '見習い剣士',   '🧑‍🎤', 0, 1, 'balance',  'ls_novice',  'sk_novice_time', {
     artStages: twoStageArt('rito')
   }),
-  mk('fl_gald',   'ゴラン',     '傭兵',         '🧔',   0, 2, 'attacker', 'ls_ember',   'sk_strike'),
-  mk('fl_aina',   'アイナ',     '紅蓮の剣士',   '👩‍🦰', 0, 3, 'attacker', 'ls_blaze',   'sk_flamewave'),
-  mk('fl_belg',   'ベルグ',     '砲術士',       '🧑‍🚒', 0, 3, 'balance',  'ls_burst',   'sk_warcry'),
-  mk('fl_rune',   'ルネ',       '焔姫',         '👸',   0, 4, 'attacker', 'ls_inferno', 'sk_ember_time'),
-  mk('fl_ignis',  'イグナス',   '業火の英雄',   '🦸',   0, 4, 'attacker', 'ls_ignis',   'sk_ignition'),
+  mk('fl_gald',   'ゴラン',     '傭兵',         '🧔',   0, 2, 'attacker', 'ls_ember',   'sk_strike', {
+    artStages: staticArt('goran', 2)
+  }),
+  mk('fl_aina',   'アイナ',     '紅蓮の剣士',   '👩‍🦰', 0, 3, 'attacker', 'ls_blaze',   'sk_flamewave', {
+    artStages: staticArt('aina', 3)
+  }),
+  mk('fl_belg',   'ベルグ',     '砲術士',       '🧑‍🚒', 0, 3, 'balance',  'ls_burst',   'sk_warcry', {
+    artStages: staticArt('belg', 3)
+  }),
+  mk('fl_rune',   'ルネ',       '焔姫',         '👸',   0, 4, 'attacker', 'ls_inferno', 'sk_ember_time', {
+    artStages: staticArt('rune', 4)
+  }),
+  mk('fl_ignis',  'イグナス',   '業火の英雄',   '🦸',   0, 4, 'attacker', 'ls_ignis',   'sk_ignition', {
+    artStages: staticArt('ignis', 4)
+  }),
   mk('fl_gald_x', 'ガルド',     '紅蓮の傭兵',   '🧔‍♂️', 0, 4, 'attacker', 'ls_gald_x',  'sk_gald_x', {
     artStages: GALD_ART,
     evoJob: '不滅の豪傑',
@@ -134,11 +149,21 @@ export const CHARACTERS = [
   mk('aq_mio',    'シズク',     '水練生',       '🧒',   1, 1, 'balance',  'ls_ripple',  'sk_calm', {
     artStages: twoStageArt('shizuku')
   }),
-  mk('aq_kai',    'ナギ',       '潮風の斥候',   '🧑‍✈️', 1, 2, 'balance',  'ls_scout',   'sk_delay'),
-  mk('aq_shirka', 'シルカ',     '氷結術士',     '🧙‍♀️', 1, 3, 'balance',  'ls_frost',   'sk_freeze'),
-  mk('aq_reina',  'レイナ',     '波乗り',       '🏄‍♀️', 1, 3, 'attacker', 'ls_tide',    'sk_aqua_conv'),
-  mk('aq_nereid', 'ネレイド',   '深海の守護者', '🧜‍♀️', 1, 4, 'tank',     'ls_abyss',   'sk_barrier'),
-  mk('aq_aqualis','アクアリス', '蒼海の賢者',   '🧙',   1, 4, 'balance',  'ls_aquaris', 'sk_maelstrom'),
+  mk('aq_kai',    'ナギ',       '潮風の斥候',   '🧑‍✈️', 1, 2, 'balance',  'ls_scout',   'sk_delay', {
+    artStages: staticArt('nagi', 2)
+  }),
+  mk('aq_shirka', 'シルカ',     '氷結術士',     '🧙‍♀️', 1, 3, 'balance',  'ls_frost',   'sk_freeze', {
+    artStages: staticArt('shirka', 3)
+  }),
+  mk('aq_reina',  'レイナ',     '波乗り',       '🏄‍♀️', 1, 3, 'attacker', 'ls_tide',    'sk_aqua_conv', {
+    artStages: staticArt('reina', 3)
+  }),
+  mk('aq_nereid', 'ネレイド',   '深海の守護者', '🧜‍♀️', 1, 4, 'tank',     'ls_abyss',   'sk_barrier', {
+    artStages: staticArt('nereid', 4)
+  }),
+  mk('aq_aqualis','アクアリス', '蒼海の賢者',   '🧙',   1, 4, 'balance',  'ls_aquaris', 'sk_maelstrom', {
+    artStages: staticArt('aqualis', 4)
+  }),
   mk('aq_mio_x',  'ミオ',       '氷華の姫',     '❄️',   1, 4, 'balance',  'ls_mio_x',   'sk_mio_x', {
     artStages: MIO_ART,
     artScale: 1.22,             // 周囲の演出が広く、他より小さく見えるので少し寄せる
@@ -159,11 +184,21 @@ export const CHARACTERS = [
   mk('wd_noa',    'クルト',     '森の狩人',     '🧑‍🌾', 2, 1, 'balance',  'ls_sprout',  'sk_hunt', {
     artStages: twoStageArt('kuruto')
   }),
-  mk('wd_hami',   'ハーミ',     '薬草師',       '👩‍⚕️', 2, 2, 'healer',   'ls_herb',    'sk_heal_s'),
-  mk('wd_zeek',   'ジーク',     '樹護士',       '🧑‍🔧', 2, 3, 'tank',     'ls_guard',   'sk_wood_conv'),
-  mk('wd_el',     'エル',       '風読みの射手', '🏹',   2, 3, 'attacker', 'ls_wind',    'sk_wind_time'),
-  mk('wd_leafia', 'リーフィア', '大樹の巫女',   '🧝‍♀️', 2, 4, 'healer',   'ls_herb',    'sk_heal_l'),
-  mk('wd_yggd',   'ユグド',     '世界樹の守人', '🧝',   2, 4, 'balance',  'ls_yggd',    'sk_forest'),
+  mk('wd_hami',   'ハーミ',     '薬草師',       '👩‍⚕️', 2, 2, 'healer',   'ls_herb',    'sk_heal_s', {
+    artStages: staticArt('hami', 2)
+  }),
+  mk('wd_zeek',   'ジーク',     '樹護士',       '🧑‍🔧', 2, 3, 'tank',     'ls_guard',   'sk_wood_conv', {
+    artStages: staticArt('zeek', 3)
+  }),
+  mk('wd_el',     'エル',       '風読みの射手', '🏹',   2, 3, 'attacker', 'ls_wind',    'sk_wind_time', {
+    artStages: staticArt('el', 3)
+  }),
+  mk('wd_leafia', 'リーフィア', '大樹の巫女',   '🧝‍♀️', 2, 4, 'healer',   'ls_herb',    'sk_heal_l', {
+    artStages: staticArt('leafia', 4)
+  }),
+  mk('wd_yggd',   'ユグド',     '世界樹の守人', '🧝',   2, 4, 'balance',  'ls_yggd',    'sk_forest', {
+    artStages: staticArt('yggd', 4)
+  }),
   mk('wd_noa_x',  'ノア',       '花冠の癒し手', '🌸',   2, 4, 'healer',   'ls_noa_x',   'sk_noa_x', {
     artStages: NOA_ART,
     evoJob: '森羅の大賢者',
@@ -174,11 +209,21 @@ export const CHARACTERS = [
   mk('lm_mina',   'ミナ',       '見習い聖女',   '👧',   3, 1, 'healer',   'ls_pray',    'sk_heal_m', {
     artStages: twoStageArt('mina')
   }),
-  mk('lm_sera',   'セラ',       '祈祷師',       '🧕',   3, 2, 'tank',     'ls_vow',     'sk_heal_m'),
-  mk('lm_lily',   'リリィ',     '白の癒し手',   '👩‍🦳', 3, 3, 'healer',   'ls_bless',   'sk_light'),
-  mk('lm_gawain', 'ガウェイン', '聖騎士',       '🤴',   3, 3, 'tank',     'ls_paladin', 'sk_holy_guard'),
-  mk('lm_elmina', 'エルミナ',   '光明の司祭',   '👰',   3, 4, 'healer',   'ls_bless',   'sk_grace'),
-  mk('lm_aurora', 'アウロラ',   '大聖女',       '👼',   3, 4, 'healer',   'ls_aurora',  'sk_miracle')
+  mk('lm_sera',   'セラ',       '祈祷師',       '🧕',   3, 2, 'tank',     'ls_vow',     'sk_heal_m', {
+    artStages: staticArt('sera', 2)
+  }),
+  mk('lm_lily',   'リリィ',     '白の癒し手',   '👩‍🦳', 3, 3, 'healer',   'ls_bless',   'sk_light', {
+    artStages: staticArt('lily', 3)
+  }),
+  mk('lm_gawain', 'ガウェイン', '聖騎士',       '🤴',   3, 3, 'tank',     'ls_paladin', 'sk_holy_guard', {
+    artStages: staticArt('gawain', 3)
+  }),
+  mk('lm_elmina', 'エルミナ',   '光明の司祭',   '👰',   3, 4, 'healer',   'ls_bless',   'sk_grace', {
+    artStages: staticArt('elmina', 4)
+  }),
+  mk('lm_aurora', 'アウロラ',   '大聖女',       '👼',   3, 4, 'healer',   'ls_aurora',  'sk_miracle', {
+    artStages: staticArt('aurora', 4)
+  })
 ];
 
 const BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
