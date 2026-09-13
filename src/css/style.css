@@ -827,7 +827,7 @@ input[type=range]{accent-color:var(--accent);}
   box-shadow:0 0 12px -3px rgba(255,198,92,.6);}
 
 .friend-avatar{width:40px;height:40px;border-radius:13px;flex-shrink:0;font-size:20px;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
   background:rgba(255,255,255,0.07);border:1px solid var(--panel-border);}
 .friend-row .greetbtn{padding:8px 12px;font-size:11px;flex-shrink:0;}
 .friend-status{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:9.5px;color:var(--ink-faint);}

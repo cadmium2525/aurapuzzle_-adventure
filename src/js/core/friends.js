@@ -186,6 +186,11 @@ export async function refreshFriendsList() {
         const profile = snap.data();
         f.name = profile.name || f.name;
         f.icon = profile.icon || f.icon;
+        // 表示用のアイコンは貸し出しキャラのイラスト。設定を変えたら次の更新で追従する
+        f.rentalCharId = profile.rentalCharId || profile.rentalMonsterId || null;
+        f.rentalStar = profile.rentalStar || null;
+        f.rentalLv = profile.rentalLv || 1;
+        f.rentalAwa = profile.rentalAwa || 0;
         f.rank = Number(profile.rank) || Number(f.rank) || null;
         f.lastLoginAt = profile.lastLoginAt || profile.updatedAt || f.lastLoginAt || null;
         if (!f.rank) {

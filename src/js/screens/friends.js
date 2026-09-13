@@ -1,15 +1,28 @@
 /* ===================== フレンド画面 ===================== */
-import { $, toast } from '../core/ui.js';
+import { $, toast, artImg } from '../core/ui.js';
 import { state } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
   cloudEnabled, addFriendByCode, removeFriend, greetFriend, greetAllFriends, refreshFriendsList
 } from '../core/friends.js';
-import { MAX_FRIENDS, FRIEND_GREET_REWARD } from '../data/gamedata.js';
+import { MAX_FRIENDS, FRIEND_GREET_REWARD, resolveCharacter } from '../data/gamedata.js';
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * フレンドのアイコン。マイページで設定した貸し出しキャラのイラストを使う。
+ * 未設定・イラスト未用意のときは絵文字に落ちる。
+ */
+function friendAvatarHTML(f) {
+  const ch = f.rentalCharId
+    ? resolveCharacter(f.rentalCharId, f.rentalStar, f.rentalLv, f.rentalAwa)
+    : null;
+  const src = (ch && ch.art && ch.art.icon) || '';
+  const emoji = (ch && ch.portrait) || f.icon || '🙂';
+  return artImg(src, emoji, 'pi');
 }
 
 function timestampMs(value) {
@@ -56,7 +69,7 @@ function renderList() {
     const row = document.createElement('div');
     row.className = 'friend-row';
     row.innerHTML = `
-      <div class="friend-avatar">${f.icon || '🙂'}</div>
+      <div class="friend-avatar">${friendAvatarHTML(f)}</div>
       <div class="cinfo">
         <div class="cname">${f.name || 'プレイヤー'}</div>
         <div class="cmeta">${f.code || ''}</div>
