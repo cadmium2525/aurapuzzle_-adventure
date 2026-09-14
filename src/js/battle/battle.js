@@ -32,6 +32,7 @@ import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyBadges } from './enemy-badges.js';
+import { playPartyAttacks } from './party-motion.js';
 
 let canvas;
 let board = null;
@@ -165,6 +166,7 @@ function renderParty() {
     btn.style.setProperty('--aura', COLOR_HEX[aura.key]);
     btn.innerHTML = `
       <span class="unit-pops"></span>
+      <span class="unit-pending" hidden></span>
       <span class="unit-face">
         <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
         <span class="unit-aura">${aura.emoji}</span>
@@ -461,6 +463,7 @@ async function resolveTurn() {
   chainLabels = [];
   let chain = 0, turnDamage = 0, turnHeal = 0, anyAction = false;
   const hits = [], clearedGroups = [];
+  const pending = new Map();
   while (true) {
     const groups = findGroups(board, run.matchMin).filter(g => !run.enemyEffects.auraBinds[g.color]);
     if (groups.length === 0) break;
@@ -488,7 +491,15 @@ async function resolveTurn() {
     const cr = clearingCells.reduce((s, [r]) => s + r, 0) / clearingCells.length;
     const cc = clearingCells.reduce((s, [, c]) => s + c, 0) / clearingCells.length;
     chainLabels.push({ r: cr, c: cc, n: chain, born: clearStart });
-    actions.forEach(a => popUnit(a.index, (a.kind === 'heal' ? '+' : '') + a.value, a.kind));
+    actions.forEach(a => {
+      const total = pending.get(a.index) || { ...a, aura: run.party.members[a.index].aura, value: 0 };
+      total.value += a.value;
+      pending.set(a.index, total);
+      const label = $('partyRow').children[a.index].querySelector('.unit-pending');
+      label.hidden = false;
+      label.classList.toggle('heal', a.kind === 'heal');
+      label.textContent = (a.kind === 'heal' ? '+' : '') + total.value.toLocaleString();
+    });
     await sleep(270);
 
     groups.forEach(g => g.cells.forEach(([r, c]) => { board[r][c] = -1; }));
@@ -500,11 +511,14 @@ async function resolveTurn() {
   }
 
   // 連鎖が全て終わってから、合計ぶんをまとめて反映する
+  await playPartyAttacks([...pending.values()]);
   const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
   run.enemyHP = outcome.hp;
-  await playDamageMotion(outcome);
   turnDamage = outcome.damage;
   if (turnHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + turnHeal);
+  $('partyRow').querySelectorAll('.unit-pending').forEach(label => { label.hidden = true; label.textContent = ''; });
+  updateHPUI(turnDamage > 0, turnHeal > 0);
+  await playDamageMotion(outcome);
   if (turnDamage > 0) {
     shake($('enemyStage'));
   }

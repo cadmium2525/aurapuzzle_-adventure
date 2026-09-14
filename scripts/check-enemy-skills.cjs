@@ -114,6 +114,29 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate(async () => {
       const { STAGES } = await import('/src/js/data/gamedata.js');
       const { startDungeonRun } = await import('/src/js/battle/battle.js');
+      const { LESSONS, lessonBoard } = await import('/src/js/data/training.js');
+      const stage=structuredClone(STAGES[0]);
+      stage.floors[0].hp=100000;stage.floors[0].interval=99;
+      startDungeonRun(stage,false,null);
+      battleTest.setBoard(lessonBoard(LESSONS[0]));
+      window.attackTurn = battleTest.resolveTurn();
+    });
+    await page.waitForFunction(()=>document.querySelector('.unit-pending:not([hidden])'));
+    await page.waitForTimeout(1050);
+    assert.ok(await page.locator('.unit-pending:not([hidden])').count()>0);
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().run.enemyHP),100000);
+    await page.waitForFunction(()=>document.querySelector('.party-projectile'),null,{polling:'raf',timeout:10000});
+    assert.ok(await page.locator('.unit-pending:not([hidden])').count()>0);
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().run.enemyHP),100000);
+    assert.equal(await page.locator('.party-projectile').first().evaluate(el=>getComputedStyle(el).pointerEvents),'none');
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-party-attack.png')});
+    await page.evaluate(()=>window.attackTurn);
+    assert.equal(await page.locator('.unit-pending:not([hidden])').count(),0);
+    assert.equal(await page.locator('.party-projectile').count(),0);
+    assert.ok(await page.evaluate(()=>battleTest.snapshot().run.enemyHP)<100000);
+    await page.evaluate(async () => {
+      const { STAGES } = await import('/src/js/data/gamedata.js');
+      const { startDungeonRun } = await import('/src/js/battle/battle.js');
       const stage = structuredClone(STAGES[0]);
       stage.floors = stage.floors.slice(0,2);
       stage.floors[0].hp = 1;
