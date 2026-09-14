@@ -24,7 +24,11 @@ const server = http.createServer(async (req, res) => {
     // Test-only access to private controller state, never shipped in app source.
     await page.route('**/battle/battle.js', async route => {
       const response = await route.fetch();
-      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, setCooldowns: cds => {run.cooldowns=cds;updateSkillUI();}, dragTimeMs };' });
+      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, setCooldowns: cds => {run.cooldowns=cds;updateSkillUI();}, useTestSkill: sk => {run.party.members[0].skill=sk;run.cooldowns[0]=0;applySkill(0);}, dragTimeMs };' });
+    });
+    await page.route('**/battle/renderer.js',async route=>{
+      const response=await route.fetch();
+      await route.fulfill({response,body:(await response.text())+'\nwindow.conversionTest=()=>conversion?structuredClone(conversion):null;'});
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.locator('#titleScreen.ready').click({ timeout: 30000 });
@@ -143,7 +147,19 @@ const server = http.createServer(async (req, res) => {
     await page.waitForTimeout(1850);
     await page.evaluate(()=>battleTest.setCooldowns([0,0,0]));
     assert.equal(await page.locator('.unit-ready-burst:not([hidden])').count(),0);
-    assert.equal(await page.locator('.unit-ready-label:not([hidden])').count(),3);
+    assert.equal(await page.locator('.unit-ready-label').count(),0);
+    await page.evaluate(()=>{
+      const board=Array.from({length:8},()=>Array(7).fill(1));
+      board[7][0]=0;board[6][0]=0;board[7][1]=2;
+      battleTest.setBoard(board);
+      battleTest.useTestSkill({name:'変換テスト',cooldown:5,convert:[{from:'c0',to:'c1'},{from:'c2',to:'c4'}]});
+    });
+    assert.equal(await page.evaluate(()=>conversionTest().cells.length),3);
+    assert.deepEqual(await page.evaluate(()=>conversionTest().cells.map(c=>c.to).sort()),[1,1,4]);
+    await page.waitForTimeout(220);
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-conversion.png')});
+    await page.waitForFunction(()=>conversionTest()===null);
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().board[7][1]),4);
     await page.evaluate(async () => {
       const { STAGES } = await import('/src/js/data/gamedata.js');
       const { startDungeonRun } = await import('/src/js/battle/battle.js');

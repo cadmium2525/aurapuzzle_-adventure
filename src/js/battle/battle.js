@@ -27,7 +27,7 @@ import {
   convertColor, spawnColor, shuffleBoard, setPalette
 } from './board.js';
 import { buildParty } from './party.js';
-import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
+import { initRenderer, resizeBoard, drawBoard, animateConversion, clearConversion, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyBadges } from './enemy-badges.js';
@@ -170,7 +170,6 @@ function renderParty() {
     btn.innerHTML = `
       <span class="unit-pops"></span>
       <span class="unit-pending" hidden></span>
-      <span class="unit-ready-label" hidden>スキルOK</span>
       <span class="unit-ready-burst" hidden>スキル準備完了！</span>
       <span class="unit-face">
         <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
@@ -194,7 +193,6 @@ function updateSkillUI() {
     const bound = run.enemyEffects.binds[i];
     const ready = sk && cd <= 0 && !bound;
     const becameReady = ready && !unit.classList.contains('ready');
-    unit.querySelector('.unit-ready-label').hidden = !ready;
     const burst = unit.querySelector('.unit-ready-burst');
     if (!ready) { burst.hidden = true; unit.classList.remove('skill-awaken'); }
     if (becameReady) {
@@ -228,6 +226,7 @@ function popUnit(i, text, kind) {
 
 /* ===================== フロア ===================== */
 async function loadFloor() {
+  clearConversion();
   const floor = run.stage.floors[run.floorIndex];
   run.enemyMaxHP = Math.round(floor.hp * (run.hard ? HARD_HP_MULT : 1));
   run.enemyHP = run.enemyMaxHP;
@@ -342,6 +341,7 @@ function applySkill(i) {
   if (!sk || run.cooldowns[i] > 0 || run.enemyEffects.binds[i]) return;
 
   const logs = [];
+  const beforeBoard = (sk.convert || sk.spawn || sk.shuffle) ? board.map(row => row.slice()) : null;
   if (sk.timeThisTurn) {
     run.turnTimeBonusMs += sk.timeThisTurn * 1000;
     logs.push(`操作時間+${sk.timeThisTurn}秒`);
@@ -380,6 +380,7 @@ function applySkill(i) {
     logs.push(`${AURAS[to].name}オーラ${n}個生成`);
   }
   if (sk.shuffle) { shuffleBoard(board); logs.push('盤面シャッフル'); }
+  if (beforeBoard) animateConversion(beforeBoard, board);
   if (sk.atkBuff) { run.buffs.atk = { ...sk.atkBuff }; logs.push(`攻撃力${sk.atkBuff.mult}倍(${sk.atkBuff.turns}ターン)`); }
   if (sk.guard) {
     run.buffs.guard = { ...sk.guard };

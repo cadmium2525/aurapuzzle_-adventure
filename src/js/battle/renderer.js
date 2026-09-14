@@ -12,6 +12,45 @@ let auraAtlas = null, auraAtlasReady = false;
 export let CELL = 44;
 
 const AURA_ATLAS_CELL = 256;
+let conversion = null;
+
+export function clearConversion() { conversion = null; }
+
+export function animateConversion(before, after) {
+  const cells = [];
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    if (before[r][c] !== after[r][c] && after[r][c] >= 0) cells.push({r,c,from:before[r][c],to:after[r][c]});
+  }
+  conversion = cells.length ? { cells, start:performance.now(), reduced:matchMedia('(prefers-reduced-motion: reduce)').matches } : null;
+}
+
+function drawConversion(board,t) {
+  if (!conversion) return;
+  const p = (t-conversion.start)/(conversion.reduced ? 400 : 1000);
+  if (p>=1) { conversion=null; return; }
+  if (p<0) return;
+  const reduced=conversion.reduced;
+  for (const {r,c,from,to} of conversion.cells) {
+    if (board[r][c] !== to) continue;
+    const {x,y}=cellCenter(r,c),radius=CELL*.42;
+    // Fade the old aura out, revealing the new sprite under its colored seal.
+    if (!reduced && from>=0 && p<.35) drawOrb(x,y,radius,from,{alpha:1-p/.35});
+    ctx.save();
+    ctx.globalAlpha=(1-p)*.9;
+    ctx.strokeStyle=COLOR_HEX[COLORS[to]];
+    ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(x,y,radius*(reduced?1: .6+p*.65),0,Math.PI*2);ctx.stroke();
+    if (!reduced) {
+      ctx.fillStyle='#fff4da';
+      for(let k=0;k<4;k++) {
+        const a=k*Math.PI/2+p*2, distance=radius*(.6+p*.55);
+        const sx=x+Math.cos(a)*distance,sy=y+Math.sin(a)*distance;
+        ctx.beginPath();ctx.arc(sx,sy,Math.max(1,2.5*(1-p)),0,Math.PI*2);ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
 
 export function initRenderer(canvasEl) {
   canvas = canvasEl;
@@ -373,6 +412,7 @@ export function drawBoard(v) {
     }
   }
 
+  drawConversion(board,t);
   // ドラッグ中のオーブは最前面
   if (dragging && selected && floatPos) {
     const val = board[selected.r][selected.c];
