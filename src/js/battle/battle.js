@@ -33,6 +33,7 @@ import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, eff
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
+import { createChanceBoard, isAllClear } from './chance.js';
 
 let canvas;
 let board = null;
@@ -129,6 +130,8 @@ export function startDungeonRun(stage, hard, support) {
     }),
     buffs: { atk: null, guard: null },
     enemyEffects: createEnemyEffects(party.members.length),
+    chancePending: false,
+    chanceActive: false,
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
@@ -167,6 +170,8 @@ function renderParty() {
     btn.innerHTML = `
       <span class="unit-pops"></span>
       <span class="unit-pending" hidden></span>
+      <span class="unit-ready-label" hidden>スキルOK</span>
+      <span class="unit-ready-burst" hidden>スキル準備完了！</span>
       <span class="unit-face">
         <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
         <span class="unit-aura">${aura.emoji}</span>
@@ -188,6 +193,16 @@ function updateSkillUI() {
     const cd = run.cooldowns[i];
     const bound = run.enemyEffects.binds[i];
     const ready = sk && cd <= 0 && !bound;
+    const becameReady = ready && !unit.classList.contains('ready');
+    unit.querySelector('.unit-ready-label').hidden = !ready;
+    const burst = unit.querySelector('.unit-ready-burst');
+    if (!ready) { burst.hidden = true; unit.classList.remove('skill-awaken'); }
+    if (becameReady) {
+      burst.hidden = false;
+      unit.classList.remove('skill-awaken'); void unit.offsetWidth; unit.classList.add('skill-awaken');
+      clearTimeout(unit.readyTimer);
+      unit.readyTimer = setTimeout(() => { burst.hidden = true; unit.classList.remove('skill-awaken'); }, 1800);
+    }
     unit.classList.toggle('bound', !!bound);
     unit.classList.toggle('ready', !!ready);
     // 残りターンはアイコン角のバッジで示す(使えるようになったら消す)
@@ -228,8 +243,9 @@ async function loadFloor() {
   renderFloorPips();
   // 最初のフロアだけ盤面を作る。以降は前のフロアの盤面を残し、
   // 消えて空いたところにだけオーラを補充する
-  if (!board) board = genBoard(run.matchMin);
-  else { applyGravityNoRefill(board); refillBoard(board, run.matchMin); }
+  if (run.chancePending) activateChanceBoard();
+  else if (!board) { board = genBoard(run.matchMin); updateChanceUI(); }
+  else if (!run.chanceActive) { applyGravityNoRefill(board); refillBoard(board, run.matchMin); }
   bstate = 'resolving';
   grabbed = false;
   clearingCells = [];
@@ -511,6 +527,11 @@ async function resolveTurn() {
   }
 
   // 連鎖が全て終わってから、合計ぶんをまとめて反映する
+  if (chain > 0 && isAllClear(board)) {
+    run.chancePending = true;
+    showBanner('<span class="chain">全消しボーナス！</span> 次はチャンス盤面！');
+    await sleep(800);
+  }
   await playPartyAttacks([...pending.values()]);
   const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
   run.enemyHP = outcome.hp;
@@ -539,12 +560,19 @@ async function resolveTurn() {
   run.stats.totalHeal += turnHeal;
   await sleep(220);
 
+  run.chanceActive = false;
+  updateChanceUI();
   tickEnemyEffects(run.enemyEffects);
 
   if (run.enemyHP <= 0) { hideBanner(); await floorClear(); return; }
 
   // 盤面が枯れて詰まないよう空きマスを補充する
-  if (refillBoard(board, run.matchMin) > 0) await sleep(180);
+  if (run.chancePending) { activateChanceBoard(); await sleep(180); }
+  else {
+    run.chanceActive = false;
+    updateChanceUI();
+    if (refillBoard(board, run.matchMin) > 0) await sleep(180);
+  }
 
   if (chain === 0) {
     showBanner('<span class="miss">オーラが消えなかった…</span>');
@@ -582,6 +610,19 @@ function tickTurnEnd() {
   });
   run.turnTimeBonusMs = 0;
   updateSkillUI();
+}
+
+function updateChanceUI() {
+  $('boardWrap').classList.toggle('chance-board', !!run.chanceActive);
+  $('chanceNotice').hidden = !run.chanceActive;
+}
+
+function activateChanceBoard() {
+  const chance = createChanceBoard(run.stage.auras, run.matchMin);
+  board = chance.board;
+  run.chancePending = false;
+  run.chanceActive = true;
+  updateChanceUI();
 }
 
 async function executeEnemyAction(action, preemptive = false) {

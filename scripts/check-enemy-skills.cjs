@@ -24,7 +24,7 @@ const server = http.createServer(async (req, res) => {
     // Test-only access to private controller state, never shipped in app source.
     await page.route('**/battle/battle.js', async route => {
       const response = await route.fetch();
-      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, dragTimeMs };' });
+      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, setCooldowns: cds => {run.cooldowns=cds;updateSkillUI();}, dragTimeMs };' });
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.locator('#titleScreen.ready').click({ timeout: 30000 });
@@ -118,6 +118,7 @@ const server = http.createServer(async (req, res) => {
       const stage=structuredClone(STAGES[0]);
       stage.floors[0].hp=100000;stage.floors[0].interval=99;
       startDungeonRun(stage,false,null);
+      battleTest.setCooldowns([1,1,1]);
       battleTest.setBoard(lessonBoard(LESSONS[0]));
       window.attackTurn = battleTest.resolveTurn();
     });
@@ -134,6 +135,15 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('.unit-pending:not([hidden])').count(),0);
     assert.equal(await page.locator('.party-projectile').count(),0);
     assert.ok(await page.evaluate(()=>battleTest.snapshot().run.enemyHP)<100000);
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().run.chanceActive),true);
+    assert.equal(await page.locator('#chanceNotice').isVisible(),true);
+    assert.equal(await page.locator('#partyRow .ready').count(),3);
+    assert.equal(await page.locator('.unit-ready-burst:not([hidden])').count(),3);
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-chance-ready.png')});
+    await page.waitForTimeout(1850);
+    await page.evaluate(()=>battleTest.setCooldowns([0,0,0]));
+    assert.equal(await page.locator('.unit-ready-burst:not([hidden])').count(),0);
+    assert.equal(await page.locator('.unit-ready-label:not([hidden])').count(),3);
     await page.evaluate(async () => {
       const { STAGES } = await import('/src/js/data/gamedata.js');
       const { startDungeonRun } = await import('/src/js/battle/battle.js');
