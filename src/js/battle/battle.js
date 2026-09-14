@@ -19,7 +19,7 @@ import { setRetreatHandler } from '../core/sysmodal.js';
 import { countRentalUse, addFriendByUid } from '../core/friends.js';
 import {
   AURAS, COLORS, COLOR_HEX, HEAL_COLOR, RARITY_TITLE,
-  FLOORS_PER_STAGE, HARD_HP_MULT, HARD_REWARD_MULT,
+  HARD_HP_MULT, HARD_REWARD_MULT,
   ATTACK_SCALE, HEAL_SCALE, ORB_BONUS, COMBO_BONUS, SIMUL_BONUS,
   MAX_DRAG_TIME, MATERIALS, materialById, crystalIdFor
 } from '../data/gamedata.js';
@@ -29,6 +29,7 @@ import {
 } from './board.js';
 import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
 
 let canvas;
 let board = null;
@@ -79,7 +80,7 @@ export function initBattle() {
 
 /** そのターンに使える操作時間(ms) */
 function dragTimeMs() {
-  return Math.min(MAX_DRAG_TIME, run.party.baseDragTime + run.turnTimeBonusMs);
+  return effectiveTime(run.party.baseDragTime, run.turnTimeBonusMs, MAX_DRAG_TIME, run.enemyEffects);
 }
 
 /* ===================== 描画ループ ===================== */
@@ -124,6 +125,7 @@ export function startDungeonRun(stage, hard, support) {
       return sk ? Math.ceil(sk.cooldown * 0.6) : 0;
     }),
     buffs: { atk: null, guard: null },
+    enemyEffects: createEnemyEffects(party.members.length),
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
@@ -180,13 +182,15 @@ function updateSkillUI() {
     if (!unit) return;
     const sk = m.skill;
     const cd = run.cooldowns[i];
-    const ready = sk && cd <= 0;
+    const bound = run.enemyEffects.binds[i];
+    const ready = sk && cd <= 0 && !bound;
+    unit.classList.toggle('bound', !!bound);
     unit.classList.toggle('ready', !!ready);
     // 残りターンはアイコン角のバッジで示す(使えるようになったら消す)
     const badge = unit.querySelector('.unit-cd');
     if (!badge) return;
-    badge.hidden = !sk || ready;
-    badge.textContent = sk ? cd : '';
+    badge.hidden = !bound && (!sk || ready);
+    badge.textContent = bound ? `封 ${bound}` : (sk ? cd : '');
   });
 }
 
@@ -204,13 +208,15 @@ function popUnit(i, text, kind) {
 }
 
 /* ===================== フロア ===================== */
-function loadFloor() {
+async function loadFloor() {
   const floor = run.stage.floors[run.floorIndex];
   run.enemyMaxHP = Math.round(floor.hp * (run.hard ? HARD_HP_MULT : 1));
   run.enemyHP = run.enemyMaxHP;
   run.enemyAtk = Math.round(floor.atk * (run.hard ? HARD_HP_MULT : 1));
   run.enemyInterval = floor.interval;
   run.enemyTurnsLeft = floor.interval;
+  run.enemyActionIndex = 0;
+  enterEnemy(run.enemyEffects, floor.enemySkills);
 
   $('enemyEmoji').innerHTML = artImg(floor.sprite, floor.emoji, 'enemy');
   // ステージ名はトップバーに出す(画面上部を盤面のために空ける)
@@ -220,7 +226,7 @@ function loadFloor() {
   // 消えて空いたところにだけオーラを補充する
   if (!board) board = genBoard(run.matchMin);
   else { applyGravityNoRefill(board); refillBoard(board, run.matchMin); }
-  bstate = 'idle';
+  bstate = 'resolving';
   grabbed = false;
   clearingCells = [];
   chainLabels = [];
@@ -228,17 +234,21 @@ function loadFloor() {
   hideBanner();
   resetTimerUI();
   updateHPUI(false, false);
+  updateSkillUI();
+  if (floor.enemySkills?.preemptive) await executeEnemyAction(floor.enemySkills.preemptive, true);
+  if (run.playerHP <= 0) { battleDefeat(); return; }
+  bstate = 'idle';
 }
 
 function renderFloorPips() {
   const box = $('floorPips');
   box.innerHTML = '';
-  for (let i = 0; i < FLOORS_PER_STAGE; i++) {
+  for (let i = 0; i < run.stage.floors.length; i++) {
     const pip = document.createElement('span');
     pip.className = 'fpip'
       + (i < run.floorIndex ? ' done' : '')
       + (i === run.floorIndex ? ' now' : '')
-      + (i === FLOORS_PER_STAGE - 1 ? ' boss' : '');
+      + (i === run.stage.floors.length - 1 ? ' boss' : '');
     box.appendChild(pip);
   }
 }
@@ -247,6 +257,7 @@ function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更
 
 /* ===================== HP表示 ===================== */
 function updateHPUI(flashEnemy, flashPlayer) {
+  $('enemyEffects').textContent = effectLabels(run.enemyEffects).join(' / ');
   $('enemyHPFill').style.width = Math.max(0, run.enemyHP / run.enemyMaxHP * 100) + '%';
   $('enemyHPText').textContent = Math.max(0, run.enemyHP) + ' / ' + run.enemyMaxHP;
   $('playerHPFill').style.width = Math.min(100, Math.max(0, run.playerHP / run.maxHP * 100)) + '%';
@@ -271,6 +282,7 @@ function hideBanner() { $('banner').classList.remove('show'); }
 let pendingSkill = null;
 function confirmSkill(i) {
   if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
+  if (run.enemyEffects.binds[i]) { toast(`バインド中（残り${run.enemyEffects.binds[i]}ターン）`); return; }
   const m = run.party.members[i];
   const sk = m.skill;
   if (!sk) { toast(`${m.name}はスキルを持っていません`); return; }
@@ -305,7 +317,7 @@ function applySkill(i) {
   if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
   const m = run.party.members[i];
   const sk = m.skill;
-  if (!sk || run.cooldowns[i] > 0) return;
+  if (!sk || run.cooldowns[i] > 0 || run.enemyEffects.binds[i]) return;
 
   const logs = [];
   if (sk.timeThisTurn) {
@@ -321,11 +333,12 @@ function applySkill(i) {
   }
   if (sk.fixedDamage) {
     const dmg = Math.round(m.atk * sk.fixedDamage);
-    run.enemyHP = Math.max(0, run.enemyHP - dmg);
-    run.stats.totalDamage += dmg;
-    popUnit(i, String(dmg), 'dmg');
+    const result = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits: [{ aura: m.aura, value: dmg }] });
+    run.enemyHP = result.hp;
+    run.stats.totalDamage += result.damage;
+    popUnit(i, result.blocked ? '無効' : result.absorbed ? '吸収' : String(result.damage), 'dmg');
     shake($('enemyStage'));
-    logs.push(`${dmg}ダメージ`);
+    logs.push(result.blocked ? 'ダメージ無効' : result.absorbed ? `${result.absorbed}吸収` : `${result.damage}ダメージ${result.survived ? '・根性' : ''}`);
   }
   if (sk.convert) {
     // 単体でも配列でも受け付ける(進化後スキルは複数オーラを変換する)
@@ -390,7 +403,7 @@ function openPartyInfo() {
       <div class="skill-line on">
         <span class="skill-tag sk">SKILL</span>
         <span><b>${sk ? sk.name : '—'}</b>(CT ${sk ? sk.cooldown : '-'})<br>${sk ? sk.desc : ''}
-        <i class="off-note">残り ${run.cooldowns[i]} ターン</i></span>
+        <i class="off-note">残り ${run.cooldowns[i]} ターン${run.enemyEffects.binds[i] ? ` / バインド：残り${run.enemyEffects.binds[i]}ターン（攻撃・回復・スキル使用不可）` : ''}</i></span>
       </div>`;
     box.appendChild(div);
   });
@@ -418,6 +431,7 @@ function resolveStep(groups, chain) {
   const actions = [];
   run.party.members.forEach((m, i) => {
     const n = countByColor[m.aura] || 0;
+    if (run.enemyEffects.binds[i]) return;
     if (n <= 0) return;                       // 自分のオーラを消していない → 行動しない
     const auraKey = COLORS[m.aura];
     const orbMult = 1 + Math.max(0, n - run.matchMin) * ORB_BONUS;
@@ -441,12 +455,15 @@ async function resolveTurn() {
 
   chainLabels = [];
   let chain = 0, turnDamage = 0, turnHeal = 0, anyAction = false;
+  const hits = [], clearedGroups = [];
   while (true) {
-    const groups = findGroups(board, run.matchMin);
+    const groups = findGroups(board, run.matchMin).filter(g => !run.enemyEffects.auraBinds[g.color]);
     if (groups.length === 0) break;
     chain++;
 
     const { actions } = resolveStep(groups, chain);
+    clearedGroups.push(...groups);
+    hits.push(...actions.filter(a => a.kind === 'dmg').map(a => ({ aura: run.party.members[a.index].aura, value: a.value })));
     const stepDamage = actions.filter(a => a.kind === 'dmg').reduce((s, a) => s + a.value, 0);
     const stepHeal = actions.filter(a => a.kind === 'heal').reduce((s, a) => s + a.value, 0);
     turnDamage += stepDamage;
@@ -478,15 +495,20 @@ async function resolveTurn() {
   }
 
   // 連鎖が全て終わってから、合計ぶんをまとめて反映する
+  const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
+  run.enemyHP = outcome.hp;
+  turnDamage = outcome.damage;
   if (turnHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + turnHeal);
   if (turnDamage > 0) {
-    run.enemyHP = Math.max(0, run.enemyHP - turnDamage);
     shake($('enemyStage'));
   }
-  if (turnDamage > 0 || turnHeal > 0) {
+  if (turnDamage > 0 || turnHeal > 0 || outcome.blocked || outcome.absorbed) {
     let html = `<span class="chain">${chain} COMBO</span>`;
     if (turnDamage > 0) html += ` <span class="dmg">${turnDamage} ダメージ</span>`;
     if (turnHeal > 0) html += ` <span class="heal">+${turnHeal} 回復</span>`;
+    if (outcome.blocked) html += ' ダメージ無効';
+    if (outcome.absorbed) html += ` 敵が${outcome.absorbed}吸収`;
+    if (outcome.survived) html += ' 根性発動！';
     showBanner(html);
     updateHPUI(turnDamage > 0, turnHeal > 0);
     await sleep(520);
@@ -496,6 +518,8 @@ async function resolveTurn() {
   run.stats.totalDamage += turnDamage;
   run.stats.totalHeal += turnHeal;
   await sleep(220);
+
+  tickEnemyEffects(run.enemyEffects);
 
   if (run.enemyHP <= 0) { hideBanner(); await floorClear(); return; }
 
@@ -510,21 +534,13 @@ async function resolveTurn() {
     await sleep(650);
   }
 
+  // 自分の手番による短縮を先に行い、この後に受ける遅延を相殺しない。
+  run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
   // 敵の攻撃カウント
   run.enemyTurnsLeft--;
   if (run.enemyTurnsLeft <= 0) {
-    let dmg = Math.max(1, run.enemyAtk + randInt(-2, 4));
-    const guardRate = run.buffs.guard ? run.buffs.guard.rate : 0;
-    const cut = 1 - (1 - run.mods.damageCut) * (1 - guardRate);
-    dmg = Math.max(cut >= 1 ? 0 : 1, Math.round(dmg * (1 - cut)));
-    run.playerHP = Math.max(0, run.playerHP - dmg);
+    await executeEnemyAction(enemyAction(run.stage.floors[run.floorIndex].enemySkills, run.enemyActionIndex++));
     run.enemyTurnsLeft = run.enemyInterval;
-    showBanner(dmg === 0
-      ? '<span class="miss">敵の攻撃!</span> <span class="heal">ダメージを無効化!</span>'
-      : `<span class="miss">敵の攻撃!</span> ${dmg} ダメージ`);
-    shake($('partyBox'));
-    updateHPUI(false, true);
-    await sleep(750);
   }
   hideBanner();
 
@@ -538,7 +554,6 @@ async function resolveTurn() {
 
 /** ターン終了時のクールダウン/バフ更新 */
 function tickTurnEnd() {
-  run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
   ['atk', 'guard'].forEach(k => {
     const b = run.buffs[k];
     if (!b) return;
@@ -549,17 +564,40 @@ function tickTurnEnd() {
   updateSkillUI();
 }
 
+async function executeEnemyAction(action, preemptive = false) {
+  const labels = [];
+  for (const effect of action.effects || []) {
+    applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
+    labels.push(({ bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
+  }
+  if (action.attack) {
+    let dmg = Math.max(1, Math.round((run.enemyAtk + randInt(-2, 4)) * run.enemyEffects.attackMult));
+    const cut = 1 - (1 - run.mods.damageCut) * (1 - (run.buffs.guard?.rate || 0));
+    dmg = Math.max(cut >= 1 ? 0 : 1, Math.round(dmg * (1 - cut)));
+    run.playerHP = Math.max(0, run.playerHP - dmg);
+    labels.push(`${dmg}ダメージ`);
+    shake($('partyBox'));
+  }
+  showBanner(`${preemptive ? '先制行動' : '敵の行動'}！ ${labels.join(' / ')}`);
+  updateSkillUI();
+  updateHPUI(false, !!action.attack);
+  await sleep(750);
+  hideBanner();
+}
+
 /* ===================== フロア進行 ===================== */
 async function floorClear() {
   bstate = 'resolving';
-  const isLast = run.floorIndex >= FLOORS_PER_STAGE - 1;
+  const isLast = run.floorIndex >= run.stage.floors.length - 1;
   if (isLast) { finishRun(); return; }
   showBanner('<span class="chain">フロアクリア!</span> 次のフロアへ…');
   await sleep(1000);
   run.floorIndex++;
   // クールダウンはフロアをまたいでも引き継ぐ(1フロアぶん進める)
   run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
-  loadFloor();
+  await loadFloor();
+  if (!run) return;
+  bstate = 'resolving';
   renderFloorPips();
   updateSkillUI();
   showBanner(`<span class="chain">フロア ${run.floorIndex + 1}</span>`);
@@ -687,7 +725,7 @@ function battleDefeat() {
   $('resultTitle').textContent = 'DEFEAT';
   $('resultCard').classList.add('defeat');
   $('resultStats').innerHTML = `
-    <div class="rstat"><span>到達フロア</span><b>${run.floorIndex + 1} / ${FLOORS_PER_STAGE}</b></div>
+    <div class="rstat"><span>到達フロア</span><b>${run.floorIndex + 1} / ${run.stage.floors.length}</b></div>
     <div class="rstat"><span>最高コンボ</span><b>${run.stats.maxChain}</b></div>
     <div class="rstat"><span>与ダメージ合計</span><b>${run.stats.totalDamage}</b></div>`;
   $('resultRewards').innerHTML = '<div class="rrow rnone">HPが尽きた…報酬なし</div>';

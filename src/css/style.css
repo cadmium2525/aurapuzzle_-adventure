@@ -1312,3 +1312,7 @@ input[type=range]{accent-color:var(--accent);}
   background:rgba(255,198,92,.14);border-radius:5px;padding:1px 5px;}
 .lh-lv{font-size:10px;color:var(--accent);font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;}
 .pm-lv{font-size:8px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;}
+.enemy-effects { color: #ffd58c; font-size: 12px; line-height: 1.5; text-align: center; padding: 4px 8px; }
+.enemy-effects:empty { display: none; }
+.unit.bound .unit-portrait { filter: grayscale(1); opacity: .5; }
+.unit.bound .unit-cd { background: #782d75; color: white; }
