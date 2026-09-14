@@ -31,6 +31,7 @@ import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
+import { renderEnemyBadges } from './enemy-badges.js';
 
 let canvas;
 let board = null;
@@ -259,7 +260,8 @@ function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更
 
 /* ===================== HP表示 ===================== */
 function updateHPUI(flashEnemy, flashPlayer) {
-  $('enemyEffects').textContent = effectLabels(run.enemyEffects).join(' / ');
+  renderEnemyBadges(run.enemyEffects);
+  $('enemyEffects').textContent = effectLabels({ ...run.enemyEffects, defenses: [], attackMult: 1, resolve: null }).join(' / ');
   $('enemyHPFill').style.width = Math.max(0, run.enemyHP / run.enemyMaxHP * 100) + '%';
   $('enemyHPText').textContent = Math.max(0, run.enemyHP) + ' / ' + run.enemyMaxHP;
   $('playerHPFill').style.width = Math.min(100, Math.max(0, run.playerHP / run.maxHP * 100)) + '%';

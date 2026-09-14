@@ -35,6 +35,7 @@ const server = http.createServer(async (req, res) => {
       stage.floors[0].hp = 100000;
       stage.floors[0].interval = 1;
       stage.floors[0].enemySkills = {
+        passives: [{type:'buildUp'},{type:'resolve',threshold:30},{type:'auraAbsorb',aura:0,turns:2},{type:'comboGuard',chains:3},{type:'shapeGuard',aura:2,shape:'L'}],
         preemptive: { effects: [{type:'bind',count:3,turns:1},{type:'timeFixed',seconds:2,turns:1},{type:'auraBind',aura:0,turns:1}] },
         actions: [{ effects: [{type:'skillDelay',count:3,turns:3}] }]
       };
@@ -45,6 +46,26 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('#partyRow .bound').count(), 3);
     assert.equal(await page.evaluate(() => battleTest.dragTimeMs()), 2000);
     const before = await page.evaluate(() => battleTest.snapshot());
+    assert.equal(await page.locator('#enemyBadges .enemy-badge').count(),5);
+    await page.locator('[data-effect="buildUp"]').click();
+    assert.match(await page.locator('[data-effect="buildUp"]').getAttribute('aria-label'),/攻撃力が2倍/);
+    await page.waitForTimeout(1800);
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-enemy-badges.png')});
+    assert.equal(await page.locator('.enemy-badge-art').first().evaluate(async el => {
+      const url=getComputedStyle(el).backgroundImage.slice(5,-2);
+      const img=new Image();img.src=url;await img.decode();return img.naturalWidth;
+    }),640);
+    await page.evaluate(async()=>{
+      const {renderEnemyBadges}=await import('/src/js/battle/enemy-badges.js');
+      const effects=battleTest.snapshot().run.enemyEffects;
+      effects.resolve.active=false;
+      renderEnemyBadges(effects);
+    });
+    assert.equal(await page.locator('[data-effect="resolve"]').count(),0);
+    await page.evaluate(async()=>{
+      const {renderEnemyBadges}=await import('/src/js/battle/enemy-badges.js');
+      renderEnemyBadges(battleTest.snapshot().run.enemyEffects);
+    });
     // Exercise every visual, including custom shapes and targeted projectiles.
     for (const effect of [
       {type:'bind',targets:[0,2]}, {type:'skillDelay',targets:[1],turns:3},
@@ -105,6 +126,7 @@ const server = http.createServer(async (req, res) => {
       await battleTest.resolveTurn();
     });
     assert.equal(await page.locator('#resultTitle').innerText(), 'DEFEAT');
+    assert.equal(await page.locator('#enemyBadges .enemy-badge').count(),0);
     assert.equal(await page.evaluate(() => battleTest.snapshot().run), null);
     assert.deepEqual(errors, []);
     console.log('PASS: preemptive input lock, bind attack/heal suppression, aura bind, fixed time expiry, full skill delay, status UI, next-floor preemptive defeat');

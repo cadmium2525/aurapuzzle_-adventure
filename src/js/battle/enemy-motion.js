@@ -66,7 +66,7 @@ export function playEnemyMotion(events, board = []) {
           case 'comboGuard':
             ctx.strokeStyle='#70d9ff';
             for(let k=0;k<3;k++)ring(ex,ey,25+p*35+k*9);
-            text(`${e.chains ?? ''} CHAIN`,ex,ey,17);break;
+            break;
           case 'shapeGuard': {
             const shapes={L:[[0,0],[1,0],[2,0],[2,1],[2,2]],cross:[[0,1],[1,0],[1,1],[1,2],[2,1]],square:[[0,0],[0,1],[1,0],[1,1]],line:[[0,0],[0,1],[0,2],[0,3]]};
             const cells=e.cells || shapes[e.shape] || shapes.square;
@@ -102,11 +102,11 @@ export function playEnemyMotion(events, board = []) {
           case 'buildUp':
             ctx.strokeStyle=ctx.fillStyle='#ff7755';
             for(let k=-2;k<=2;k++){const x=ex+k*16,y=ey+40-p*90;line(x,y+35,x,y);line(x-6,y+8,x,y);line(x+6,y+8,x,y);}
-            text('ATK ×2',ex,ey+55,20);break;
+            break;
           case 'resolve':
             ctx.strokeStyle=ctx.fillStyle='#ffe08b';
             ctx.beginPath();for(let k=0;k<10;k++){const a=k*Math.PI/5-Math.PI/2,r=(k%2?16:38)*(1+p*.5);ctx.lineTo(ex+Math.cos(a)*r,ey+Math.sin(a)*r);}ctx.closePath();ctx.stroke();
-            text(e.triggered?'HP 1':'根性',ex,ey+58,20);break;
+            break;
         }
         ctx.restore();
       }
