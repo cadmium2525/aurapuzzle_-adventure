@@ -18,12 +18,12 @@ export const BASE_DRAG_TIME = 10000;
 /** 操作時間の上限(ms)。延長を盛っても青天井にはしない */
 export const MAX_DRAG_TIME = 40000;
 /** 攻撃力 → ダメージへの換算係数 */
-export const ATTACK_SCALE = 3.0;
+export const ATTACK_SCALE = 1.0;
 /** 回復力 → 回復量への換算係数 */
 export const HEAL_SCALE = 2.4;
 /** 最低連結数を1個超えるごとの威力上昇 */
 export const ORB_BONUS = 0.35;
-/** コンボごとの倍率上昇 */
+/** 最終チェイン数に応じて手番全体へ掛ける倍率の上昇 */
 export const COMBO_BONUS = 0.6;
 /** 同時消し1グループごとの倍率上昇 */
 export const SIMUL_BONUS = 0.05;

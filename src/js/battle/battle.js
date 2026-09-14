@@ -20,20 +20,20 @@ import { countRentalUse, addFriendByUid } from '../core/friends.js';
 import {
   AURAS, COLORS, COLOR_HEX, HEAL_COLOR, RARITY_TITLE,
   HARD_HP_MULT, HARD_REWARD_MULT,
-  ATTACK_SCALE, HEAL_SCALE, ORB_BONUS, COMBO_BONUS, SIMUL_BONUS,
   MAX_DRAG_TIME, MATERIALS, materialById, crystalIdFor
 } from '../data/gamedata.js';
 import {
   COLS, ROWS, genBoard, findGroups, applyGravityNoRefill, refillBoard,
   convertColor, spawnColor, shuffleBoard, setPalette
 } from './board.js';
-import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
+import { buildParty } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
 import { createChanceBoard, isAllClear } from './chance.js';
+import { baseActions, finalActions } from './damage.js';
 
 let canvas;
 let board = null;
@@ -434,44 +434,6 @@ function openPartyInfo() {
 }
 
 /* ===================== ターン解決 ===================== */
-/**
- * 1コンボぶんの各キャラの行動を計算する。
- * 自分のオーラが消えていないキャラは行動しない(攻撃しない)。
- */
-function resolveStep(groups, chain) {
-  const countByColor = {};
-  const groupsByColor = {};
-  groups.forEach(g => {
-    countByColor[g.color] = (countByColor[g.color] || 0) + g.cells.length;
-    groupsByColor[g.color] = (groupsByColor[g.color] || 0) + 1;
-  });
-
-  const chainMult = 1 + (chain - 1) * COMBO_BONUS;
-  const simulMult = 1 + (groups.length - 1) * SIMUL_BONUS;
-  const lsComboMult = comboMultiplier(run.mods, chain);
-  const buffMult = run.buffs.atk ? run.buffs.atk.mult : 1;
-
-  const actions = [];
-  run.party.members.forEach((m, i) => {
-    const n = countByColor[m.aura] || 0;
-    if (run.enemyEffects.binds[i]) return;
-    if (n <= 0) return;                       // 自分のオーラを消していない → 行動しない
-    const auraKey = COLORS[m.aura];
-    const orbMult = 1 + Math.max(0, n - run.matchMin) * ORB_BONUS;
-    if (m.aura === HEAL_COLOR) {
-      const heal = Math.round(m.rcv * HEAL_SCALE * orbMult * chainMult * run.mods.rcv);
-      actions.push({ index: i, kind: 'heal', value: heal, orbs: n });
-    } else {
-      const dmg = Math.round(
-        m.atk * ATTACK_SCALE * orbMult * chainMult * simulMult
-        * auraMultiplier(run.mods, auraKey) * lsComboMult * buffMult
-      );
-      actions.push({ index: i, kind: 'dmg', value: dmg, orbs: n });
-    }
-  });
-  return { actions, countByColor };
-}
-
 async function resolveTurn() {
   bstate = 'resolving';
   run.stats.turns++;
@@ -485,9 +447,8 @@ async function resolveTurn() {
     if (groups.length === 0) break;
     chain++;
 
-    const { actions } = resolveStep(groups, chain);
+    const actions = baseActions(groups, run);
     clearedGroups.push(...groups);
-    hits.push(...actions.filter(a => a.kind === 'dmg').map(a => ({ aura: run.party.members[a.index].aura, value: a.value })));
     const stepDamage = actions.filter(a => a.kind === 'dmg').reduce((s, a) => s + a.value, 0);
     const stepHeal = actions.filter(a => a.kind === 'heal').reduce((s, a) => s + a.value, 0);
     turnDamage += stepDamage;
@@ -495,8 +456,8 @@ async function resolveTurn() {
     if (actions.length) anyAction = true;
 
     let html = `<span class="chain">${chain} COMBO</span>`;
-    if (stepDamage > 0) html += ` <span class="dmg">${stepDamage} ダメージ</span>`;
-    if (stepHeal > 0) html += ` <span class="heal">+${stepHeal} 回復</span>`;
+    if (stepDamage > 0) html += ` <span class="dmg">基礎ダメージ +${Math.round(stepDamage)}</span>`;
+    if (stepHeal > 0) html += ` <span class="heal">基礎回復 +${Math.round(stepHeal)}</span>`;
     if (groups.length > 1) html += ` <span class="simul">同時${groups.length}消し</span>`;
     if (!actions.length) html += ' <span class="miss">攻撃できるキャラなし</span>';
     showBanner(html);
@@ -511,10 +472,12 @@ async function resolveTurn() {
       const total = pending.get(a.index) || { ...a, aura: run.party.members[a.index].aura, value: 0 };
       total.value += a.value;
       pending.set(a.index, total);
-      const label = $('partyRow').children[a.index].querySelector('.unit-pending');
+    });
+    finalActions(pending.values(), chain, run.mods).forEach(total => {
+      const label = $('partyRow').children[total.index].querySelector('.unit-pending');
       label.hidden = false;
-      label.classList.toggle('heal', a.kind === 'heal');
-      label.textContent = (a.kind === 'heal' ? '+' : '') + total.value.toLocaleString();
+      label.classList.toggle('heal', total.kind === 'heal');
+      label.textContent = (total.kind === 'heal' ? '+' : '') + total.value.toLocaleString();
     });
     await sleep(270);
 
@@ -532,7 +495,10 @@ async function resolveTurn() {
     showBanner('<span class="chain">全消しボーナス！</span> 次はチャンス盤面！');
     await sleep(800);
   }
-  await playPartyAttacks([...pending.values()]);
+  const charged = finalActions(pending.values(), chain, run.mods);
+  hits.push(...charged.filter(a => a.kind === 'dmg'));
+  turnHeal = charged.filter(a => a.kind === 'heal').reduce((sum,a) => sum+a.value,0);
+  await playPartyAttacks(charged);
   const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
   run.enemyHP = outcome.hp;
   turnDamage = outcome.damage;
