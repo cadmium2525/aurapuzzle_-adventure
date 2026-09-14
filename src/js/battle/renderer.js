@@ -8,11 +8,18 @@ import { COLORS, COLOR_HEX, COLOR_DARK, COLOR_GLOW } from '../data/gamedata.js';
 import { COLS, ROWS } from './board.js';
 
 let canvas, ctx;
+let auraAtlas = null, auraAtlasReady = false;
 export let CELL = 44;
+
+const AURA_ATLAS_CELL = 256;
 
 export function initRenderer(canvasEl) {
   canvas = canvasEl;
   ctx = canvas.getContext('2d');
+  auraAtlas = new Image();
+  auraAtlas.onload = () => { auraAtlasReady = true; };
+  auraAtlas.onerror = () => { auraAtlasReady = false; };
+  auraAtlas.src = './assets/battle/aura_atlas.webp';
 }
 
 function applyCellSize() {
@@ -100,6 +107,23 @@ function drawOrb(x, y, radius, colorIndex, opts = {}) {
   const key = COLORS[colorIndex];
   const hex = COLOR_HEX[key], dark = COLOR_DARK[key], glow = COLOR_GLOW[key];
   const { glowing = false, alpha = 1 } = opts;
+
+  if (auraAtlasReady) {
+    const size = radius * 2.24;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (glowing) {
+      ctx.shadowColor = hex;
+      ctx.shadowBlur = radius * 0.9;
+    }
+    ctx.drawImage(
+      auraAtlas,
+      colorIndex * AURA_ATLAS_CELL, 0, AURA_ATLAS_CELL, AURA_ATLAS_CELL,
+      x - size / 2, y - size / 2, size, size
+    );
+    ctx.restore();
+    return;
+  }
 
   ctx.save();
   ctx.globalAlpha = alpha;

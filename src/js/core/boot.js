@@ -11,7 +11,8 @@ const BASE_IMAGES = [
   './assets/ui/bg.webp',
   './assets/ui/menu_atlas.webp',
   './assets/ui/present.webp',
-  './assets/items/item_atlas.webp'
+  './assets/items/item_atlas.webp',
+  './assets/battle/aura_atlas.webp'
 ];
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
