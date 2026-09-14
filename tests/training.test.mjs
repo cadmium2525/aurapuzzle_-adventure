@@ -3,23 +3,26 @@ import assert from 'node:assert/strict';
 import { LESSONS, lessonBoard, simulateTraining, exerciseHole } from '../src/js/data/training.js';
 import { findGroups } from '../src/js/battle/board.js';
 
-for (const lesson of LESSONS) test(`${lesson.name}: intended chain and repair exercise`, () => {
+for (const lesson of LESSONS) test(`${lesson.name}: submitted board and repair exercise`, () => {
   const board = lessonBoard(lesson), before = JSON.stringify(board);
   const result = simulateTraining(board);
   assert.equal(result.waves.length, lesson.goal);
   assert.equal(JSON.stringify(board), before);
   assert.ok(result.waves.every(w => w.length === 1 && w[0].cells.length === 4));
-  const [r,c] = exerciseHole(lesson, LESSONS.indexOf(lesson));
+  const [r,c] = exerciseHole(lesson);
   const correct = board[r][c];
   board[r][c] = -1;
-  assert.ok(simulateTraining(board).waves.length < lesson.goal);
+  if (lesson.shape) assert.notEqual(JSON.stringify(board), before);
+  else assert.ok(simulateTraining(board).waves.length < lesson.goal);
   for(let color=0;color<5;color++) {
     if(color===correct)continue;
     board[r][c]=color;
-    assert.ok(simulateTraining(board).waves.length < lesson.goal);
+    if (lesson.shape) assert.notEqual(JSON.stringify(board), before);
+    else assert.ok(simulateTraining(board).waves.length < lesson.goal);
   }
   board[r][c]=correct;
   assert.equal(simulateTraining(board).waves.length,lesson.goal);
+  assert.equal(JSON.stringify(board),before);
 });
 
 test('simultaneous clears count as one wave and diagonal contact does not clear',()=>{

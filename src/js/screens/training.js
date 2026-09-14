@@ -4,7 +4,7 @@ import { LESSONS, lessonBoard, exerciseHole } from '../data/training.js';
 
 const NAMES = ['火','水','木','癒','闇'];
 const COLORS = ['#FF7A59','#45C8F1','#5BE08C','#FF86C8','#A76BFF'];
-const KEY = 'aura-training-progress-v1';
+const KEY = 'aura-training-progress-v2';
 let root, view = 'menu', lessonIndex = 0, board, original, selected = null;
 let brush = 0, tool = 'paint', phase = 'edit', chain = 0, groups = [];
 let practice = false, hole = null, done = new Set(), hint = false;
@@ -23,7 +23,7 @@ function resetBoard() {
 function openLesson(index, exercise = false) {
   lessonIndex = index; practice = exercise; view = 'lesson'; brush = 0; tool = 'paint';
   original = lessonBoard(LESSONS[index]);
-  hole = exerciseHole(LESSONS[index], index);
+  hole = exerciseHole(LESSONS[index]);
   resetBoard(); render();
 }
 function openFree() {
@@ -39,11 +39,20 @@ function back() {
   render(); return true;
 }
 function button(action, text, extra = '') { return `<button class="btn" data-action="${action}" ${extra}>${text}</button>`; }
+function lessonGoal(lesson) { return lesson.shape ? '基礎形' : `${lesson.goal}連鎖`; }
+function practiceSuccess() {
+  if (!practice) return false;
+  const lesson = LESSONS[lessonIndex];
+  return lesson.shape ? JSON.stringify(board) === JSON.stringify(original) : chain >= lesson.goal;
+}
 function message() {
   if (phase === 'finished') {
     if (view === 'free') return `${chain}連鎖でした。「配置に戻る」で直して、もう一度試せます。`;
-    if (practice && chain >= LESSONS[lessonIndex].goal) return `成功！ ${chain}連鎖を作れました。次のレッスンに進めます。`;
+    if (practiceSuccess()) return LESSONS[lessonIndex].shape
+      ? '成功！ 連鎖を暴発させない基礎形を完成できました。ここから次の色を組み足せます。'
+      : `成功！ ${chain}連鎖を作れました。次のレッスンに進めます。`;
     if (practice) return `${chain}連鎖でした。空欄の色を見直しましょう。落下後、どの色とつながるでしょうか？`;
+    if (LESSONS[lessonIndex].shape) return '同色4個はまだつながっていません。連鎖を暴発させず、先へ組み足せる基礎形です。';
     return `${chain}連鎖の流れを確認できました。次は「自分で完成」で試しましょう。`;
   }
   if (phase === 'clear') return `${chain + 1}連鎖目：白い枠の${groups.map(g => NAMES[g.color]).join('・')}が消えます。${view === 'lesson' ? LESSONS[lessonIndex].tips[chain] || '' : '別々の組が同時に消えても、連鎖の段数は1段です。'}`;
@@ -68,12 +77,12 @@ function render() {
     content += `<h2>トレーニング</h2><p>スタミナ消費なし・報酬なし。何度でも連鎖を練習できます。</p><div class="stack">${button('lessons','レクチャーモード — 基本から6レッスン')}${button('free','フリーモード — 自由に配置して練習')}</div>`;
   } else if (view === 'lessons') {
     content += '<h2>連鎖レクチャー</h2><p>同色4個以上が上下左右につながると消去。落下して次の消去が起きると連鎖になります。ここでは消去数を4個に固定し、途中の補充は行いません。</p><div class="stack">';
-    content += LESSONS.map((l,i) => button('lesson', `${i+1}. ${l.name} · ${l.goal}連鎖 ${done.has(i) ? '✓ 習得' : ''}`, `data-index="${i}"`)).join('') + '</div>';
+    content += LESSONS.map((l,i) => button('lesson', `${i+1}. ${l.name} · ${lessonGoal(l)} ${done.has(i) ? '✓ 習得' : ''}`, `data-index="${i}"`)).join('') + '</div>';
   } else {
     const lesson = LESSONS[lessonIndex];
     content += `<h2>${view === 'free' ? 'フリーモード' : `${lessonIndex+1}. ${lesson.name}`}</h2>`;
     content += `<p class="training-status" role="status">${message()}</p>`;
-    if (view === 'lesson') content += `<p class="training-caption">目標 ${lesson.goal}連鎖 · ${practice ? '自分で完成' : 'お手本'} · ${chain}連鎖まで確認</p>`;
+    if (view === 'lesson') content += `<p class="training-caption">目標 ${lessonGoal(lesson)} · ${practice ? '自分で完成' : 'お手本'}${lesson.shape ? '' : ` · ${chain}連鎖まで確認`}</p>`;
     if ((practice || view === 'free') && phase === 'edit') {
       content += `<div class="training-tools">${NAMES.map((n,i)=>button('color', n, `data-color="${i}" aria-pressed="${brush===i}" style="--orb:${COLORS[i]}"`)).join('')}${view==='free' ? button('color','消す','data-color="-1"') : ''}</div>`;
       if (hint && practice) content += `<p>ヒント：ここに必要なのは「${NAMES[original[hole[0]][hole[1]]]}」。お手本で、この色が消える直前の落下を確認しましょう。</p>`;
@@ -81,7 +90,7 @@ function render() {
     if (view === 'free') content += `<div class="training-tools">${button('paint','配置する', `aria-pressed="${tool==='paint'}" ${phase!=='edit'?'disabled':''}`)}${button('move','つかんで移動', `aria-pressed="${tool==='move'}" ${phase!=='edit'?'disabled':''}`)}<label>操作時間 <select id="trainingTime" ${phase!=='edit'?'disabled':''}>${[0,10,15,20].map(t=>`<option value="${t}" ${timeLimit===t?'selected':''}>${t ? t+'秒' : '無制限'}</option>`).join('')}</select></label></div><p class="training-caption" id="trainingClock">${timeLimit ? '移動開始から計測（離しても継続）' : '時間無制限'}</p>`;
     content += '<div class="training-frame"><div class="training-board" aria-label="連鎖練習盤面"></div><svg class="training-fuse" viewBox="0 0 350 400" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="2" width="346" height="396" rx="8" pathLength="100"/></svg></div>';
     content += '<div class="training-tools">';
-    if (phase === 'edit') content += button('step', view==='lesson'&&!practice ? 'お手本を一段ずつ見る' : '連鎖を確認');
+    if (phase === 'edit') content += button('step', view==='lesson'&&!practice ? (lesson.shape ? '形を確認' : 'お手本を一段ずつ見る') : (lesson.shape ? '形を判定' : '連鎖を確認'));
     if (phase === 'clear') content += button('step','光っているオーラを消す');
     if (phase === 'fall') content += button('step','落下を確認');
     content += button('reset','配置に戻る');
@@ -102,7 +111,7 @@ function render() {
 function checkGroups() {
   groups = findGroups(board,4);
   phase = groups.length ? 'clear' : 'finished';
-  if (phase==='finished' && view==='lesson' && practice && chain>=LESSONS[lessonIndex].goal) { done.add(lessonIndex); saveProgress(); }
+  if (phase==='finished' && view==='lesson' && practice && practiceSuccess()) { done.add(lessonIndex); saveProgress(); }
 }
 function step() {
   stopClock(); selected = null;

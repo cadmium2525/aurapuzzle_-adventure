@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
   await page.locator(`[data-action="lesson"][data-index="${lesson}"]`).click();
   if(lesson===2) await page.screenshot({path:'.codex-training.png',fullPage:true});
   await page.locator('[data-action="practice"]').click();
-  await page.locator(`[data-action="color"][data-color="${Math.min(lesson,[2,2,3,3,4,5][lesson]-1)}"]`).click();
+  await page.locator(`[data-action="color"][data-color="${[3,0,0,1,2,2][lesson]}"]`).click();
   await page.locator('.training-cell.target').click();
   for(let step=0;step<15 && await page.locator('[data-action="step"]').count();step++)await page.locator('[data-action="step"]').click();
   assert.match(await page.locator('.training-status').innerText(),/成功/);
