@@ -5,6 +5,8 @@
  * =======================================================*/
 export * from './characters.js';
 export * from './skills.js';
+export * from './enemies.js';
+import { ENEMIES } from './enemies.js';
 
 import { CHARACTERS, MAX_GACHA_RARITY, FEATURED_CHARACTER } from './characters.js';
 
@@ -34,9 +36,6 @@ export const MATCH_MIN_DEFAULT = 4;
 
 /* ===================== ステージ ===================== */
 const ENEMY_EMOJIS = ['👹','🐉','👻','🧟','🦂','🕷️','🐍','💀','🦑','👺','🐺','🦁','🐲','🧌','👽'];
-/** 敵のイラスト。読み込めないときは上の絵文字に落ちる */
-const ENEMY_SPRITES = ['gia','gorem','gost','kongou','monolith','raiga','worm']
-  .map(n => `assets/enemy/${n}.webp`);
 export const FLOORS_PER_STAGE = 5;
 
 /** 章ごとのステージ名(1章5ステージ × 10章) */
@@ -88,10 +87,12 @@ export const STAGES = (() => {
       const floors = [];
       for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
         const isBoss = f === FLOORS_PER_STAGE;
+        const enemy = ENEMIES[(id * 5 + f) % ENEMIES.length];
         floors.push({
-          name: isBoss ? `${STAGE_NAMES[ch - 1][i - 1]}の主` : `フロア${f}`,
+          enemyId: enemy.id,
+          name: enemy.name,
           emoji: ENEMY_EMOJIS[(id * 5 + f) % ENEMY_EMOJIS.length],
-          sprite: ENEMY_SPRITES[(id * 5 + f) % ENEMY_SPRITES.length],
+          sprite: enemy.sprite,
           hp: Math.round((120 + step * 210 + (f - 1) * (60 + step * 16)) * (isBoss ? 1.6 : 1)),
           atk: Math.round(8 + step * 7.5 + (f - 1) * (3 + step * 0.6)),
           interval: isBoss ? 1 : 2   // 何ターンごとに攻撃してくるか
@@ -152,10 +153,12 @@ export function dailyStagesFor(day) {
     const floors = [];
     for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
       const isBoss = f === FLOORS_PER_STAGE;
+      const enemy = ENEMIES[(day * 3 + d.tier + f) % ENEMIES.length];
       floors.push({
-        name: isBoss ? `${t.title}の主` : `フロア${f}`,
+        enemyId: enemy.id,
+        name: enemy.name,
         emoji: ENEMY_EMOJIS[(day * 3 + d.tier + f) % ENEMY_EMOJIS.length],
-        sprite: ENEMY_SPRITES[(day * 3 + d.tier + f) % ENEMY_SPRITES.length],
+        sprite: enemy.sprite,
         hp: Math.round((d.hp + (f - 1) * d.hp * 0.25) * (isBoss ? 1.6 : 1)),
         atk: Math.round(d.atk + (f - 1) * d.atk * 0.15),
         interval: isBoss ? 1 : 2
