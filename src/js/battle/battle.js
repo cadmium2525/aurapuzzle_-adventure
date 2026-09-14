@@ -30,6 +30,7 @@ import {
 import { buildParty, comboMultiplier, auraMultiplier } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
+import { playEnemyMotion } from './enemy-motion.js';
 
 let canvas;
 let board = null;
@@ -235,6 +236,7 @@ async function loadFloor() {
   resetTimerUI();
   updateHPUI(false, false);
   updateSkillUI();
+  if (floor.enemySkills?.passives?.length) await playEnemyMotion(floor.enemySkills.passives, board);
   if (floor.enemySkills?.preemptive) await executeEnemyAction(floor.enemySkills.preemptive, true);
   if (run.playerHP <= 0) { battleDefeat(); return; }
   bstate = 'idle';
@@ -335,6 +337,7 @@ function applySkill(i) {
     const dmg = Math.round(m.atk * sk.fixedDamage);
     const result = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits: [{ aura: m.aura, value: dmg }] });
     run.enemyHP = result.hp;
+    playDamageMotion(result);
     run.stats.totalDamage += result.damage;
     popUnit(i, result.blocked ? '無効' : result.absorbed ? '吸収' : String(result.damage), 'dmg');
     shake($('enemyStage'));
@@ -497,6 +500,7 @@ async function resolveTurn() {
   // 連鎖が全て終わってから、合計ぶんをまとめて反映する
   const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
   run.enemyHP = outcome.hp;
+  await playDamageMotion(outcome);
   turnDamage = outcome.damage;
   if (turnHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + turnHeal);
   if (turnDamage > 0) {
@@ -566,8 +570,10 @@ function tickTurnEnd() {
 
 async function executeEnemyAction(action, preemptive = false) {
   const labels = [];
+  const motions = preemptive ? [{ type: 'preemptive' }] : [];
   for (const effect of action.effects || []) {
-    applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
+    const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
+    motions.push({ ...effect, targets });
     labels.push(({ bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
   }
   if (action.attack) {
@@ -581,8 +587,17 @@ async function executeEnemyAction(action, preemptive = false) {
   showBanner(`${preemptive ? '先制行動' : '敵の行動'}！ ${labels.join(' / ')}`);
   updateSkillUI();
   updateHPUI(false, !!action.attack);
-  await sleep(750);
+  await Promise.all([playEnemyMotion(motions, board), sleep(750)]);
   hideBanner();
+}
+
+function playDamageMotion(result) {
+  const effects = run.enemyEffects.defenses;
+  const motions = [];
+  if (result.blocked) motions.push(...effects.filter(e => e.type === 'comboGuard' || e.type === 'shapeGuard'));
+  if (result.absorbed) motions.push(...effects.filter(e => e.type === 'auraAbsorb'));
+  if (result.survived) motions.push({ type: 'resolve', triggered: true });
+  return playEnemyMotion(motions, board);
 }
 
 /* ===================== フロア進行 ===================== */

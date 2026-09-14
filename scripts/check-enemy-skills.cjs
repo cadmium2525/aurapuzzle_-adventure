@@ -45,6 +45,37 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('#partyRow .bound').count(), 3);
     assert.equal(await page.evaluate(() => battleTest.dragTimeMs()), 2000);
     const before = await page.evaluate(() => battleTest.snapshot());
+    // Exercise every visual, including custom shapes and targeted projectiles.
+    for (const effect of [
+      {type:'bind',targets:[0,2]}, {type:'skillDelay',targets:[1],turns:3},
+      {type:'comboGuard',chains:4}, {type:'shapeGuard',aura:2,shape:'L'},
+      {type:'auraBind',aura:0}, {type:'timeReduce',seconds:3},
+      {type:'timeFixed',seconds:5}, {type:'preemptive'},
+      {type:'auraAbsorb',aura:1}, {type:'buildUp'}, {type:'resolve',triggered:true}
+    ]) {
+      await page.evaluate(async effect => {
+        const {playEnemyMotion} = await import('/src/js/battle/enemy-motion.js');
+        window.motionDone = playEnemyMotion([effect],Array.from({length:8},()=>Array(7).fill(0)));
+      }, effect);
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator('.enemy-motion').count(),1);
+      assert.equal(await page.locator('.enemy-motion').evaluate(c=>getComputedStyle(c).pointerEvents),'none');
+      const painted = await page.locator('.enemy-motion').evaluate(c=>{
+        const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+        return pixels.some((v,i)=>i%4===3 && v>0);
+      });
+      assert.equal(painted,true,effect.type);
+      if(effect.type==='bind')await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-enemy-bind.png')});
+      await page.evaluate(()=>window.motionDone);
+      assert.equal(await page.locator('.enemy-motion').count(),0);
+    }
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.evaluate(async()=>{
+      const {playEnemyMotion}=await import('/src/js/battle/enemy-motion.js');
+      await playEnemyMotion([{type:'resolve'}]);
+    });
+    assert.equal(await page.locator('.enemy-motion').count(),0);
+    await page.emulateMedia({reducedMotion:'no-preference'});
     await page.evaluate(async () => {
       const board = Array.from({length:8},()=>Array(7).fill(-1));
       for(let c=0;c<4;c++) { board[7][c]=0; board[6][c]=1; board[5][c]=3; }

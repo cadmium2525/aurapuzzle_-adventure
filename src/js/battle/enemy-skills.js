@@ -11,6 +11,7 @@ export function enterEnemy(effects, skills = {}) {
 }
 
 export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
+  let affected = [];
   const turns = effect.turns ?? Infinity;
   const targets = () => {
     const pool = s.binds.map((_, i) => i);
@@ -21,8 +22,8 @@ export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
     return pool.slice(0, Math.max(0, effect.count));
   };
   switch (effect.type) {
-    case 'bind': targets().forEach(i => { s.binds[i] = Math.max(s.binds[i], turns); }); break;
-    case 'skillDelay': targets().forEach(i => { cooldowns[i] += effect.turns; }); break;
+    case 'bind': affected = targets(); affected.forEach(i => { s.binds[i] = Math.max(s.binds[i], turns); }); break;
+    case 'skillDelay': affected = targets(); affected.forEach(i => { cooldowns[i] += effect.turns; }); break;
     case 'auraBind': s.auraBinds[effect.aura] = Math.max(s.auraBinds[effect.aura] || 0, turns); break;
     case 'timeReduce': case 'timeFixed': s.time = { ...effect, turns }; break;
     case 'comboGuard': case 'shapeGuard': case 'auraAbsorb':
@@ -32,6 +33,7 @@ export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
     case 'resolve': s.resolve = { threshold: effect.threshold, active: true }; break;
     default: throw new Error(`Unknown enemy effect: ${effect.type}`);
   }
+  return affected;
 }
 
 export function tickEnemyEffects(s) {
