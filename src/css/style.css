@@ -1322,7 +1322,7 @@ input[type=range]{accent-color:var(--accent);}
 #chanceNotice { text-align:center; color:#ffe99d; font-size:11px; font-weight:800; padding:3px; }
 #boardWrap.chance-board { border-color:#ffe18b; box-shadow:0 0 16px 2px #dca33488; }
 @media(prefers-reduced-motion:reduce) { .unit.skill-awaken,.unit.ready { animation:none; } }
-.unit-pending { position:absolute; z-index:5; left:50%; top:-8px; transform:translateX(-50%); padding:2px 5px; border:1px solid var(--aura); border-radius:6px; background:rgba(15,8,27,.94); color:#ffe2b0; font-size:13px; font-weight:900; line-height:1.2; white-space:nowrap; pointer-events:none; text-shadow:0 1px 2px #000; }
+.unit-pending { position:absolute; z-index:5; left:50%; top:-8px; transform:translateX(-50%); padding:2px 5px; border:0; background:none; color:#ffe2b0; font-size:13px; font-weight:900; line-height:1.2; white-space:nowrap; pointer-events:none; text-shadow:0 1px 2px #000,0 0 4px #000; }
 .unit-pending.heal { color:#8cffcf; }
 .unit-pending[hidden] { display:none; }
 .party-projectile { position:fixed; z-index:1900; width:16px; height:16px; margin:-8px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,#fff 0 15%,var(--shot-color) 42%,transparent 74%); box-shadow:0 0 9px 4px var(--shot-color),0 0 22px var(--shot-color); }
