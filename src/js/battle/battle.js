@@ -154,14 +154,6 @@ export function startDungeonRun(stage, hard, support) {
 }
 
 /* ===================== パーティ表示 ===================== */
-function unitRoleBadge(i) {
-  const sup = run.party.support;
-  if (sup && i === run.party.members.length - 1) {
-    return `<span class="unit-badge support">${sup.ownerIcon || '🤝'}</span>`;
-  }
-  return '';
-}
-
 function renderParty() {
   const row = $('partyRow');
   row.innerHTML = '';
@@ -178,9 +170,7 @@ function renderParty() {
       <span class="unit-ready-burst" hidden>スキル準備完了！</span>
       <span class="unit-face">
         <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
-        <span class="unit-aura">${aura.emoji}</span>
         <span class="unit-cd" hidden></span>
-        ${unitRoleBadge(i)}
       </span></button><span class="unit-statuses" aria-label="個別の状態効果"></span>`;
     btn.querySelector('.unit-skill').addEventListener('click', () => confirmSkill(i));
     row.appendChild(btn);
@@ -240,7 +230,6 @@ async function loadFloor() {
   run.targetIndex = 0; run.actingEnemy = null;
 
   $('enemyStage').classList.toggle('multi-enemy', !!run.stage.raid);
-  $('enemyEmoji').innerHTML = artImg(combatEnemy(run).spec.sprite, combatEnemy(run).spec.emoji, 'enemy');
   // ステージ名はトップバーに出す(画面上部を盤面のために空ける)
   $('screenTitle').textContent = run.stage.name + (run.hard ? ' / ハード' : '');
   renderFloorPips();
@@ -288,23 +277,19 @@ function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更
 
 /* ===================== HP表示 ===================== */
 function updateHPUI(flashEnemy, flashPlayer) {
+  // 敵のHPと残りターンは敵ごとの表示に含まれるので、まとめのバーは持たない
   renderEncounter();
-  renderEnemyBadges(run.enemyEffects);
   renderPlayerBadges(run);
-  $('enemyHPFill').style.width = Math.max(0, run.enemyHP / run.enemyMaxHP * 100) + '%';
-  $('enemyHPText').textContent = Math.max(0, run.enemyHP) + ' / ' + run.enemyMaxHP;
   $('playerHPFill').style.width = Math.min(100, Math.max(0, run.playerHP / run.maxHP * 100)) + '%';
   $('playerHPText').textContent = Math.max(0, run.playerHP) + ' / ' + run.maxHP;
   $('playerHPRow').classList.toggle('low', run.playerHP / run.maxHP <= 0.25);
-  renderEnemyTurnPips();
   if (flashEnemy) flash($('enemyStage'));
   if (flashPlayer) flash($('partyBox'));
   resizeBoard();
 }
 
 function renderEncounter() {
-  const root=$('enemyRoster');root.hidden=!run.stage.raid;
-  if(!run.stage.raid){root.replaceChildren();return;}
+  const root=$('enemyRoster');
   const ordered=run.enemies.length===3 && run.enemies[0].summoned ? [run.enemies[1],run.enemies[0],run.enemies[2]] : run.enemies;
   root.replaceChildren();
   for(const enemy of ordered){
@@ -314,7 +299,7 @@ function renderEncounter() {
     const target=document.createElement('button');target.className='foe-target';target.type='button';
     target.disabled=enemy.hp<=0;
     target.setAttribute('aria-label',`${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
-    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health"><i style="width:${enemy.hp/enemy.maxHP*100}%"></i></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined?'':` ・ あと${enemy.turnsLeft}`}</span>`;
+    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health"><i style="width:${enemy.hp/enemy.maxHP*100}%"></i></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}</span>`;
     target.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
     button.appendChild(target);
     const badges=document.createElement('div');badges.className='foe-badges';button.appendChild(badges);
@@ -340,10 +325,6 @@ async function checkBuildUps() {
       run.actingEnemy=null;
     }
   }
-}
-
-function renderEnemyTurnPips() {
-  $('enemyTurnCount').textContent = Number.isFinite(run.enemyTurnsLeft) ? run.enemyTurnsLeft : '—';
 }
 
 function flash(el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }

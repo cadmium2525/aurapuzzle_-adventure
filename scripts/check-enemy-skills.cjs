@@ -98,7 +98,7 @@ const server = http.createServer(async (req, res) => {
       assert.deepEqual(await boardRect(),size);
     }
     await page.setViewportSize({width:390,height:844});
-    assert.equal(await page.locator('#enemyBadges .enemy-badge').count(),5);
+    assert.equal(await page.locator('.foe-badges .enemy-badge').count(),5);
     await page.locator('[data-effect="buildUp"]').click();
     assert.match(await page.locator('[data-effect="buildUp"]').getAttribute('aria-label'),/攻撃力が2倍/);
     await page.waitForTimeout(1800);
@@ -123,7 +123,8 @@ const server = http.createServer(async (req, res) => {
       {type:'bind',targets:[0,2]}, {type:'skillDelay',targets:[1],turns:3},
       {type:'comboGuard',chains:4}, {type:'shapeGuard',aura:2,shape:'L'},
       {type:'auraBind',aura:0}, {type:'timeReduce',seconds:3},
-      {type:'timeFixed',seconds:5}, {type:'preemptive'},
+      {type:'timeFixed',seconds:5},
+      // 先制行動は演出を出さない仕様(d003cea)なので、描画の検証対象から外す
       {type:'auraAbsorb',aura:1}, {type:'buildUp'}, {type:'resolve',triggered:true}
     ]) {
       await page.evaluate(async effect => {
@@ -225,7 +226,7 @@ const server = http.createServer(async (req, res) => {
       await battleTest.resolveTurn();
     });
     assert.equal(await page.locator('#resultTitle').innerText(), 'DEFEAT');
-    assert.equal(await page.locator('#enemyBadges .enemy-badge').count(),0);
+    assert.equal(await page.locator('.foe-badges .enemy-badge').count(),0);
     assert.equal(await page.evaluate(() => battleTest.snapshot().run), null);
     assert.deepEqual(errors, []);
     console.log('PASS: preemptive input lock, bind attack/heal suppression, aura bind, fixed time expiry, full skill delay, status UI, next-floor preemptive defeat');

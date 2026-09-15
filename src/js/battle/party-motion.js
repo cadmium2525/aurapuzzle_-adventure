@@ -3,7 +3,8 @@ const COLORS = ['#ff795b', '#58d7ff', '#66eca2', '#ff94d2', '#b28aff'];
 /** All attacks land together, preserving whole-turn guard/absorption/resolve rules. */
 export async function playPartyAttacks(actions) {
   if (document.hidden) return;
-  const enemy = (document.querySelector('#enemyRoster:not([hidden]) .target .foe-art') || document.getElementById('enemyEmoji'))?.getBoundingClientRect();
+  const enemy = (document.querySelector('#enemyRoster .target .foe-art')
+    || document.querySelector('#enemyRoster .foe-art'))?.getBoundingClientRect();
   if (!enemy) return;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   await Promise.all(actions.filter(a => a.kind === 'dmg' && a.value > 0).map(async a => {

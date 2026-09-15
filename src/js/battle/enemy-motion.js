@@ -6,7 +6,9 @@ const center = el => {
 };
 export function playEnemyMotion(events, board = []) {
   if (!events.length || document.hidden) return Promise.resolve();
-  const enemy = center(document.querySelector('#enemyRoster:not([hidden]) [data-acting] .foe-art') || document.querySelector('#enemyRoster:not([hidden]) .target .foe-art') || document.getElementById('enemyEmoji'));
+  const enemy = center(document.querySelector('#enemyRoster [data-acting] .foe-art')
+    || document.querySelector('#enemyRoster .target .foe-art')
+    || document.querySelector('#enemyRoster .foe-art'));
   const field = center(document.getElementById('board'));
   if (!enemy || !field) return Promise.resolve();
   const units = [...document.querySelectorAll('#partyRow .unit-face')].map(center);

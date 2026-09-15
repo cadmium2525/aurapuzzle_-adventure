@@ -2,7 +2,12 @@ const ORDER = ['buildUp', 'resolve', 'auraAbsorb', 'comboGuard', 'shapeGuard'];
 const AURAS = ['火', '水', '木', '癒', '闇'];
 const COLORS = ['#ff795b','#58d7ff','#66eca2','#ff94d2','#b28aff'];
 
-export function renderEnemyBadges(effects, root = document.getElementById('enemyBadges')) {
+/** 既定の置き場は「いま狙っている敵」のバッジ欄。敵ごとに描くときは root を渡す。 */
+const targetBadgeBox = () =>
+  document.querySelector('#enemyRoster .foe.target .foe-badges')
+  || document.querySelector('#enemyRoster .foe-badges');
+
+export function renderEnemyBadges(effects, root = targetBadgeBox()) {
   if (!root) return;
   const badges = effects.defenses.map(e => ({ ...e }));
   if (effects.attackMult > 1) badges.push({type:'buildUp'});

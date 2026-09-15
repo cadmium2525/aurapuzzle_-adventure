@@ -16,7 +16,7 @@ const faceVariant = src => src.replace(/(\.[a-z0-9]+)$/i,'_icon$1');
 /** 盤面に出ている敵の画像から、セリフ用の顔アイコンを作る */
 function buildFace(sprite) {
   const src = sprite
-    || document.querySelector('.foe[data-acting] .foe-art img, .foe.target .foe-art img, #enemyEmoji img')
+    || document.querySelector('.foe[data-acting] .foe-art img, .foe.target .foe-art img, .foe .foe-art img')
       ?.getAttribute('src');
   if(!src)return null;
   const face=document.createElement('img');
