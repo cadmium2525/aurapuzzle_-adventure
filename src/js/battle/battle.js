@@ -259,7 +259,7 @@ async function loadFloor() {
   updateHPUI(false, false);
   updateSkillUI();
   if (reveal) await reveal();
-  if (floor.dialogue) await bossDialogue(combatEnemy(run).spec.name, floor.dialogue);
+  if (floor.dialogue) { const spec = combatEnemy(run).spec; await bossDialogue(spec.name, floor.dialogue, spec.sprite); }
   for (const enemy of [...run.enemies]) {
     run.actingEnemy=enemy;
     if (enemy.spec.enemySkills?.passives?.length) await playEnemyMotion(enemy.spec.enemySkills.passives, board);
@@ -662,7 +662,7 @@ function activateChanceBoard() {
  * 毎回演出を挟むとテンポが悪い。かかった状態は敵・味方のバッジで分かる。
  */
 async function executeEnemyAction(action, preemptive = false) {
-  if(action.dialogue)await bossDialogue(combatEnemy(run).spec.name,action.dialogue);
+  if(action.dialogue){const spec=combatEnemy(run).spec;await bossDialogue(spec.name,action.dialogue,spec.sprite);}
   const labels = [];
   const motions = [];
   for (const effect of action.effects || []) {
