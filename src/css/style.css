@@ -1312,8 +1312,6 @@ input[type=range]{accent-color:var(--accent);}
   background:rgba(255,198,92,.14);border-radius:5px;padding:1px 5px;}
 .lh-lv{font-size:10px;color:var(--accent);font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;}
 .pm-lv{font-size:8px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;}
-.enemy-effects { color: #ffd58c; font-size: 12px; line-height: 1.5; text-align: center; padding: 4px 8px; }
-.enemy-effects:empty { display: none; }
 .dungeon-entry.raid { border-color:#df8bd8; background:linear-gradient(120deg,#30163f,#19162e); }
 #enemyStage.multi-enemy { max-height:34vh; min-height:195px; }
 .multi-enemy #enemyEmoji,.multi-enemy #enemyBadges { display:none; }
@@ -1331,8 +1329,24 @@ input[type=range]{accent-color:var(--accent);}
 .foe-health i { display:block; height:100%; background:#ff647f; transition:width .25s; }
 .foe-badges { display:flex; justify-content:center; gap:2px; min-height:24px; flex-wrap:wrap; }
 .foe-badges .enemy-badge { width:24px; height:24px; flex-basis:24px; }
-#bossDialogue { background:#1c0e2def; border:1px solid #c995d8; border-radius:8px; padding:8px; font-size:12px; color:#ffe2f6; }
-#bossDialogue[hidden] { display:none; }
+#bossDialogue { position:fixed; inset:0; width:100%; height:100%; max-width:none; max-height:none; margin:0; padding:24px; border:0; border-radius:0; background:radial-gradient(ellipse at 50% 30%,#4c2457e8,#10091af5 75%); color:#ffe2f6; overflow:auto; }
+#bossDialogue:not([open]) { display:none; }
+#bossDialogue[open] { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+#bossDialogue::backdrop { background:#10091acc; }
+.dialogue-portrait { width:min(90vw,420px); height:42dvh; object-fit:contain; flex-shrink:1; min-height:0; filter:drop-shadow(0 0 22px #b477cd55); }
+.dialogue-panel { width:min(100%,480px); padding:24px; border-block:1px solid #d1a4d66b; background:linear-gradient(90deg,transparent,#34203eaa,transparent); text-align:center; }
+.dialogue-panel b { color:#ffd58c; font-size:19px; }
+.dialogue-panel p { font-size:18px; line-height:1.9; margin:18px 0; }
+.dialogue-panel button { padding:10px 28px; border:1px solid #ffe7a7; border-radius:22px; background:linear-gradient(#ffe7a7,#d9a14e); color:#332013; font-weight:700; cursor:pointer; }
+.dialogue-panel small { display:block; margin-top:12px; color:#c7b5cf; font-size:11px; }
+#playerEffects { position:absolute; left:5px; right:44px; top:30px; height:38px; display:flex; gap:5px; overflow-x:auto; scrollbar-width:thin; z-index:8; padding:2px; pointer-events:auto; }
+#playerEffects:empty { display:none; }
+.player-badge { position:relative; padding:0; border:0; border-radius:50%; width:32px; height:32px; flex:0 0 32px; background:#10091ae6; cursor:pointer; }
+.player-badge-art { display:block; width:100%; height:100%; background:url('../../assets/battle/player_badges.webp') no-repeat; background-size:800% 100%; background-position:calc(var(--status-index) * 100% / 7) 0; }
+.player-badge:focus-visible { outline:2px solid #ffe29a; outline-offset:1px; }
+.unit-skill { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding:0; background:none; border:0; border-radius:inherit; color:inherit; }
+.unit-statuses { position:absolute; bottom:0; left:0; display:flex; gap:1px; z-index:6; }
+.unit-statuses .player-badge { width:22px; height:22px; flex-basis:22px; }
 .boss-transition { position:fixed; inset:0; z-index:4000; display:grid; place-items:center; text-align:center; padding:24px; font-size:24px; font-weight:900; opacity:1; transition:opacity .65s; pointer-events:auto; }
 .boss-transition.warning { background:#16061fea; color:#ffd2da; text-shadow:0 0 18px #ef4284; }
 .boss-transition.evolution { background:white; animation:bossWhite .7s ease-in; }

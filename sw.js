@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v30';
+const CACHE_NAME = 'aura-connect-v31';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -29,6 +29,8 @@ const ASSETS = [
   './src/js/data/raids.js',
   './src/js/battle/encounter.js',
   './src/js/battle/raid-presentation.js',
+  './src/js/battle/player-badges.js',
+  './assets/battle/player_badges.webp',
   './assets/chars/kyuko_1.webp',
   './assets/chars/kyuko_2.webp',
   './assets/chars/kyuko_1_icon.webp',

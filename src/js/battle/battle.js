@@ -28,7 +28,7 @@ import {
 } from './board.js';
 import { buildParty } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, animateConversion, clearConversion, CELL } from './renderer.js';
-import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, effectLabels } from './enemy-skills.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
@@ -36,6 +36,7 @@ import { createChanceBoard, isAllClear } from './chance.js';
 import { baseActions, finalActions } from './damage.js';
 import { createEncounter, attachEncounter, combatEnemy, encounterCleared, retarget, tickEncounter, summonClones, damageTarget } from './encounter.js';
 import { bossTransition, bossDialogue } from './raid-presentation.js';
+import { renderPlayerBadges } from './player-badges.js';
 import { raidDropRate, rollRaidCharacter } from '../data/raids.js';
 
 let canvas;
@@ -166,13 +167,12 @@ function renderParty() {
   row.innerHTML = '';
   run.party.members.forEach((m, i) => {
     const aura = AURAS[m.aura];
-    const btn = document.createElement('button');
-    btn.type = 'button';
+    const btn = document.createElement('div');
     btn.className = 'unit r' + m.rarity + (m.isSupport ? ' support' : '');
     btn.dataset.idx = String(i);
     btn.title = m.isSupport ? `${m.name}(${m.ownerName || 'サポート'}から)` : m.name;
     btn.style.setProperty('--aura', COLOR_HEX[aura.key]);
-    btn.innerHTML = `
+    btn.innerHTML = `<button type="button" class="unit-skill" aria-label="${m.name}のスキル">
       <span class="unit-pops"></span>
       <span class="unit-pending" hidden></span>
       <span class="unit-ready-burst" hidden>スキル準備完了！</span>
@@ -181,8 +181,8 @@ function renderParty() {
         <span class="unit-aura">${aura.emoji}</span>
         <span class="unit-cd" hidden></span>
         ${unitRoleBadge(i)}
-      </span>`;
-    btn.addEventListener('click', () => confirmSkill(i));
+      </span></button><span class="unit-statuses" aria-label="個別の状態効果"></span>`;
+    btn.querySelector('.unit-skill').addEventListener('click', () => confirmSkill(i));
     row.appendChild(btn);
   });
   updateSkillUI();
@@ -211,9 +211,10 @@ function updateSkillUI() {
     // 残りターンはアイコン角のバッジで示す(使えるようになったら消す)
     const badge = unit.querySelector('.unit-cd');
     if (!badge) return;
-    badge.hidden = !bound && (!sk || ready);
-    badge.textContent = bound ? `封 ${bound}` : (sk ? cd : '');
+    badge.hidden = !sk || cd <= 0;
+    badge.textContent = sk ? cd : '';
   });
+  renderPlayerBadges(run);
 }
 
 /** キャラの上にダメージ/回復の数字を浮かせる */
@@ -289,7 +290,7 @@ function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更
 function updateHPUI(flashEnemy, flashPlayer) {
   renderEncounter();
   renderEnemyBadges(run.enemyEffects);
-  $('enemyEffects').textContent = effectLabels({ ...run.enemyEffects, defenses: [], attackMult: 1, resolve: null }).join(' / ');
+  renderPlayerBadges(run);
   $('enemyHPFill').style.width = Math.max(0, run.enemyHP / run.enemyMaxHP * 100) + '%';
   $('enemyHPText').textContent = Math.max(0, run.enemyHP) + ' / ' + run.enemyMaxHP;
   $('playerHPFill').style.width = Math.min(100, Math.max(0, run.playerHP / run.maxHP * 100)) + '%';
@@ -605,6 +606,7 @@ async function resolveTurn() {
 
   // 自分の手番による短縮を先に行い、この後に受ける遅延を相殺しない。
   run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
+  run.skillDelayDebt = run.skillDelayDebt?.map(n => Math.max(0,n-1));
   // 敵の攻撃カウント
   for (const enemy of run.enemies.filter(e=>e.hp>0&&e.cloneOf===undefined)) {
     run.actingEnemy=enemy;
@@ -660,6 +662,10 @@ async function executeEnemyAction(action, preemptive = false) {
   for (const effect of action.effects || []) {
     if(effect.type==='summonClones'){summonClones(run,combatEnemy(run));labels.push('分身体が出現');continue;}
     const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
+    if(effect.type==='skillDelay'){
+      run.skillDelayDebt ||= run.party.members.map(()=>0);
+      targets.forEach(i=>{run.skillDelayDebt[i]+=effect.turns;});
+    }
     motions.push({ ...effect, targets });
     labels.push(({ bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
   }
@@ -697,6 +703,7 @@ async function floorClear() {
   run.floorIndex++;
   // クールダウンはフロアをまたいでも引き継ぐ(1フロアぶん進める)
   run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
+  run.skillDelayDebt = run.skillDelayDebt?.map(n => Math.max(0,n-1));
   await loadFloor();
   if (!run) return;
   bstate = 'resolving';

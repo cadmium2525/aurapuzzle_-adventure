@@ -139,6 +139,7 @@
         <div id="enemyEmoji">👹</div>
         <div id="enemyRoster" hidden></div>
         <div id="enemyBadges" aria-label="敵の状態効果"></div>
+        <div id="playerEffects" aria-label="味方全体の状態効果"></div>
         <div id="enemyMeta">
           <span id="enemyTurn">攻撃まで <span id="enemyTurnCount">2</span></span>
         </div>
@@ -150,7 +151,7 @@
       </div>
 
       <!-- 自陣 -->
-      <div id="bossDialogue" hidden role="status"></div>
+      <dialog id="bossDialogue" aria-label="敵のセリフ"></dialog>
       <div id="partyBox">
         <div id="partyRow"></div>
         <div id="playerHPRow">
@@ -160,7 +161,6 @@
         </div>
       </div>
 
-      <div id="enemyEffects" class="enemy-effects" role="status" aria-live="polite"></div>
       <div id="chanceNotice" hidden>チャンス盤面！ 隣り合うオーラを入れ替えて連鎖を狙おう</div>
       <div id="boardWrap"><canvas id="board"></canvas></div>
     </section>

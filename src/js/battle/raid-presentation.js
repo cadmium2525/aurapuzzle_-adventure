@@ -9,7 +9,25 @@ export async function bossTransition(kind) {
 }
 export async function bossDialogue(name,line) {
   const box=document.getElementById('bossDialogue');
-  box.textContent=`${name}「${line}」`;box.hidden=false;
-  await pause(Math.min(2800,Math.max(1400,line.length*48)));
-  box.hidden=true;
+  box.replaceChildren();
+  const portrait=document.querySelector('.foe[data-acting] .foe-art img')
+    || document.querySelector('.foe.target .foe-art img, #enemyEmoji img');
+  if(portrait){const art=portrait.cloneNode();art.className='dialogue-portrait';art.alt='';box.appendChild(art);}
+  const panel=document.createElement('div');panel.className='dialogue-panel';
+  const speaker=document.createElement('b');speaker.textContent=name;
+  const text=document.createElement('p');text.textContent=line;
+  const next=document.createElement('button');next.type='button';next.textContent='次へ ›';
+  const hint=document.createElement('small');hint.textContent='自動進行・タップで次へ';
+  panel.append(speaker,text,next,hint);box.appendChild(panel);
+  const previous=document.activeElement;
+  let advance;
+  const tapped=new Promise(resolve=>{advance=resolve;});
+  const cancel=e=>{e.preventDefault();advance();};
+  box.addEventListener('click',advance);box.addEventListener('cancel',cancel);
+  box.showModal();next.focus({preventScroll:true});
+  try { await Promise.race([tapped,pause(Math.min(4800,Math.max(2400,line.length*80)))]); }
+  finally {
+    box.close();box.removeEventListener('click',advance);box.removeEventListener('cancel',cancel);
+    if(previous?.isConnected)previous.focus({preventScroll:true});
+  }
 }

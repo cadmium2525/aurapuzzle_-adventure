@@ -50,6 +50,54 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('#partyRow .bound').count(), 3);
     assert.equal(await page.evaluate(() => battleTest.dragTimeMs()), 2000);
     const before = await page.evaluate(() => battleTest.snapshot());
+    // Status icons and full-screen dialogue must never consume board layout space.
+    const boardRect=()=>page.locator('#board').evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,y:el.getBoundingClientRect().y}));
+    const baseline=await boardRect();
+    assert.equal(await page.locator('.unit-statuses [data-effect="bind"]').count(),3);
+    assert.equal(await page.locator('#playerEffects [data-effect="timeFixed"]').count(),1);
+    await page.locator('.unit-statuses [data-effect="bind"]').first().click();
+    assert.equal(await page.locator('#skillConfirmModal.show').count(),0);
+    await page.evaluate(async()=>{
+      const {renderPlayerBadges}=await import('/src/js/battle/player-badges.js');
+      const copy=battleTest.snapshot().run;
+      copy.enemyEffects.time={type:'timeReduce',seconds:3,turns:5};
+      copy.enemyEffects.auraBinds={0:2,1:2,2:2,3:2,4:2};
+      copy.buffs={atk:{mult:1.5,turns:2},guard:{rate:.5,turns:3}};copy.turnTimeBonusMs=2000;
+      renderPlayerBadges(copy);
+      (await import('/src/js/battle/renderer.js')).resizeBoard();
+    });
+    assert.deepEqual(await boardRect(),baseline);
+    assert.equal(await page.locator('#playerEffects .player-badge').count(),9);
+    assert.equal(await page.locator('.player-badge-art').first().evaluate(async el=>{
+      const img=new Image();img.src=getComputedStyle(el).backgroundImage.slice(5,-2);await img.decode();return img.naturalWidth;
+    }),1024);
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-player-statuses.png')});
+    await page.evaluate(async()=>{
+      const {bossDialogue}=await import('/src/js/battle/raid-presentation.js');
+      window.dialogueDone=false;bossDialogue('キュウコ','ふふ……あなたは、この幻を見破れるかしら？').then(()=>window.dialogueDone=true);
+      (await import('/src/js/battle/renderer.js')).resizeBoard();
+    });
+    assert.equal(await page.locator('#bossDialogue:modal').count(),1);
+    assert.deepEqual(await boardRect(),baseline);
+    await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-dialogue-modal.png')});
+    await page.locator('#bossDialogue button').click();
+    await page.waitForFunction(()=>window.dialogueDone);
+    assert.deepEqual(await boardRect(),baseline);
+    await page.evaluate(async()=>{(await import('/src/js/battle/player-badges.js')).renderPlayerBadges(battleTest.snapshot().run);});
+    for(const viewport of [{width:320,height:568},{width:768,height:1024}]){
+      await page.setViewportSize(viewport);
+      await page.evaluate(async()=>{(await import('/src/js/battle/renderer.js')).resizeBoard();});
+      const size=await boardRect();
+      await page.evaluate(async()=>{
+        const {bossDialogue}=await import('/src/js/battle/raid-presentation.js');
+        window.dialogueDone=false;bossDialogue('敵','盤面を動かさず表示するセリフ').then(()=>window.dialogueDone=true);
+        (await import('/src/js/battle/renderer.js')).resizeBoard();
+      });
+      assert.deepEqual(await boardRect(),size);
+      await page.keyboard.press('Escape');await page.waitForFunction(()=>window.dialogueDone);
+      assert.deepEqual(await boardRect(),size);
+    }
+    await page.setViewportSize({width:390,height:844});
     assert.equal(await page.locator('#enemyBadges .enemy-badge').count(),5);
     await page.locator('[data-effect="buildUp"]').click();
     assert.match(await page.locator('[data-effect="buildUp"]').getAttribute('aria-label'),/攻撃力が2倍/);
@@ -113,6 +161,8 @@ const server = http.createServer(async (req, res) => {
     assert.equal(after.run.stats.maxChain, 1);
     assert.deepEqual(after.board[7].slice(0,4), [0,0,0,0]);
     assert.deepEqual(after.run.cooldowns, before.run.cooldowns.map(n=>Math.max(0,n-1)+3));
+    assert.deepEqual(after.run.skillDelayDebt,[3,3,3]);
+    assert.equal(await page.locator('.unit-statuses [data-effect="skillDelay"]').count(),3);
     assert.equal(await page.locator('#partyRow .bound').count(), 0);
     assert.ok(await page.evaluate(() => battleTest.dragTimeMs()) > 2000);
     await page.evaluate(async () => {
