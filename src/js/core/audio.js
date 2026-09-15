@@ -1,7 +1,17 @@
 /* Ambient Web Audio respects the iPhone Ring/Silent switch. */
 import { state } from './state.js';
-const SOURCES = { field: './assets/Welcome_to_the_Puzzle.mp3', battle: './assets/Circuit_Breaker.mp3' };
-const SCENE_GAIN = { field: 1, battle: 1 / 3 };
+const SOURCES = {
+  field: './assets/Welcome_to_the_Puzzle.mp3',
+  battle: './assets/Circuit_Breaker.mp3',
+  kyuko: './assets/kyuko.mp3'            // 降臨ダンジョン「九狐降臨」
+};
+/* 曲ごとの音量補正。九狐は音源が通常バトル曲より約3.5dB小さいので、
+   バトル曲(1/3)と同じ聞こえ方になる 0.5 にしている(RMSで測定) */
+const SCENE_GAIN = { field: 1, battle: 1 / 3, kyuko: 0.5 };
+/* 起動時に読み込む曲。九狐は約5分と長く、デコード後のメモリが大きいので
+   入ったときに読み込み、抜けたら手放す */
+const PRELOAD_SCENES = ['field', 'battle'];
+const ON_DEMAND_SCENES = new Set(['kyuko']);
 let context, gain, source;
 let desiredScene = 'field', unlocked = false, initialized = false, volumeLevel = null;
 let offset = 0, startedAt = 0;
@@ -70,7 +80,7 @@ function loadTrack(scene) {
 }
 
 export function preloadBgm() {
-  return Object.keys(SOURCES).map(scene => loadTrack(scene).catch(() => {}));
+  return PRELOAD_SCENES.map(scene => loadTrack(scene).catch(() => {}));
 }
 
 export function startBgm() {
@@ -81,8 +91,11 @@ export function startBgm() {
 }
 
 export function setBgmScene(scene) {
-  const next = scene === 'battle' ? 'battle' : 'field';
-  if (next !== desiredScene) { pause(); offset = 0; }
+  const next = SOURCES[scene] ? scene : 'field';
+  if (next !== desiredScene) {
+    pause(); offset = 0;
+    if (ON_DEMAND_SCENES.has(desiredScene)) buffers.delete(desiredScene);
+  }
   desiredScene = next;
   syncBgm();
 }

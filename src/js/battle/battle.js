@@ -148,7 +148,7 @@ export function startDungeonRun(stage, hard, support) {
   setPalette(stage.auras);
   board = null;                 // 新しいダンジョンでは盤面を作り直す
   renderParty();
-  showScreen('battle');
+  showScreen('battle', { bgm: stage.bgm });
   loadFloor();
   resizeBoard();
 }

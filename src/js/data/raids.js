@@ -34,7 +34,7 @@ const boss = evolved => ({
 });
 const floor = ids => ({enemies:ids.map(monster)});
 export const KYUKO_RAID = {
-  id:2001,raid:true,name:'九狐降臨',stamina:30,coinReward:9000,orbReward:0,expReward:180,charExpReward:600,
+  id:2001,raid:true,name:'九狐降臨',bgm:'kyuko',stamina:30,coinReward:9000,orbReward:0,expReward:180,charExpReward:600,
   auras:[0,1,2,3,4],dropAura:4,dropType:'raid',shardRate:.35,crystalBase:8,
   characterDrop:{id:'dk_kyuko',rate:.5},
   floors:[floor(['monolith','monolith','monolith']),floor(['worm','worm']),floor(['monolith','gia','gorem']),

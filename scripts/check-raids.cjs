@@ -37,8 +37,9 @@ const server=http.createServer(async(req,res)=>{
     assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','降臨ダンジョン','曜日ダンジョン','トレーニング']);
     await page.locator('#openRaidDungeonBtn').click();
     await page.locator('.stage-card').filter({hasText:'九狐降臨'}).click();
-    assert.equal(await page.locator('.raid-detail li').count(),10);
-    await page.locator('#raidStartBtn').click();await page.locator('#supportSkipBtn').click();
+    // 説明ページは挟まず、カードからそのままサポート選択へ進む
+    assert.ok(await page.locator('#supportPickModal.show').isVisible());
+    await page.locator('#supportSkipBtn').click();
     await page.waitForFunction(()=>raidTest.snapshot().bstate==='idle');
     let snap=await page.evaluate(()=>raidTest.snapshot());
     assert.equal(snap.run.enemies.length,3);assert.ok(snap.run.enemies.every(e=>e.effects.defenses[0].turns===5));

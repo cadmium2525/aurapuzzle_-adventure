@@ -16,14 +16,13 @@ import {
 import { startDungeonRun } from '../battle/battle.js';
 import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
-import { RAID_STAGES, raidDropRate } from '../data/raids.js';
+import { RAID_STAGES } from '../data/raids.js';
 
 let dungeonHard = false;
 let dungeonMode = 'story';     // 'story' = 章ごとの通常 / 'daily' = 曜日ダンジョン
 let dungeonView = 'menu';      // ホームからはまず種別選択を開く
 let chapter = 1;
 let pendingStage = null, pendingHard = false;
-let raidStage = null;
 let supportTab = 'friend';
 let friendRentals = null;      // 取得済みのフレンド貸し出しキャラ(null=未取得)
 let strangerRentals = null;    // フレンド以外のプレイヤー(読み取り数を抑えるため使い回す)
@@ -60,7 +59,6 @@ function showDungeonMenu() {
 }
 
 function handleDungeonBack() {
-  if (dungeonView === 'raidDetail') { dungeonView='stages';renderDungeon({preserve:true});return true; }
   if (dungeonView !== 'stages') return false;
   showDungeonMenu();
   return true;
@@ -230,7 +228,6 @@ export function renderDungeon(options = {}) {
 
   if (dungeonMode === 'daily') { renderDailyList(); return; }
   if (dungeonMode === 'raid') {
-    if(dungeonView==='raidDetail'&&raidStage){openRaidDetail(raidStage);return;}
     const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES);return;
   }
 
@@ -302,7 +299,6 @@ function renderStageCards(list, stages) {
 
     if (!isLocked) {
       div.addEventListener('click', () => {
-        if(stage.raid){openRaidDetail(stage);return;}
         if (!ownCharacters().length) { toast('先にキャラクターを編成してください'); return; }
         if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
         openSupportPick(stage, hard);
@@ -346,24 +342,6 @@ function dropLabel(stage) {
   if (stage.dropType === 'exp') return `${itemIcon('mt_exp2')} キャラ経験値アイテム`;
   const mat = materialById(crystalIdFor(stage.dropAura));
   return `${itemIcon(mat.id)}${mat.name} ドロップ`;
-}
-
-function openRaidDetail(stage) {
-  raidStage=stage;
-  dungeonView='raidDetail';
-  const list=$('stageList');
-  list.innerHTML=`<div class="card raid-detail"><h2>${stage.name}</h2>
-    <p>妖艶な狐のまやかしを破り、九尾の真の姿に挑め。</p>
-    <p>全${stage.floors.length}フロア ／ スタミナ${stage.stamina}</p>
-    <p>キュウコ★3：基本50% ／ 現在の自陣で${Math.round(raidDropRate(stage,ownCharacters())*100)}%</p>
-    <p>敵をタップして狙う相手を選択。分身体がいる間は本体を攻撃できません。</p>
-    <ol>${stage.floors.map(f=>`<li>${f.enemies.map(e=>e.name).join('・')}</li>`).join('')}</ol>
-    <button id="raidStartBtn" class="btn">バトルスタート</button></div>`;
-  $('raidStartBtn').addEventListener('click',()=>{
-    if(!ownCharacters().length){toast('先にキャラクターを編成してください');return;}
-    if(!hasStamina(stage.stamina)){toast(`スタミナが足りません(必要 ${stage.stamina})`);return;}
-    openSupportPick(stage,false);
-  });
 }
 
 function dailyThemeIcon(theme) {

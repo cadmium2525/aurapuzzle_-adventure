@@ -36,7 +36,8 @@ export function showScreen(name, options = {}) {
   document.body.classList.toggle('in-battle', name === 'battle');
   document.body.dataset.screen = name;          // 画面ごとの背景切り替えに使う
   currentScreen = name;
-  setBgmScene(name === 'battle' ? 'battle' : 'field');
+  // 曲は画面で決まる。ダンジョンごとに専用曲があれば options.bgm で上書きする
+  setBgmScene(options.bgm || (name === 'battle' ? 'battle' : 'field'));
   armDeviceBack();                              // 端末の戻る操作を受け止める場所を確保する
   if (renderers[name]) renderers[name](options);
   updateStatusBar();
