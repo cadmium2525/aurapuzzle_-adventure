@@ -655,10 +655,16 @@ function activateChanceBoard() {
   updateChanceUI();
 }
 
+/**
+ * 敵の行動を実行する。
+ * 先制行動は文字もエフェクトも出さず、効果だけを静かにかける。
+ * ノーマル以外のダンジョンではほぼ毎フロア先制で妨害してくるため、
+ * 毎回演出を挟むとテンポが悪い。かかった状態は敵・味方のバッジで分かる。
+ */
 async function executeEnemyAction(action, preemptive = false) {
   if(action.dialogue)await bossDialogue(combatEnemy(run).spec.name,action.dialogue);
   const labels = [];
-  const motions = preemptive ? [{ type: 'preemptive' }] : [];
+  const motions = [];
   for (const effect of action.effects || []) {
     if(effect.type==='summonClones'){summonClones(run,combatEnemy(run));labels.push('分身体が出現');continue;}
     const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
@@ -675,10 +681,11 @@ async function executeEnemyAction(action, preemptive = false) {
     dmg = Math.max(cut >= 1 ? 0 : 1, Math.round(dmg * (1 - cut)));
     run.playerHP = Math.max(0, run.playerHP - dmg);
     labels.push(`${dmg}ダメージ`);
-    shake($('partyBox'));
+    if (!preemptive) shake($('partyBox'));
   }
-  showBanner(`${preemptive ? '先制行動' : '敵の行動'}！ ${labels.join(' / ')}`);
   updateSkillUI();
+  if (preemptive) { updateHPUI(false, false); return; }
+  showBanner(`敵の行動！ ${labels.join(' / ')}`);
   updateHPUI(false, !!action.attack);
   await Promise.all([playEnemyMotion(motions, board), sleep(750)]);
   hideBanner();

@@ -90,10 +90,6 @@ export function playEnemyMotion(events, board = []) {
             if(e.type==='timeFixed')ctx.strokeRect(x-51,y-51,102,102);
             text(`${e.type==='timeReduce'?'−':''}${e.seconds}s`,x,y+64);break;
           }
-          case 'preemptive':
-            ctx.strokeStyle='#ffe69a';
-            for(let k=0;k<8;k++){const a=k*Math.PI/4;line(ex+Math.cos(a)*20,ey+Math.sin(a)*20,ex+Math.cos(a)*(35+p*90),ey+Math.sin(a)*(35+p*90));}
-            text('先制',ex,ey-40-p*15);break;
           case 'auraAbsorb':
             for(let k=0;k<12;k++){
               const a=k*Math.PI/6+p*5,r=(1-p)*110+8;
