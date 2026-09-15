@@ -25,6 +25,8 @@
  * =======================================================*/
 
 export const LEADER_SKILLS = {
+  ls_kyuko:{name:'狐の戯れ',desc:'闇オーラ1.6倍・操作時間+1秒',auraAtk:{c4:1.6},time:1},
+  ls_kyuko_evo:{name:'九尾のまやかし',desc:'闇オーラ1.9倍・操作時間+2秒・6チェイン以上で攻撃力1.3倍',auraAtk:{c4:1.9},time:2,comboAtk:{combo:6,mult:1.3}},
   /* --- 汎用 --- */
   ls_novice:  { name: '新米の気合',   desc: '全オーラの攻撃力1.15倍',                    allAtk: 1.15 },
   ls_scout:   { name: '斥候の目',     desc: 'オーラ操作時間+1.0秒',                      time: 1.0 },
@@ -77,6 +79,8 @@ export const LEADER_SKILLS = {
 };
 
 export const ACTIVE_SKILLS = {
+  sk_kyuko:{name:'幻火の誘い',desc:'木を闇に変換・このターン操作時間+2秒',cooldown:12,convert:{from:'c2',to:'c4'},timeThisTurn:2},
+  sk_kyuko_evo:{name:'九重の狐火',desc:'木を闇に変換・このターン操作時間+3秒・2ターン攻撃力1.5倍',cooldown:11,convert:{from:'c2',to:'c4'},timeThisTurn:3,atkBuff:{mult:1.5,turns:2}},
   /* --- 汎用 --- */
   sk_novice_time: { name: '気合い',       desc: 'このターンの操作時間+2.0秒',                     cooldown: 4,  timeThisTurn: 2.0 },
 

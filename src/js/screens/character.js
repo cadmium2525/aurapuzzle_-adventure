@@ -12,7 +12,7 @@ import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
   BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE,
-  AWAKEN_MAX, awakenStepsFor, EXP_ITEMS, maxLevelFor, crystalIdFor, finalStarOf
+  AWAKEN_MAX, awakenStepsFor, awakenMaxFor, EXP_ITEMS, maxLevelFor, crystalIdFor, finalStarOf
 } from '../data/gamedata.js';
 import { charRowHTML, charDetailHTML, portraitHTML, levelBarHTML, awakenPipsHTML } from './parts.js';
 
@@ -152,7 +152,8 @@ function renderAwakenBox(id) {
   const base = characterById(id);
   if (!e || !base) { box.style.display = 'none'; btn.style.display = 'none'; return; }
 
-  const cur = Math.min(AWAKEN_MAX, e.awa || 0);
+  const max = awakenMaxFor(base);
+  const cur = Math.min(max, e.awa || 0);
   const steps = awakenStepsFor(base);
   const check = awakenCheck(id, false);
   const tokenCheck = awakenCheck(id, true);
@@ -169,23 +170,23 @@ function renderAwakenBox(id) {
   }).join('');
 
   box.innerHTML = `
-    <div class="evo-title">開眼 ${awakenPipsHTML(cur, AWAKEN_MAX)}
-      <span class="evo-next">${cur} / ${AWAKEN_MAX}</span></div>
+    <div class="evo-title">開眼 ${awakenPipsHTML(cur, max)}
+      <span class="evo-next">${cur} / ${max}</span></div>
     <div class="aw-list">${rows}</div>
-    <div class="evo-req${(e.n || 0) >= 2 ? ' ok' : ''}">
-      <span>同じキャラクター(手持ち)</span><b>${e.n || 0} / 2</b>${(e.n || 0) >= 2 ? '<i>✔</i>' : ''}
+    <div class="evo-req${check.ok ? ' ok' : ''}">
+      <span>同じキャラクター(本体含む)</span><b>${e.n || 0} / ${(check.copies || 0)+1}</b>${check.ok ? '<i>✔</i>' : ''}
     </div>
-    <div class="evo-req${tokenCheck.ok ? ' ok' : ''}">
+    <div style="${base.raidDrop?'display:none':''}" class="evo-req${tokenCheck.ok ? ' ok' : ''}">
       <span>${itemIcon('mt_awaken')} 開眼の証</span><b>${materialCount('mt_awaken')} / ${check.tokenCost}</b>${tokenCheck.ok ? '<i>✔</i>' : ''}
     </div>
-    <div class="evo-note">同じキャラクター1体、または開眼の証${check.tokenCost}個のどちらかを使います。</div>`;
+    <div class="evo-note">${cur>=max?'最大まで開眼済みです。':base.raidDrop?`同じキャラクターを${check.copies}体消費します。最大10段階。開眼の証は使用できません。`:`同じキャラクター1体、または開眼の証${check.tokenCost}個のどちらかを使います。`}</div>`;
 
   const tokenBtn = $('charAwakenTokenBtn');
-  if (cur >= AWAKEN_MAX) { btn.style.display = 'none'; tokenBtn.style.display = 'none'; return; }
+  if (cur >= max) { btn.style.display = 'none'; tokenBtn.style.display = 'none'; return; }
   btn.style.display = 'block';
   btn.disabled = !check.ok;
   btn.textContent = check.ok ? `同キャラで開眼(${cur + 1}段階目)` : '同キャラが足りません';
-  tokenBtn.style.display = 'block';
+  tokenBtn.style.display = base.raidDrop ? 'none' : 'block';
   tokenBtn.disabled = !tokenCheck.ok;
   tokenBtn.textContent = tokenCheck.ok
     ? `開眼の証×${check.tokenCost}で開眼` : `開眼の証が足りません(${check.tokenCost}個)`;
@@ -340,8 +341,8 @@ function openDetail(id, canEquip, previewStar = null, resetScroll = true) {
       <button data-catalog-star="${finalStarOf(base)}" class="${previewStar === finalStarOf(base) ? 'active' : ''}">進化後 ★${finalStarOf(base)}</button>
     </div>` : '';
   const note = isCatalogPreview
-    ? '<div class="cd-note">図鑑プレビューです。育成状況は編成タブの詳細で確認できます。</div>'
-    : (owned ? '' : '<div class="cd-note">まだ仲間にしていません。ガチャやショップで探しましょう。</div>');
+    ? `<div class="cd-note">図鑑プレビューです。育成状況は編成タブの詳細で確認できます。${base.raidDrop?' 入手先：降臨ダンジョン「九狐降臨」（基本50%）。':''}</div>`
+    : (owned ? '' : `<div class="cd-note">${ch.raidDrop?'降臨ダンジョン「九狐降臨」でドロップします（基本50%）。':'まだ仲間にしていません。ガチャやショップで探しましょう。'}</div>`);
   $('charDetailBody').innerHTML = formSwitch + charDetailHTML(ch, note);
   $('charDetailBody').querySelectorAll('[data-catalog-star]').forEach(button => {
     button.addEventListener('click', () => openDetail(id, false, Number(button.dataset.catalogStar)));

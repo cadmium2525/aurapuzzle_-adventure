@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v29';
+const CACHE_NAME = 'aura-connect-v30';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -26,6 +26,13 @@ const ASSETS = [
   './src/js/core/gifts.js',
   './src/js/data/gamedata.js',
   './src/js/data/enemies.js',
+  './src/js/data/raids.js',
+  './src/js/battle/encounter.js',
+  './src/js/battle/raid-presentation.js',
+  './assets/chars/kyuko_1.webp',
+  './assets/chars/kyuko_2.webp',
+  './assets/chars/kyuko_1_icon.webp',
+  './assets/chars/kyuko_2_icon.webp',
   './src/js/data/characters.js',
   './src/js/data/skills.js',
   './src/js/battle/board.js',

@@ -244,6 +244,12 @@ export const CHARACTERS = [
   })
 ];
 
+CHARACTERS.push(mk('dk_kyuko','キュウコ','化け狐','🦊',4,3,'attacker','ls_kyuko','sk_kyuko',{
+  raidDrop:true,giftOnly:true,evoName:'九尾の幻姫・キュウコ',evoJob:'九尾の妖狐',
+  evoLeaderSkillId:'ls_kyuko_evo',evoSkillId:'sk_kyuko_evo',
+  artStages:twoStageArt('kyuko',3),
+  flavor:'人に化けては甘い言葉で惑わせる狐の妖怪。九つの尾に宿るのは、嘘か、真心か。'
+}));
 const BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
 export function characterById(id) { return BY_ID.get(id) || null; }
 /** ガチャの目玉(ピックアップ)キャラ */
@@ -320,9 +326,10 @@ export function resolveCharacter(idOrBase, star, level, awa) {
  * 操作時間だけはパーティ単位なので、ここでは awakenMods に残して party.js が合算する。
  */
 function applyAwaken(ch, base, awa) {
-  const n = Math.max(0, Math.min(AWAKEN_MAX, awa || 0));
+  const n = Math.max(0, Math.min(awakenMaxFor(base), awa || 0));
   const mods = awakenModsFor(base, n);
   ch.awaken = n;
+  ch.awakenMax = awakenMaxFor(base);
   ch.awakenMods = mods;
   if (n > 0) {
     ch.atk = Math.round(ch.atk * mods.atk);
@@ -363,6 +370,9 @@ export function characterByAuraRarity(aura, rarity) {
  * 別々の効果が付く。何が付くかはキャラクターによって変わる。
  * =======================================================*/
 export const AWAKEN_MAX = 4;
+export const RAID_AWAKEN_COSTS = [1,2,3,5,8,12,18,25,35,50];
+export function awakenMaxFor(base) { return base?.raidDrop ? 10 : AWAKEN_MAX; }
+export function awakenCopiesFor(base,current) { return base?.raidDrop ? (RAID_AWAKEN_COSTS[current] || 0) : 1; }
 
 const AW = {
   time: v => ({ type: 'time', value: v, label: `オーラ操作時間 +${v.toFixed(1)}秒` }),
@@ -391,17 +401,19 @@ const AWAKEN_BY_ID = {
 /** そのキャラの開眼4段階を返す */
 export function awakenStepsFor(base) {
   if (!base) return [];
+  if (base.raidDrop) return Array.from({length:10},()=>({type:'dropRate',value:.02,label:'降臨キャラクタードロップ率 +2ポイント（自陣に編成中）'}));
   return AWAKEN_BY_ID[base.id] || AWAKEN_BY_ROLE[base.role] || AWAKEN_BY_ROLE.balance;
 }
 
 /** 開眼段階までの効果を合成する */
 export function awakenModsFor(base, awa) {
-  const mods = { atk: 1, hp: 1, rcv: 1, cdCut: 0, timeSec: 0 };
+  const mods = { atk: 1, hp: 1, rcv: 1, cdCut: 0, timeSec: 0, dropRate: 0 };
   const steps = awakenStepsFor(base);
   for (let i = 0; i < Math.min(awa || 0, steps.length); i++) {
     const s = steps[i];
     if (s.type === 'time') mods.timeSec += s.value;
     else if (s.type === 'cd') mods.cdCut += s.value;
+    else if (s.type === 'dropRate') mods.dropRate += s.value;
     else mods[s.type] *= s.value;
   }
   return mods;

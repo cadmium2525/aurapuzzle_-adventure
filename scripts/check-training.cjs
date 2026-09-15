@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
  await page.goto('http://127.0.0.1:8765/');
  await page.locator('#titleScreen.ready').click({timeout:20000});
  await page.evaluate(async()=>{(await import('./src/js/core/nav.js')).showScreen('dungeon');});
- assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','曜日ダンジョン','トレーニング']);
+ assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','降臨ダンジョン','曜日ダンジョン','トレーニング']);
  await page.locator('#openTrainingBtn').click();
  const snapshot=async()=>page.evaluate(async()=>{
    const {staminaAt,...data}=(await import('./src/js/core/state.js')).state;

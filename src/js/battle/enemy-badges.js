@@ -2,8 +2,7 @@ const ORDER = ['buildUp', 'resolve', 'auraAbsorb', 'comboGuard', 'shapeGuard'];
 const AURAS = ['火', '水', '木', '癒', '闇'];
 const COLORS = ['#ff795b','#58d7ff','#66eca2','#ff94d2','#b28aff'];
 
-export function renderEnemyBadges(effects) {
-  const root = document.getElementById('enemyBadges');
+export function renderEnemyBadges(effects, root = document.getElementById('enemyBadges')) {
   if (!root) return;
   const badges = effects.defenses.map(e => ({ ...e }));
   if (effects.attackMult > 1) badges.push({type:'buildUp'});

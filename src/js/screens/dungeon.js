@@ -16,12 +16,14 @@ import {
 import { startDungeonRun } from '../battle/battle.js';
 import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
+import { RAID_STAGES, raidDropRate } from '../data/raids.js';
 
 let dungeonHard = false;
 let dungeonMode = 'story';     // 'story' = 章ごとの通常 / 'daily' = 曜日ダンジョン
 let dungeonView = 'menu';      // ホームからはまず種別選択を開く
 let chapter = 1;
 let pendingStage = null, pendingHard = false;
+let raidStage = null;
 let supportTab = 'friend';
 let friendRentals = null;      // 取得済みのフレンド貸し出しキャラ(null=未取得)
 let strangerRentals = null;    // フレンド以外のプレイヤー(読み取り数を抑えるため使い回す)
@@ -29,6 +31,7 @@ let strangerRentals = null;    // フレンド以外のプレイヤー(読み取
 export function initDungeon() {
   $('openStoryDungeonBtn').addEventListener('click', () => openDungeonType('story'));
   $('openDailyDungeonBtn').addEventListener('click', () => openDungeonType('daily'));
+  $('openRaidDungeonBtn').addEventListener('click', () => openDungeonType('raid'));
   $('dungeonCategoryBackBtn').addEventListener('click', showDungeonMenu);
   $('diffNormalBtn').addEventListener('click', () => { dungeonHard = false; renderDungeon({ preserve: true }); });
   $('diffHardBtn').addEventListener('click', () => { dungeonHard = true; renderDungeon({ preserve: true }); });
@@ -57,6 +60,7 @@ function showDungeonMenu() {
 }
 
 function handleDungeonBack() {
+  if (dungeonView === 'raidDetail') { dungeonView='stages';renderDungeon({preserve:true});return true; }
   if (dungeonView !== 'stages') return false;
   showDungeonMenu();
   return true;
@@ -104,7 +108,7 @@ function supportRow(ch, ownerName, ownerIcon, isNpc, note, ownerUid) {
       <div class="cname">${ch.name}
         <span class="sup-lv">Lv${ch.level}</span>
         ${ch.evolved ? '<span class="evo-tag">進化</span>' : ''}
-        ${ch.awaken ? awakenPipsHTML(ch.awaken, 4) : ''}
+        ${ch.awaken ? awakenPipsHTML(ch.awaken, ch.awakenMax || 4) : ''}
         <span class="owner">${ownerIcon || '🙂'} ${ownerName}</span></div>
       <div class="cstats"><b>ATK</b>${ch.atk} <b>HP</b>${ch.hp} <b>RCV</b>${ch.rcv}</div>
       <div class="cskills"><span class="mini-tag ls">LS</span>${ls ? ls.name : '—'}
@@ -225,6 +229,10 @@ export function renderDungeon(options = {}) {
   $('dailyHead').hidden = dungeonMode !== 'daily';
 
   if (dungeonMode === 'daily') { renderDailyList(); return; }
+  if (dungeonMode === 'raid') {
+    if(dungeonView==='raidDetail'&&raidStage){openRaidDetail(raidStage);return;}
+    const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES);return;
+  }
 
   $('diffNormalBtn').classList.toggle('active', !dungeonHard);
   $('diffHardBtn').classList.toggle('active', dungeonHard);
@@ -255,9 +263,10 @@ function renderDailyList() {
 function renderStageCards(list, stages) {
   stages.forEach((stage) => {
     const prog = state.progress[stage.id] || {};
-    const hard = stage.daily ? false : dungeonHard;      // 曜日ダンジョンにハードは無い
+    const hard = stage.daily || stage.raid ? false : dungeonHard;
     let isLocked;
-    if (stage.daily) {
+    if (stage.raid) { isLocked=false; }
+    else if (stage.daily) {
       isLocked = state.rank < stage.requireRank;
     } else {
       const idx = STAGES.findIndex(x => x.id === stage.id);
@@ -277,7 +286,7 @@ function renderStageCards(list, stages) {
     const div = document.createElement('div');
     div.className = 'stage-card' + (isLocked ? ' locked' : '') + (cleared ? ' cleared' : '');
     div.innerHTML = `
-      <div class="stage-emoji">${(() => { const b = stage.floors[FLOORS_PER_STAGE - 1];
+      <div class="stage-emoji">${(() => { const last=stage.floors.at(-1); const b=last.enemies?.[0] || last;
         return artImg(b.sprite, b.emoji, 'senemy'); })()}</div>
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
@@ -293,6 +302,7 @@ function renderStageCards(list, stages) {
 
     if (!isLocked) {
       div.addEventListener('click', () => {
+        if(stage.raid){openRaidDetail(stage);return;}
         if (!ownCharacters().length) { toast('先にキャラクターを編成してください'); return; }
         if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
         openSupportPick(stage, hard);
@@ -331,10 +341,29 @@ function auraChips(stage) {
 
 /** そのステージで何が手に入るかの1行表示 */
 function dropLabel(stage) {
+  if(stage.raid)return '全10フロア ・ キュウコ★3 基本50%ドロップ';
   if (stage.dropType === 'gold') return `${itemIcon('coin')} ゴールド特化`;
   if (stage.dropType === 'exp') return `${itemIcon('mt_exp2')} キャラ経験値アイテム`;
   const mat = materialById(crystalIdFor(stage.dropAura));
   return `${itemIcon(mat.id)}${mat.name} ドロップ`;
+}
+
+function openRaidDetail(stage) {
+  raidStage=stage;
+  dungeonView='raidDetail';
+  const list=$('stageList');
+  list.innerHTML=`<div class="card raid-detail"><h2>${stage.name}</h2>
+    <p>妖艶な狐のまやかしを破り、九尾の真の姿に挑め。</p>
+    <p>全${stage.floors.length}フロア ／ スタミナ${stage.stamina}</p>
+    <p>キュウコ★3：基本50% ／ 現在の自陣で${Math.round(raidDropRate(stage,ownCharacters())*100)}%</p>
+    <p>敵をタップして狙う相手を選択。分身体がいる間は本体を攻撃できません。</p>
+    <ol>${stage.floors.map(f=>`<li>${f.enemies.map(e=>e.name).join('・')}</li>`).join('')}</ol>
+    <button id="raidStartBtn" class="btn">バトルスタート</button></div>`;
+  $('raidStartBtn').addEventListener('click',()=>{
+    if(!ownCharacters().length){toast('先にキャラクターを編成してください');return;}
+    if(!hasStamina(stage.stamina)){toast(`スタミナが足りません(必要 ${stage.stamina})`);return;}
+    openSupportPick(stage,false);
+  });
 }
 
 function dailyThemeIcon(theme) {

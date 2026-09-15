@@ -1314,6 +1314,31 @@ input[type=range]{accent-color:var(--accent);}
 .pm-lv{font-size:8px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;}
 .enemy-effects { color: #ffd58c; font-size: 12px; line-height: 1.5; text-align: center; padding: 4px 8px; }
 .enemy-effects:empty { display: none; }
+.dungeon-entry.raid { border-color:#df8bd8; background:linear-gradient(120deg,#30163f,#19162e); }
+#enemyStage.multi-enemy { max-height:34vh; min-height:195px; }
+.multi-enemy #enemyEmoji,.multi-enemy #enemyBadges { display:none; }
+#enemyRoster { display:flex; justify-content:center; align-items:center; width:100%; gap:4px; flex:1; min-height:0; }
+#enemyRoster[hidden] { display:none; }
+.foe { flex:1; min-width:0; max-width:160px; border:1px solid transparent; border-radius:10px; }
+.foe.target { border-color:#ffd980; background:#ffda7b12; }
+.foe.defeated { opacity:.18; }
+.foe-target { padding:0; background:none; color:inherit; border:0; width:100%; cursor:pointer; }
+.foe-art { display:flex; justify-content:center; align-items:center; height:clamp(58px,12vh,125px); }
+.foe-art .enemy-img { height:100%; max-width:100%; }
+.foe:only-child .foe-art { height:clamp(105px,18vh,165px); }
+.foe-name,.foe-numbers { display:block; font-size:9px; line-height:1.3; }
+.foe-health { display:block; height:4px; background:#240f27; border-radius:3px; overflow:hidden; margin:3px; }
+.foe-health i { display:block; height:100%; background:#ff647f; transition:width .25s; }
+.foe-badges { display:flex; justify-content:center; gap:2px; min-height:24px; flex-wrap:wrap; }
+.foe-badges .enemy-badge { width:24px; height:24px; flex-basis:24px; }
+#bossDialogue { background:#1c0e2def; border:1px solid #c995d8; border-radius:8px; padding:8px; font-size:12px; color:#ffe2f6; }
+#bossDialogue[hidden] { display:none; }
+.boss-transition { position:fixed; inset:0; z-index:4000; display:grid; place-items:center; text-align:center; padding:24px; font-size:24px; font-weight:900; opacity:1; transition:opacity .65s; pointer-events:auto; }
+.boss-transition.warning { background:#16061fea; color:#ffd2da; text-shadow:0 0 18px #ef4284; }
+.boss-transition.evolution { background:white; animation:bossWhite .7s ease-in; }
+.boss-transition.leaving { opacity:0; pointer-events:none; }
+@keyframes bossWhite { from{opacity:0;}to{opacity:1;} }
+@media(prefers-reduced-motion:reduce){.boss-transition.evolution{animation:none;}}
 .unit-ready-burst { position:absolute; z-index:8; left:50%; top:-22px; transform:translateX(-50%); color:#ffe799; text-shadow:0 1px 3px #16091c,0 0 8px #ff9c24; font-size:10px; font-weight:900; white-space:nowrap; pointer-events:none; }
 .unit-ready-burst[hidden],#chanceNotice[hidden] { display:none; }
 .unit.skill-awaken { animation:skillAwaken 1.8s ease-out; }

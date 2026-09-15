@@ -46,7 +46,7 @@ export function charRowHTML(ch, count) {
       <div class="cname">${ch.name}${countHTML}
         <span class="rarity-tag" style="--rare:${RARITY_HEX[ch.star || ch.rarity]}">${RARITY_TITLE[ch.star || ch.rarity]}</span>
         ${ch.evolved ? '<span class="evo-tag">進化</span>' : ''}
-        ${ch.awaken ? awakenPipsHTML(ch.awaken, 4) : ''}
+        ${ch.awaken ? awakenPipsHTML(ch.awaken, ch.awakenMax || 4) : ''}
       </div>
       <div class="cmeta">${aura.emoji}${aura.name} ・ ${ch.job} ・ ${ROLE_LABEL[ch.role]}</div>
       <div class="cstats"><b>ATK</b>${ch.atk} <b>HP</b>${ch.hp} <b>RCV</b>${ch.rcv}</div>

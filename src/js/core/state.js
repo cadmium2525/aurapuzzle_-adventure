@@ -8,7 +8,7 @@ import { Store } from './storage.js';
 import { uid } from './ui.js';
 import {
   CHARACTERS, characterById, characterByAuraRarity, resolveCharacter,
-  AWAKEN_MAX, awakenStepsFor,
+  AWAKEN_MAX, awakenStepsFor, awakenMaxFor, awakenCopiesFor,
   maxLevelFor, expToNextCharLevel, canEvolveChar, finalStarOf, MAX_RARITY, TEAM_SIZE,
   MATERIALS, crystalIdFor, evolveCostTo, dismissRewardFor, awakenTokenCost, EXP_ITEMS,
   STAMINA_REGEN_MS, STAMINA_BASE_MAX, STAMINA_PER_RANK, expToNextRank
@@ -100,7 +100,7 @@ function migrate(old) {
       entry.star = Math.max(entry.star, Math.min(finalStarOf(base), src.star || base.rarity));
       entry.lv = Math.max(entry.lv, src.lv || 1);
       entry.xp = src.xp || 0;
-      entry.awa = Math.max(entry.awa || 0, Math.min(AWAKEN_MAX, src.awa || 0));
+      entry.awa = Math.max(entry.awa || 0, Math.min(awakenMaxFor(base), src.awa || 0));
     }
     entry.lv = Math.min(entry.lv, maxLevelFor(entry.star));
     owned[to] = entry;
@@ -188,20 +188,22 @@ export function awakenCheck(charId, useToken) {
   const e = entryOf(charId);
   const base = characterById(charId);
   if (!e || !base) return { ok: false, reason: '所持していません', next: 0, step: null, tokenCost: 0 };
-  const cur = Math.min(AWAKEN_MAX, e.awa || 0);
+  const cur = Math.min(awakenMaxFor(base), e.awa || 0);
   const tokenCost = awakenTokenCost(base.rarity);
-  const info = { next: cur + 1, step: awakenStepsFor(base)[cur] || null, tokenCost };
-  if (cur >= AWAKEN_MAX) {
+  const copies = awakenCopiesFor(base,cur);
+  const info = { next: cur + 1, step: awakenStepsFor(base)[cur] || null, tokenCost, copies };
+  if (cur >= awakenMaxFor(base)) {
     return { ok: false, reason: '開眼は最大です', next: cur, step: null, tokenCost };
   }
   if (useToken) {
+    if (base.raidDrop) return {ok:false,reason:'降臨キャラクターは同じキャラを集めて開眼します',...info};
     if (materialCount('mt_awaken') < tokenCost) {
       return { ok: false, reason: `開眼の証が${tokenCost}個必要です`, ...info };
     }
     return { ok: true, reason: '', ...info };
   }
-  if ((e.n || 0) < 2) {
-    return { ok: false, reason: '同じキャラクターがもう1体必要です', ...info };
+  if ((e.n || 0) < copies + 1) {
+    return { ok: false, reason: `同じキャラクターが素材として${copies}体必要です（本体は残ります）`, ...info };
   }
   return { ok: true, reason: '', ...info };
 }
@@ -215,7 +217,7 @@ export function awakenCharacter(charId, useToken) {
   if (!check.ok) return { ok: false, message: check.reason };
   const e = entryOf(charId);
   if (useToken) state.materials.mt_awaken -= check.tokenCost;
-  else e.n -= 1;
+  else e.n -= check.copies;
   e.awa = check.next;
   saveState();
   return { ok: true, message: '', step: check.step, to: check.next, usedToken: !!useToken };

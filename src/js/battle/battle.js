@@ -12,7 +12,7 @@
  * =======================================================*/
 import { $, sleep, randInt, toast, artImg, itemIcon } from '../core/ui.js';
 import {
-  state, saveState, gainExp, maxStamina, gainCharExp, addMaterials
+  state, saveState, gainExp, maxStamina, gainCharExp, addMaterials, addCharacter
 } from '../core/state.js';
 import { showScreen, currentScreen, updateStatusBar } from '../core/nav.js';
 import { setRetreatHandler } from '../core/sysmodal.js';
@@ -34,6 +34,9 @@ import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
 import { createChanceBoard, isAllClear } from './chance.js';
 import { baseActions, finalActions } from './damage.js';
+import { createEncounter, attachEncounter, combatEnemy, encounterCleared, retarget, tickEncounter, summonClones, damageTarget } from './encounter.js';
+import { bossTransition, bossDialogue } from './raid-presentation.js';
+import { raidDropRate, rollRaidCharacter } from '../data/raids.js';
 
 let canvas;
 let board = null;
@@ -132,9 +135,11 @@ export function startDungeonRun(stage, hard, support) {
     enemyEffects: createEnemyEffects(party.members.length),
     chancePending: false,
     chanceActive: false,
+    enemies: createEncounter(stage.floors[0], hard ? HARD_HP_MULT : 1), targetIndex: 0,
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
+  attachEncounter(run);
   // 誰かの貸し出しキャラを借りたら、その人の使用回数を1つ増やす(相手は翌日フレポを受け取る)
   if (support && support.ownerUid) countRentalUse(support.ownerUid);
 
@@ -226,17 +231,15 @@ function popUnit(i, text, kind) {
 
 /* ===================== フロア ===================== */
 async function loadFloor() {
+  bstate = 'resolving';
   clearConversion();
   const floor = run.stage.floors[run.floorIndex];
-  run.enemyMaxHP = Math.round(floor.hp * (run.hard ? HARD_HP_MULT : 1));
-  run.enemyHP = run.enemyMaxHP;
-  run.enemyAtk = Math.round(floor.atk * (run.hard ? HARD_HP_MULT : 1));
-  run.enemyInterval = floor.interval;
-  run.enemyTurnsLeft = floor.interval;
-  run.enemyActionIndex = 0;
-  enterEnemy(run.enemyEffects, floor.enemySkills);
+  const reveal = floor.intro ? await bossTransition(floor.intro) : null;
+  run.enemies = createEncounter(floor, run.hard ? HARD_HP_MULT : 1);
+  run.targetIndex = 0; run.actingEnemy = null;
 
-  $('enemyEmoji').innerHTML = artImg(floor.sprite, floor.emoji, 'enemy');
+  $('enemyStage').classList.toggle('multi-enemy', !!run.stage.raid);
+  $('enemyEmoji').innerHTML = artImg(combatEnemy(run).spec.sprite, combatEnemy(run).spec.emoji, 'enemy');
   // ステージ名はトップバーに出す(画面上部を盤面のために空ける)
   $('screenTitle').textContent = run.stage.name + (run.hard ? ' / ハード' : '');
   renderFloorPips();
@@ -254,8 +257,15 @@ async function loadFloor() {
   resetTimerUI();
   updateHPUI(false, false);
   updateSkillUI();
-  if (floor.enemySkills?.passives?.length) await playEnemyMotion(floor.enemySkills.passives, board);
-  if (floor.enemySkills?.preemptive) await executeEnemyAction(floor.enemySkills.preemptive, true);
+  if (reveal) await reveal();
+  if (floor.dialogue) await bossDialogue(combatEnemy(run).spec.name, floor.dialogue);
+  for (const enemy of [...run.enemies]) {
+    run.actingEnemy=enemy;
+    if (enemy.spec.enemySkills?.passives?.length) await playEnemyMotion(enemy.spec.enemySkills.passives, board);
+    if (enemy.spec.enemySkills?.preemptive) await executeEnemyAction(enemy.spec.enemySkills.preemptive, true);
+    if (run.playerHP<=0) break;
+  }
+  run.actingEnemy=null;updateHPUI(false,false);
   if (run.playerHP <= 0) { battleDefeat(); return; }
   bstate = 'idle';
 }
@@ -277,6 +287,7 @@ function resetTimerUI() { /* 操作時間は盤面上に描くのでDOM側の更
 
 /* ===================== HP表示 ===================== */
 function updateHPUI(flashEnemy, flashPlayer) {
+  renderEncounter();
   renderEnemyBadges(run.enemyEffects);
   $('enemyEffects').textContent = effectLabels({ ...run.enemyEffects, defenses: [], attackMult: 1, resolve: null }).join(' / ');
   $('enemyHPFill').style.width = Math.max(0, run.enemyHP / run.enemyMaxHP * 100) + '%';
@@ -287,10 +298,51 @@ function updateHPUI(flashEnemy, flashPlayer) {
   renderEnemyTurnPips();
   if (flashEnemy) flash($('enemyStage'));
   if (flashPlayer) flash($('partyBox'));
+  resizeBoard();
+}
+
+function renderEncounter() {
+  const root=$('enemyRoster');root.hidden=!run.stage.raid;
+  if(!run.stage.raid){root.replaceChildren();return;}
+  const ordered=run.enemies.length===3 && run.enemies[0].summoned ? [run.enemies[1],run.enemies[0],run.enemies[2]] : run.enemies;
+  root.replaceChildren();
+  for(const enemy of ordered){
+    const index=run.enemies.indexOf(enemy),button=document.createElement('div');
+    button.className='foe'+(index===run.targetIndex?' target':'')+(enemy.hp<=0?' defeated':'');
+    if(enemy===run.actingEnemy)button.dataset.acting='true';
+    const target=document.createElement('button');target.className='foe-target';target.type='button';
+    target.disabled=enemy.hp<=0;
+    target.setAttribute('aria-label',`${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
+    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health"><i style="width:${enemy.hp/enemy.maxHP*100}%"></i></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined?'':` ・ あと${enemy.turnsLeft}`}</span>`;
+    target.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
+    button.appendChild(target);
+    const badges=document.createElement('div');badges.className='foe-badges';button.appendChild(badges);
+    renderEnemyBadges(enemy.effects,badges);root.appendChild(button);
+  }
+}
+
+function dealDamage(hits,chain=0,groups=[]) {
+  const target=damageTarget(run);
+  const result=damageEnemy({hp:target.hp,maxHP:target.maxHP,effects:target.effects,hits,chain,groups});
+  target.hp=result.hp;
+  return {...result,effects:target.effects};
+}
+
+async function checkBuildUps() {
+  for(const enemy of run.enemies){
+    if(enemy.hp<=0||enemy.builtUp)continue;
+    const threshold=enemy.spec.enemySkills?.buildUpBelow;
+    const clonesGone=enemy.summoned&&!run.enemies.some(e=>e.cloneOf===enemy.id&&e.hp>0);
+    if((threshold!==undefined&&enemy.hp/enemy.maxHP*100<threshold)||clonesGone){
+      enemy.builtUp=true;run.actingEnemy=enemy;
+      await executeEnemyAction({effects:[{type:'buildUp'}],dialogue:clonesGone?'まやかしを破るとは……もう、手加減はしないわ。':undefined});
+      run.actingEnemy=null;
+    }
+  }
 }
 
 function renderEnemyTurnPips() {
-  $('enemyTurnCount').textContent = run.enemyTurnsLeft;
+  $('enemyTurnCount').textContent = Number.isFinite(run.enemyTurnsLeft) ? run.enemyTurnsLeft : '—';
 }
 
 function flash(el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
@@ -334,7 +386,7 @@ function closeSkillConfirm() {
   $('skillConfirmModal').classList.remove('show');
 }
 
-function applySkill(i) {
+async function applySkill(i) {
   if (!run || (bstate !== 'idle' && bstate !== 'dragging')) return;
   const m = run.party.members[i];
   const sk = m.skill;
@@ -355,8 +407,7 @@ function applySkill(i) {
   }
   if (sk.fixedDamage) {
     const dmg = Math.round(m.atk * sk.fixedDamage);
-    const result = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits: [{ aura: m.aura, value: dmg }] });
-    run.enemyHP = result.hp;
+    const result = dealDamage([{ aura: m.aura, value: dmg }]);
     playDamageMotion(result);
     run.stats.totalDamage += result.damage;
     popUnit(i, result.blocked ? '無効' : result.absorbed ? '吸収' : String(result.damage), 'dmg');
@@ -386,7 +437,7 @@ function applySkill(i) {
     run.buffs.guard = { ...sk.guard };
     logs.push(sk.guard.rate >= 1 ? `${sk.guard.turns}ターン無敵` : `被ダメ${Math.round(sk.guard.rate * 100)}%減(${sk.guard.turns}ターン)`);
   }
-  if (sk.delay) { run.enemyTurnsLeft += sk.delay; logs.push(`敵の攻撃を${sk.delay}ターン遅延`); }
+  if (sk.delay) { run.enemies.filter(e=>e.hp>0&&e.cloneOf===undefined).forEach(e=>e.turnsLeft+=sk.delay); logs.push(`敵の攻撃を${sk.delay}ターン遅延`); }
 
   run.cooldowns[i] = sk.cooldown;
   run.stats.skillUses++;
@@ -395,7 +446,8 @@ function applySkill(i) {
   showBanner(`<span class="bskill">${m.name}「${sk.name}」</span> ${logs.join(' / ')}`);
   setTimeout(() => { if (bstate !== 'resolving') hideBanner(); }, 1600);
 
-  if (run.enemyHP <= 0 && bstate !== 'resolving') { bstate = 'resolving'; floorClear(); }
+  if (encounterCleared(run) && bstate !== 'resolving') { bstate = 'resolving'; floorClear(); }
+  else if (sk.fixedDamage) { const previous=bstate;bstate='resolving';await checkBuildUps();retarget(run);updateHPUI(false,false);bstate=previous; }
 }
 
 function openPartyInfo() {
@@ -499,9 +551,10 @@ async function resolveTurn() {
   const charged = finalActions(pending.values(), chain, run.mods);
   hits.push(...charged.filter(a => a.kind === 'dmg'));
   turnHeal = charged.filter(a => a.kind === 'heal').reduce((sum,a) => sum+a.value,0);
+  run.targetIndex=run.enemies.indexOf(damageTarget(run));
+  updateHPUI(false,false);
   await playPartyAttacks(charged);
-  const outcome = damageEnemy({ hp: run.enemyHP, maxHP: run.enemyMaxHP, effects: run.enemyEffects, hits, chain, groups: clearedGroups });
-  run.enemyHP = outcome.hp;
+  const outcome = dealDamage(hits,chain,clearedGroups);
   turnDamage = outcome.damage;
   if (turnHeal > 0) run.playerHP = Math.min(run.maxHP, run.playerHP + turnHeal);
   $('partyRow').querySelectorAll('.unit-pending').forEach(label => { label.hidden = true; label.textContent = ''; });
@@ -529,9 +582,10 @@ async function resolveTurn() {
 
   run.chanceActive = false;
   updateChanceUI();
-  tickEnemyEffects(run.enemyEffects);
+  tickEncounter(run);
 
-  if (run.enemyHP <= 0) { hideBanner(); await floorClear(); return; }
+  if (encounterCleared(run)) { hideBanner(); await floorClear(); return; }
+  await checkBuildUps();retarget(run);
 
   // 盤面が枯れて詰まないよう空きマスを補充する
   if (run.chancePending) { activateChanceBoard(); await sleep(180); }
@@ -552,11 +606,18 @@ async function resolveTurn() {
   // 自分の手番による短縮を先に行い、この後に受ける遅延を相殺しない。
   run.cooldowns = run.cooldowns.map(cd => Math.max(0, cd - 1));
   // 敵の攻撃カウント
-  run.enemyTurnsLeft--;
-  if (run.enemyTurnsLeft <= 0) {
-    await executeEnemyAction(enemyAction(run.stage.floors[run.floorIndex].enemySkills, run.enemyActionIndex++));
-    run.enemyTurnsLeft = run.enemyInterval;
+  for (const enemy of run.enemies.filter(e=>e.hp>0&&e.cloneOf===undefined)) {
+    run.actingEnemy=enemy;
+    enemy.turnsLeft--;
+    if (enemy.turnsLeft <= 0) {
+      const skills=enemy.spec.enemySkills;
+      const index=skills?.random?randInt(0,skills.actions.length-1):enemy.actionIndex++;
+      await executeEnemyAction(enemyAction(skills,index));
+      enemy.turnsLeft=enemy.interval;
+    }
+    if(run.playerHP<=0)break;
   }
+  run.actingEnemy=null;
   hideBanner();
 
   tickTurnEnd();
@@ -593,9 +654,11 @@ function activateChanceBoard() {
 }
 
 async function executeEnemyAction(action, preemptive = false) {
+  if(action.dialogue)await bossDialogue(combatEnemy(run).spec.name,action.dialogue);
   const labels = [];
   const motions = preemptive ? [{ type: 'preemptive' }] : [];
   for (const effect of action.effects || []) {
+    if(effect.type==='summonClones'){summonClones(run,combatEnemy(run));labels.push('分身体が出現');continue;}
     const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
     motions.push({ ...effect, targets });
     labels.push(({ bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
@@ -616,7 +679,7 @@ async function executeEnemyAction(action, preemptive = false) {
 }
 
 function playDamageMotion(result) {
-  const effects = run.enemyEffects.defenses;
+  const effects = (result.effects || run.enemyEffects).defenses;
   const motions = [];
   if (result.blocked) motions.push(...effects.filter(e => e.type === 'comboGuard' || e.type === 'shapeGuard'));
   if (result.absorbed) motions.push(...effects.filter(e => e.type === 'auraAbsorb'));
@@ -708,6 +771,9 @@ function finishRun() {
   // 素材ドロップと編成キャラの育成(サポートは自分のキャラではないので対象外)
   const drops = rollDrops(stage, hard);
   addMaterials(drops);
+  const dropRate = stage.raid ? raidDropRate(stage,run.party.own) : 0;
+  const characterDropped=rollRaidCharacter(stage,run.party.own);
+  if(characterDropped)addCharacter(characterDropped);
   const charExp = Math.round((stage.charExpReward || 40) * (hard ? HARD_REWARD_MULT : 1));
   const levelUps = gainCharExp(run.party.own.map(m => m.id), charExp);
 
@@ -730,7 +796,7 @@ function finishRun() {
     ${orb ? `<div class="rrow">${itemIcon('orb')} <b>${orb}</b></div>` : ''}
     <div class="rrow">⭐ <b>EXP ${exp}</b></div>
     <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
-    ${dropHTML}`;
+    ${dropHTML}${stage.raid ? `<div class="rrow">${characterDropped?'🦊 キュウコ ★3 ×1 獲得！':'キュウコのドロップなし'}（確率${Math.round(dropRate*100)}%）</div>` : ''}`;
 
   // フレンド以外から借りていたら、ここで登録できるようにする
   const sup = run.party.support;
