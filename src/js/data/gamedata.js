@@ -315,6 +315,12 @@ export const BUILTIN_GIFTS = [
     title: 'X公開記念',
     note: '応援ありがとうございます!',
     orb: 45
+  },
+  {
+    key: 'gift_raid_kyuko',
+    title: '九狐降臨 実装記念',
+    note: '降臨ダンジョン「九狐降臨」が登場しました。挑戦の準備にお役立てください。',
+    orb: 45
   }
 ];
 

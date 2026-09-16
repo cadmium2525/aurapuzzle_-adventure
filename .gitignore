@@ -6,3 +6,6 @@ assets/_original/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# check-training.cjs が吐く確認用スクリーンショット
+.codex-training.png

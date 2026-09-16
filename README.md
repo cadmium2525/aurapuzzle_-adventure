@@ -256,9 +256,9 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `34` |
-| `src/js/core/version.js` の `APP_VERSION` | `'34'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v34` |
+| `index.html` の `<meta name="app-version">` | `35` |
+| `src/js/core/version.js` の `APP_VERSION` | `'35'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v35` |
 
 食い違いを見つけると `main.js` がキャッシュとサービスワーカーを捨てて
 読み込み直す(`core/recovery.js` の `resetApp()`)。読み直しても直らないときは
@@ -275,6 +275,7 @@ node --test tests/*.test.mjs        # 盤面・ダメージ・敵スキルなど
 python3 -m http.server 8765 &       # check-training は :8765 を見る
 node scripts/check-training.cjs
 node scripts/check-character.cjs       # キャラクター5ページと出撃3段
+node scripts/check-gifts.cjs           # 配布が既存プレイヤーへ1回だけ届くこと
 node scripts/check-boot-recovery.cjs   # 版ずれからの復帰(0%で固まらないこと)
 node scripts/check-save-migration.cjs  # 旧セーブの移行(バージョンを上げたら形を足す)
 node scripts/check-enemy-skills.cjs
@@ -421,6 +422,14 @@ Firestore を使わずに全員へ配りたいものは `gamedata.js` の `BUILT
 
 闇のオーラ解禁に合わせた `dk_shion`(シオン / ★3 / 闇)はここで配っている。
 配布キャラは `giftOnly: true` を持ち、ガチャの排出プールからは外れる。
+
+配布済みの一覧:
+
+| key | 内容 |
+|---|---|
+| `gift_dark_debut` | 闇のオーラ解禁記念 — シオン(★3 / 闇) |
+| `gift_x_launch` | X公開記念 — 💎45 |
+| `gift_raid_kyuko` | 九狐降臨 実装記念 — 💎45 |
 
 降臨ダンジョン「九狐降臨」とキュウコの定義・仮バランス・イラスト生成情報は [RAID_DESIGN.md](RAID_DESIGN.md) を参照。降臨キャラのみ開眼は最大10段階、段階ごとに必要な同キャラ数が増加し、効果は降臨キャラクターのドロップ率アップになる。通常キャラの開眼は従来通り4段階。
 
