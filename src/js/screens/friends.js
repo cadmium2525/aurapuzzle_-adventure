@@ -1,5 +1,5 @@
 /* ===================== フレンド画面 ===================== */
-import { $, toast, artImg } from '../core/ui.js';
+import { $, toast, charIcon } from '../core/ui.js';
 import { state } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
@@ -22,7 +22,7 @@ function friendAvatarHTML(f) {
     : null;
   const src = (ch && ch.art && ch.art.icon) || '';
   const emoji = (ch && ch.portrait) || f.icon || '🙂';
-  return artImg(src, emoji, 'pi');
+  return charIcon(src, emoji, 'pi');
 }
 
 function timestampMs(value) {

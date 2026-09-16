@@ -1,8 +1,12 @@
 /* =========================================================
  * state.js — セーブデータ / 編成 / スタミナ / ランク / 育成
  *
- * 所持キャラは { n:所持数, star:進化段階, lv:レベル, xp:経験値 } で保持し、
- * 画面・バトルは resolveCharacter() を通した形で扱う。
+ * 所持キャラは { n:所持数, star:進化段階, lv:レベル, xp:経験値,
+ * awa:開眼段階, at:入手時刻 } で保持し、画面・バトルは resolveCharacter() を
+ * 通した形で扱う。
+ *
+ * 編成は teams に5つのプリセットとして持ち、teamIndex が選択中のものを指す。
+ * バトルへ出るのは activeTeam()、ホームに出るのは最後に出撃した lastTeam。
  * =======================================================*/
 import { Store } from './storage.js';
 import { uid } from './ui.js';
@@ -15,23 +19,47 @@ import {
 } from '../data/gamedata.js';
 
 const SAVE_KEY = 'acb_state';
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 
 export const DEFAULT_ICONS = ['🙂', '🔥', '💧', '🌿', '💗', '🦸', '🧙', '👑', '🎩', '🐲'];
+
+/** 保存できる編成プリセットの数。ダンジョン出発時にこの中から選ぶ */
+export const TEAM_PRESETS = 5;
+/** プリセット1件ぶんの空の枠(先頭がリーダー) */
+const emptyTeam = () => new Array(TEAM_SIZE).fill(null);
 
 /** 初期編成:火/水/癒の3人でスタート */
 const STARTER_IDS = ['fl_rito', 'aq_mio', 'lm_mina'];
 
-/** 所持キャラ1件ぶんの初期値 */
+/**
+ * 所持キャラ1件ぶんの初期値。
+ * at は「はじめて仲間にした時刻」。一覧の入手順ソートに使うので、
+ * 同じキャラの2体目以降では更新しない(並びが勝手に動かないようにする)。
+ */
 function newEntry(charId) {
   const base = characterById(charId);
-  return { n: 1, star: base ? base.rarity : 1, lv: 1, xp: 0, awa: 0 };
+  return { n: 1, star: base ? base.rarity : 1, lv: 1, xp: 0, awa: 0, at: Date.now() };
 }
 
 function emptyMaterials() {
   const m = {};
   MATERIALS.forEach(mt => { m[mt.id] = 0; });
   return m;
+}
+
+/**
+ * 与えられた編成をプリセット5枠に整える。
+ * 足りないぶんは空のプリセットで埋め、各プリセットは TEAM_SIZE 個の枠を持つ。
+ */
+function teamPresetsFrom(list) {
+  const out = [];
+  for (let i = 0; i < TEAM_PRESETS; i++) {
+    const src = Array.isArray(list[i]) ? list[i] : [];
+    const team = emptyTeam();
+    src.slice(0, TEAM_SIZE).forEach((id, j) => { team[j] = id || null; });
+    out.push(team);
+  }
+  return out;
 }
 
 function createInitialState() {
@@ -43,9 +71,11 @@ function createInitialState() {
     rank: 1, exp: 0,
     stamina: STAMINA_BASE_MAX,
     staminaAt: Date.now(),
-    characters: owned,                 // {charId: {n, star, lv, xp}}
+    characters: owned,                 // {charId: {n, star, lv, xp, awa, at}}
     materials: emptyMaterials(),       // {materialId: 個数}
-    team: STARTER_IDS.slice(),         // 自分の3人(先頭がリーダー)
+    teams: teamPresetsFrom([STARTER_IDS.slice()]),  // 編成プリセット5つ(先頭がリーダー)
+    teamIndex: 0,                      // いま選んでいるプリセット
+    lastTeam: null,                    // 最後にダンジョンへ連れて行った3人(ホームの表示)
     progress: {},                      // {stageId:{normal:bool, hard:bool}}
     records: {},                       // {stageId_diff:{maxChain}}
     grants: {},                        // 一度きりの付与の記録(再ログインで重複させない)
@@ -110,13 +140,30 @@ function migrate(old) {
 
   s.materials = Object.assign(emptyMaterials(), old.materials || {});
 
-  const team = [];
-  (old.team || []).forEach(id => {
-    const to = remapId(id);
-    if (to && s.characters[to] && !team.includes(to)) team.push(to);
+  // v8 までは編成が1つ(old.team)だけだった。それを1番目のプリセットに移す。
+  const cleanTeam = src => {
+    const team = [];
+    (Array.isArray(src) ? src : []).forEach(id => {
+      const to = remapId(id);
+      if (to && s.characters[to] && !team.includes(to)) team.push(to);
+    });
+    return team.slice(0, TEAM_SIZE);
+  };
+  const presets = Array.isArray(old.teams) && old.teams.length
+    ? old.teams.map(cleanTeam)
+    : [cleanTeam(old.team)];
+  if (!presets[0].length) presets[0] = cleanTeam(STARTER_IDS);
+  s.teams = teamPresetsFrom(presets);
+  s.teamIndex = Math.max(0, Math.min(TEAM_PRESETS - 1, old.teamIndex || 0));
+  s.lastTeam = cleanTeam(old.lastTeam);
+  if (!s.lastTeam.length) s.lastTeam = null;
+  delete s.team;
+
+  // 入手順ソートのための時刻。移行前のデータには無いので0(いちばん古い)にする
+  Object.keys(s.characters).forEach(id => {
+    const e = s.characters[id];
+    if (typeof e.at !== 'number') e.at = 0;
   });
-  s.team = team.slice(0, TEAM_SIZE);
-  while (s.team.length < TEAM_SIZE) s.team.push(null);
 
   s.rank = old.rank || 1;
   s.exp = old.exp || 0;
@@ -176,6 +223,7 @@ export function resolveOwned(charId) {
   if (!ch) return null;
   ch.xp = e.xp || 0;
   ch.count = e.n;
+  ch.acquiredAt = e.at || 0;      // 一覧の入手順ソートに使う
   return ch;
 }
 
@@ -223,40 +271,105 @@ export function awakenCharacter(charId, useToken) {
   return { ok: true, message: '', step: check.step, to: check.next, usedToken: !!useToken };
 }
 
-/* ===================== 送還(被りの分解) ===================== */
-/** 送還できるか。最後の1体は残すので手持ちが2体以上必要 */
-export function dismissCheck(charId) {
+/* ===================== 送還(手持ちを素材に戻す) ===================== */
+/**
+ * 送還1体ぶんの取り分。進化段階が高いほど戻りが大きい。
+ * @returns {{materials:object, coin:number}}
+ */
+function dismissYield(charId, count) {
   const e = entryOf(charId);
   const base = characterById(charId);
-  if (!e || !base) return { ok: false, reason: '所持していません', reward: null };
-  const reward = dismissRewardFor(e.star);
-  if ((e.n || 0) < 2) {
-    return { ok: false, reason: '最後の1体は送還できません', reward };
-  }
-  return { ok: true, reason: '', reward };
+  const r = dismissRewardFor(e.star);
+  const materials = {};
+  const add = (id, v) => { if (v > 0) materials[id] = (materials[id] || 0) + v * count; };
+  add(crystalIdFor(base.aura), r.crystal);
+  add('mt_star', r.shard);
+  add('mt_awaken', r.awaken);
+  return { materials, coin: r.coin * count };
 }
 
 /**
- * 被りを1体送還して素材に変える。
- * @returns {{ok:boolean, message:string, gained?:object}}
+ * 送還できるか。指定した数まで手持ちから減らせるかを見る。
+ * 全部送還すると図鑑からも外れるので、そのときは teams から抜く側で面倒を見る。
+ * @param {string} charId
+ * @param {number} [count] 送還する数(省略時は手持ち全部)
  */
-export function dismissCharacter(charId) {
-  const check = dismissCheck(charId);
-  if (!check.ok) return { ok: false, message: check.reason };
+export function dismissCheck(charId, count) {
   const e = entryOf(charId);
   const base = characterById(charId);
-  const r = check.reward;
-  const crystalId = crystalIdFor(base.aura);
+  if (!e || !base) {
+    return { ok: false, reason: '所持していません', count: 0, max: 0, reward: null, inTeam: false };
+  }
+  const max = e.n || 0;
+  const n = Math.max(1, Math.min(Number.isFinite(count) ? count : max, max));
+  const info = {
+    count: n, max,
+    reward: dismissRewardFor(e.star),
+    total: dismissYield(charId, n),
+    // 全部送還すると編成から消えるので、呼び出し側が確認を出せるように知らせる
+    inTeam: n >= max && teamsWith(charId).length > 0
+  };
+  if (max < 1) return { ok: false, reason: '所持していません', ...info };
+  return { ok: true, reason: '', ...info };
+}
 
-  e.n -= 1;
+/** そのキャラが入っているプリセットの番号 */
+export function teamsWith(charId) {
+  const out = [];
+  for (let i = 0; i < TEAM_PRESETS; i++) if (teamAt(i).includes(charId)) out.push(i);
+  return out;
+}
+
+/** 手持ちからいなくなったキャラを編成・貸し出しから外す */
+function forgetCharacter(charId) {
+  for (let i = 0; i < TEAM_PRESETS; i++) {
+    const team = teamAt(i);
+    team.forEach((id, slot) => { if (id === charId) team[slot] = null; });
+  }
+  if (Array.isArray(state.lastTeam)) {
+    state.lastTeam = state.lastTeam.filter(id => id !== charId);
+    if (!state.lastTeam.length) state.lastTeam = null;
+  }
+  if (state.profile.rentalCharId === charId) state.profile.rentalCharId = null;
+}
+
+/**
+ * 指定した数だけ送還して素材に変える。
+ * @returns {{ok:boolean, message:string, gained?:object, coin?:number, count?:number}}
+ */
+export function dismissCharacter(charId, count) {
+  return dismissMany([{ id: charId, count }]);
+}
+
+/**
+ * まとめて送還する。1件ずつ呼ぶより、獲得素材を1回の表示にまとめられる。
+ * @param {Array<{id:string, count:number}>} picks
+ */
+export function dismissMany(picks) {
   const gained = {};
-  const add = (id, v) => { if (v > 0) { state.materials[id] = (state.materials[id] || 0) + v; gained[id] = v; } };
-  add(crystalId, r.crystal);
-  add('mt_star', r.shard);
-  add('mt_awaken', r.awaken);
-  state.coin += r.coin;
+  let coin = 0;
+  let count = 0;
+  const names = [];
+  (picks || []).forEach(pick => {
+    const check = dismissCheck(pick.id, pick.count);
+    if (!check.ok) return;
+    const e = entryOf(pick.id);
+    const base = characterById(pick.id);
+    e.n -= check.count;
+    count += check.count;
+    names.push(base.name);
+    Object.keys(check.total.materials).forEach(id => {
+      const v = check.total.materials[id];
+      state.materials[id] = (state.materials[id] || 0) + v;
+      gained[id] = (gained[id] || 0) + v;
+    });
+    coin += check.total.coin;
+    if (e.n <= 0) { delete state.characters[pick.id]; forgetCharacter(pick.id); }
+  });
+  state.coin += coin;
   saveState();
-  return { ok: true, message: '', gained, coin: r.coin };
+  if (!count) return { ok: false, message: '送還できるキャラクターがいません' };
+  return { ok: true, message: '', gained, coin, count, names };
 }
 
 /* ===================== 経験値アイテム ===================== */
@@ -280,12 +393,78 @@ export function useExpItem(charId, itemId, count) {
   return { ok: true, message: '', used: use, exp: per * use, from: before, to: e.lv, levelUps: ups };
 }
 
-/** 自分の編成キャラ(空きスロットは除外) */
-export function ownCharacters() {
-  return state.team
+/* ===================== 編成プリセット ===================== */
+/** index 番目のプリセット(常に TEAM_SIZE 個の枠を持つ配列) */
+export function teamAt(index) {
+  const team = state.teams[index];
+  if (Array.isArray(team) && team.length === TEAM_SIZE) return team;
+  state.teams[index] = teamPresetsFrom([team || []])[0];
+  return state.teams[index];
+}
+
+/** いま選んでいるプリセット */
+export function activeTeam() { return teamAt(state.teamIndex); }
+
+/** 編成画面で開くプリセットを切り替える */
+export function setTeamIndex(index) {
+  state.teamIndex = Math.max(0, Math.min(TEAM_PRESETS - 1, index | 0));
+  saveState();
+}
+
+/**
+ * プリセットの枠にキャラを入れる(null で空にする)。
+ * 同じキャラが別の枠にいたら、その枠と入れ替える。編成のたびに
+ * 前の枠を手で外さずに済むようにするための扱い。
+ */
+export function setTeamSlot(index, slot, charId) {
+  const team = teamAt(index);
+  if (slot < 0 || slot >= TEAM_SIZE) return team;
+  if (charId) {
+    const from = team.indexOf(charId);
+    if (from >= 0 && from !== slot) team[from] = team[slot];
+  }
+  team[slot] = charId || null;
+  saveState();
+  return team;
+}
+
+/** プリセット内で枠を入れ替える(先頭がリーダー) */
+export function swapTeamSlots(index, a, b) {
+  const team = teamAt(index);
+  if (a < 0 || b < 0 || a >= TEAM_SIZE || b >= TEAM_SIZE) return team;
+  [team[a], team[b]] = [team[b], team[a]];
+  saveState();
+  return team;
+}
+
+/** そのプリセットの編成キャラ(空き枠は除外) */
+export function charactersOfTeam(index) {
+  return teamAt(index)
     .filter(id => id && state.characters[id])
     .map(resolveOwned)
     .filter(Boolean);
+}
+
+/** 自分の編成キャラ(空きスロットは除外)。バトルへ連れて行くのはこれ */
+export function ownCharacters() {
+  return charactersOfTeam(state.teamIndex);
+}
+
+/**
+ * 最後にダンジョンへ連れて行った3人を覚えておく。
+ * ホーム画面はこれを1枚絵で見せる(編成を触っただけでは変わらない)。
+ */
+export function rememberLastTeam(charIds) {
+  const ids = (charIds || []).filter(Boolean).slice(0, TEAM_SIZE);
+  state.lastTeam = ids.length ? ids : null;
+  saveState();
+}
+
+/** ホームに出す編成。未出撃なら選択中のプリセットで代用する */
+export function homeCharacters() {
+  const ids = (state.lastTeam || []).filter(id => state.characters[id]);
+  if (!ids.length) return ownCharacters();
+  return ids.map(resolveOwned).filter(Boolean);
 }
 
 /** 所持キャラの一覧(進化段階→レアリティ降順) */

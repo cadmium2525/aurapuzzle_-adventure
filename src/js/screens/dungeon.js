@@ -1,11 +1,21 @@
 /* =========================================================
- * dungeon.js — ダンジョン画面とサポート選択
+ * dungeon.js — ダンジョン画面と出撃の手順
+ *
+ * ステージを選んだあとは1つのモーダルの中で
+ *   1. チーム(編成プリセット)を選ぶ
+ *   2. サポートを選ぶ
+ *   3. 4人そろった編成を確かめて突入する
+ * の3段を進む。‹ で1段ずつ戻れる。
+ *
  * サポート枠はフレンドの貸し出しキャラに加えて、いつでも選べる
  * NPCサポートを用意している(フレンドがいなくても困らない)。
  * =======================================================*/
-import { $, toast, artImg, itemIcon } from '../core/ui.js';
-import { state, hasStamina, spendStamina, ownCharacters } from '../core/state.js';
-import { updateStatusBar, registerBackHandler } from '../core/nav.js';
+import { $, toast, artImg, itemIcon, charIcon } from '../core/ui.js';
+import {
+  state, hasStamina, spendStamina, TEAM_PRESETS,
+  charactersOfTeam, setTeamIndex, rememberLastTeam
+} from '../core/state.js';
+import { updateStatusBar, registerBackHandler, showScreen } from '../core/nav.js';
 import {
   STAGES, HARD_REWARD_MULT, HARD_STAMINA_MULT, FLOORS_PER_STAGE,
   AURAS, COLOR_HEX, BASE_AURAS, characterById, resolveCharacter,
@@ -23,6 +33,8 @@ let dungeonMode = 'story';     // 'story' = 章ごとの通常 / 'daily' = 曜�
 let dungeonView = 'menu';      // ホームからはまず種別選択を開く
 let chapter = 1;
 let pendingStage = null, pendingHard = false;
+let sortieStep = 'team';       // 'team' | 'support' | 'confirm'
+let pendingSupport = null;     // 選んだサポート(なしのときは null)
 let supportTab = 'friend';
 let friendRentals = null;      // 取得済みのフレンド貸し出しキャラ(null=未取得)
 let strangerRentals = null;    // フレンド以外のプレイヤー(読み取り数を抑えるため使い回す)
@@ -35,10 +47,12 @@ export function initDungeon() {
   $('diffNormalBtn').addEventListener('click', () => { dungeonHard = false; renderDungeon({ preserve: true }); });
   $('diffHardBtn').addEventListener('click', () => { dungeonHard = true; renderDungeon({ preserve: true }); });
   registerBackHandler('dungeon', handleDungeonBack);
-  $('supportSkipBtn').addEventListener('click', () => confirmAndStart(null));
-  $('supportCloseBtn').addEventListener('click', closeSupportPick);
-  $('supportPickModal').addEventListener('click', e => {
-    if (e.target === $('supportPickModal')) closeSupportPick();
+  $('supportSkipBtn').addEventListener('click', () => pickSupport(null));
+  $('sortieCloseBtn').addEventListener('click', closeSortie);
+  $('sortieBackBtn').addEventListener('click', sortieBack);
+  $('sortieGoBtn').addEventListener('click', startPendingRun);
+  $('sortieModal').addEventListener('click', e => {
+    if (e.target === $('sortieModal')) closeSortie();
   });
   $('supTabFriendBtn').addEventListener('click', () => { supportTab = 'friend'; renderSupportList(); });
   $('supTabOtherBtn').addEventListener('click', () => { supportTab = 'other'; renderSupportList(); });
@@ -98,19 +112,112 @@ export function staminaCost(stage, hard) {
   return hard ? Math.round(stage.stamina * HARD_STAMINA_MULT) : stage.stamina;
 }
 
-function closeSupportPick() {
-  $('supportPickModal').classList.remove('show');
+/* ===================== 出撃の3段 ===================== */
+function closeSortie() {
+  $('sortieModal').classList.remove('show');
   pendingStage = null;
+  pendingSupport = null;
 }
 
-/* ===================== サポート選択 ===================== */
-async function openSupportPick(stage, hard) {
-  pendingStage = stage; pendingHard = hard;
+/** ステージを選んだところから始める */
+function openSortie(stage, hard) {
+  pendingStage = stage;
+  pendingHard = hard;
+  pendingSupport = null;
+  sortieStep = 'team';
+  $('sortieModal').classList.add('show');
+  renderSortie();
+}
+
+/** ‹ で1段戻る。先頭ならモーダルごと閉じる */
+function sortieBack() {
+  if (sortieStep === 'confirm') { goStep('support'); return; }
+  if (sortieStep === 'support') { goStep('team'); return; }
+  closeSortie();
+}
+
+function goStep(step) {
+  sortieStep = step;
+  renderSortie();
+}
+
+const SORTIE_STEPS = [
+  { key: 'team',    label: 'チーム' },
+  { key: 'support', label: 'サポート' },
+  { key: 'confirm', label: '確認' }
+];
+
+function renderSortie() {
+  const at = SORTIE_STEPS.findIndex(s => s.key === sortieStep);
+  $('sortieTitle').textContent =
+    { team: 'チームを選ぶ', support: 'サポートを選ぶ', confirm: '編成の確認' }[sortieStep];
+  $('sortieLead').innerHTML = {
+    team: `${pendingStage ? pendingStage.name : ''}${pendingHard ? ' / ハード' : ''} に挑むチームを選びます。`,
+    support: 'サポートの<b>リーダースキル</b>も発動します。フレンドがいなくてもNPCサポートを選べます。',
+    confirm: 'この4人で挑みます。よければ突入してください。'
+  }[sortieStep];
+  $('sortieSteps').innerHTML = SORTIE_STEPS.map((st, i) =>
+    `<span class="sortie-step${i === at ? ' now' : ''}${i < at ? ' done' : ''}">${i + 1}. ${st.label}</span>`).join('');
+
+  $('sortieTeamStep').hidden = sortieStep !== 'team';
+  $('sortieSupportStep').hidden = sortieStep !== 'support';
+  $('sortieConfirmStep').hidden = sortieStep !== 'confirm';
+
+  if (sortieStep === 'team') renderSortieTeams();
+  if (sortieStep === 'support') openSupportPick();
+  if (sortieStep === 'confirm') renderSortieConfirm();
+}
+
+/* --- 1. チーム選択 --- */
+function renderSortieTeams() {
+  const box = $('sortieTeamStep');
+  box.innerHTML = '';
+  for (let i = 0; i < TEAM_PRESETS; i++) {
+    const members = charactersOfTeam(i);
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'sortie-team' + (i === state.teamIndex ? ' active' : '') + (members.length ? '' : ' empty');
+    const ls = members.length ? members[0].leaderSkill : null;
+    row.innerHTML = `
+      <span class="st-no">チーム${i + 1}</span>
+      <span class="st-faces">${members.length
+        ? members.map(m => `<i class="st-face" style="--aura:${COLOR_HEX[AURAS[m.aura].key]}">${charIcon(m.art && m.art.icon, m.portrait, 'pf')}</i>`).join('')
+        : '<i class="st-face empty">—</i>'}</span>
+      <span class="st-ls">${members.length
+        ? `<b>${ls ? ls.name : '—'}</b><i>${ls ? ls.desc : ''}</i>`
+        : '<b>未編成</b><i>キャラクター → 編成 で設定できます</i>'}</span>`;
+    if (members.length) {
+      row.addEventListener('click', () => {
+        setTeamIndex(i);
+        goStep('support');
+      });
+    }
+    box.appendChild(row);
+  }
+  // 1つも編成していないと先へ進めないので、行き先を示しておく
+  if (!charactersOfTeam(0).length && !hasAnyTeam()) {
+    const hint = document.createElement('button');
+    hint.type = 'button';
+    hint.className = 'btn secondary block mt8';
+    hint.textContent = 'キャラクターを編成しにいく';
+    hint.addEventListener('click', () => { closeSortie(); showScreen('character'); });
+    box.appendChild(hint);
+  }
+}
+
+/** どれか1つでも中身のあるプリセットがあるか */
+function hasAnyTeam() {
+  for (let i = 0; i < TEAM_PRESETS; i++) if (charactersOfTeam(i).length) return true;
+  return false;
+}
+
+/* --- 2. サポート選択 --- */
+async function openSupportPick() {
+  const stage = pendingStage;
   friendRentals = null;
   strangerRentals = null;
   // フレンドが1人もいなければ最初からNPCタブを開く
   supportTab = state.profile.friends.length ? 'friend' : 'npc';
-  $('supportPickModal').classList.add('show');
   renderSupportList();
 
   const [rentals, strangers] = await Promise.all([
@@ -145,7 +252,7 @@ function supportRow(ch, ownerName, ownerIcon, isNpc, note, ownerUid) {
     </div>
     <button class="btn selbtn">選ぶ</button>`;
   row.querySelector('button').addEventListener('click', () => {
-    confirmAndStart({ ...ch, isSupport: true, isNpc, ownerName, ownerIcon, ownerUid });
+    pickSupport({ ...ch, isSupport: true, isNpc, ownerName, ownerIcon, ownerUid });
   });
   return row;
 }
@@ -207,14 +314,61 @@ function renderSupportList() {
   }
 }
 
-function confirmAndStart(support) {
-  const stage = pendingStage, hard = pendingHard;
+function pickSupport(support) {
+  pendingSupport = support;
+  goStep('confirm');
+}
+
+/* --- 3. 編成の確認 --- */
+function renderSortieConfirm() {
+  const members = charactersOfTeam(state.teamIndex);
+  const lineup = members.map((m, i) => lineupCard(m, i === 0 ? 'リーダー' : 'サブ' + i, ''));
+  lineup.push(pendingSupport
+    ? lineupCard(pendingSupport, 'サポート', pendingSupport.ownerName || '')
+    : `<div class="sl-card empty"><span class="sl-role">サポート</span>
+         <span class="sl-face">—</span><span class="sl-name">なし</span></div>`);
+  $('sortieLineup').innerHTML = lineup.join('');
+
+  // リーダースキルは自陣リーダーとサポートの2つだけが乗る
+  const own = members.length ? members[0].leaderSkill : null;
+  const sup = pendingSupport ? pendingSupport.leaderSkill : null;
+  const totalHP = members.reduce((s, m) => s + m.hp, 0) + (pendingSupport ? pendingSupport.hp : 0);
+  const auras = [...new Set([...members, ...(pendingSupport ? [pendingSupport] : [])].map(m => m.aura))]
+    .map(a => `<span class="aura-chip" style="--aura:${COLOR_HEX[AURAS[a].key]}">${AURAS[a].emoji}${AURAS[a].name}</span>`)
+    .join('');
+  const cost = staminaCost(pendingStage, pendingHard);
+  $('sortieSummary').innerHTML = `
+    <div class="ts-row"><span>攻撃できるオーラ</span><b class="aura-chips">${auras}</b></div>
+    <div class="ts-row"><span>4人のHP合計</span><b>${totalHP}</b></div>
+    <div class="ts-row"><span>消費スタミナ</span><b>${itemIcon('stamina')}${cost}</b></div>
+    <div class="skill-line on"><span class="skill-tag ls">LS</span>
+      <span><b>${own ? own.name : '—'}</b><br>${own ? own.desc : ''}</span></div>
+    <div class="skill-line on"><span class="skill-tag ls">SUP</span>
+      <span><b>${sup ? sup.name : 'サポートなし'}</b><br>${sup ? sup.desc : ''}</span></div>`;
+}
+
+function lineupCard(ch, role, owner) {
+  const aura = AURAS[ch.aura];
+  return `<div class="sl-card" style="--aura:${COLOR_HEX[aura.key]}">
+    <span class="sl-role">${role}</span>
+    <span class="sl-face">${charIcon(ch.art && ch.art.icon, ch.portrait, 'sl')}</span>
+    <span class="sl-name">${ch.name}</span>
+    <span class="sl-lv">Lv${ch.level}${owner ? ` ・ ${owner}` : ''}</span>
+  </div>`;
+}
+
+/** 突入。ここではじめてスタミナを払う */
+function startPendingRun() {
+  const stage = pendingStage, hard = pendingHard, support = pendingSupport;
   if (!stage) return;
-  $('supportPickModal').classList.remove('show');
-  pendingStage = null;
+  const members = charactersOfTeam(state.teamIndex);
+  if (!members.length) { toast('先にキャラクターを編成してください'); goStep('team'); return; }
   const cost = staminaCost(stage, hard);
   if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
   if (!spendStamina(cost)) { updateStatusBar(); return; }
+  // ホームに出すのは「最後に連れて行った3人」
+  rememberLastTeam(members.map(m => m.id));
+  closeSortie();
   updateStatusBar();
   startDungeonRun(stage, hard, support);
 }
@@ -330,9 +484,8 @@ function renderStageCards(list, stages) {
 
     if (!isLocked) {
       div.addEventListener('click', () => {
-        if (!ownCharacters().length) { toast('先にキャラクターを編成してください'); return; }
         if (!hasStamina(cost)) { toast(`スタミナが足りません(必要 ${cost})`); updateStatusBar(); return; }
-        openSupportPick(stage, hard);
+        openSortie(stage, hard);
       });
     }
     list.appendChild(div);

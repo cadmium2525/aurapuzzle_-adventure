@@ -46,6 +46,14 @@
 .i-orb{--item-pos:0% 100%}
 .item-icon.material{width:30px;height:30px;vertical-align:middle}
 .item-icon.shop{width:46px;height:46px;vertical-align:middle}
+/* キャラクターアイコンは1枚のアトラスから切り出す。一覧で数十枚並べても
+   リクエストは1回で済む。格子の大きさは ui.js が --char-atlas-size に流し込む
+   (assets/chars/char_atlas.webp は scripts/build-char-atlas.py が生成する)。
+   .〇〇-img 側が幅・高さ・角丸を決めるので、ここは背景だけを持つ。 */
+.char-atlas{
+  background:url('../../assets/chars/char_atlas.webp')
+    var(--cp,0% 0%)/var(--char-atlas-size,800% 500%) no-repeat;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 /* display を指定したクラスに負けて hidden が効かなくなるのを防ぐ(JSは el.hidden で切り替える) */
 [hidden]{display:none !important;}
@@ -637,15 +645,175 @@ button{font-family:inherit;cursor:pointer;}
 }
 canvas{display:block;border-radius:16px;touch-action:none;}
 
-/* ===================== キャラクター画面 ===================== */
-#characterTeamPane{flex-direction:column;gap:13px;display:flex;}
+/* ===================== キャラクター画面 =====================
+ * 入口(4枚) → 編成 / 強化・進化 / 開眼 / 送還 の各ページ。
+ * 一覧は3ページで同じ .char-grid を使い回す。
+ * ============================================================ */
+.char-menu{display:flex;flex-direction:column;gap:12px;padding-top:4px;}
+.char-entry{
+  position:relative;min-height:104px;padding:20px 48px 18px 20px;text-align:left;overflow:hidden;
+  border-radius:22px;border:1px solid var(--panel-border-hi);color:var(--ink);
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:5px;
+  box-shadow:var(--shadow-1);transition:transform .13s ease,filter .2s ease;
+}
+.char-entry::before{content:'';position:absolute;inset:0;opacity:.72;pointer-events:none;
+  background:radial-gradient(circle at 85% 25%,var(--tint,rgba(101,224,255,.35)),transparent 42%);}
+.char-entry.team{background:linear-gradient(135deg,#1B2A4D,#101A38);--tint:rgba(101,224,255,.38);}
+.char-entry.enhance{background:linear-gradient(135deg,#3A2A16,#241A2F);--tint:rgba(255,198,92,.38);}
+.char-entry.awaken{background:linear-gradient(135deg,#2E1A45,#1A1030);--tint:rgba(167,107,255,.42);}
+.char-entry.dismiss{background:linear-gradient(135deg,#3A1C2A,#20141F);--tint:rgba(255,143,208,.34);}
+.char-entry>*{position:relative;}
+.char-entry-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--accent-3);}
+.char-entry.enhance .char-entry-kicker{color:var(--accent);}
+.char-entry.awaken .char-entry-kicker{color:#D9BCFF;}
+.char-entry.dismiss .char-entry-kicker{color:var(--accent-2);}
+.char-entry b{font-size:18px;letter-spacing:.03em;}
+.char-entry>span:not(.char-entry-kicker){font-size:10.5px;color:var(--ink-dim);}
+.char-entry i{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:34px;font-style:normal;color:rgba(255,255,255,.5);}
+.char-entry:active{transform:scale(.985);filter:brightness(1.08);}
+.char-sublink{border:none;background:none;color:var(--ink-dim);font-size:11px;font-weight:700;padding:4px 2px 2px;text-align:center;}
+
+#charTeamPage,#charListPage,#charCatalogPage{display:flex;flex-direction:column;gap:13px;}
+
+/* 編成プリセットのタブ。顔を並べて中身がわかるようにする */
+.preset-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.preset-bar::-webkit-scrollbar{display:none;}
+.preset-btn{
+  flex:0 0 auto;min-width:76px;padding:6px 8px;border-radius:13px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);color:var(--ink-dim);
+  display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2;
+}
+.preset-btn b{font-size:10px;font-weight:900;color:var(--ink);}
+.preset-btn.active{background:rgba(255,198,92,.16);border-color:rgba(255,198,92,.5);}
+.preset-faces{display:flex;gap:2px;}
+.preset-face{width:20px;height:20px;border-radius:7px;overflow:hidden;display:block;
+  background:rgba(0,0,0,.35);border:1px solid var(--panel-border);}
+.preset-face.empty{display:flex;align-items:center;justify-content:center;font-size:11px;font-style:normal;color:var(--ink-faint);}
+.pf-img{width:100%;height:100%;object-fit:cover;display:block;}
+.pf-emoji{font-size:12px;line-height:20px;}
+
+/* 一覧の並び替え */
+.list-head .sort-bar{margin-top:9px;}
+.sort-bar{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch;}
+.sort-bar::-webkit-scrollbar{display:none;}
+.sort-btn{
+  flex:0 0 auto;padding:5px 11px;border-radius:999px;font-size:10.5px;font-weight:700;
+  background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);color:var(--ink-dim);
+}
+.sort-btn.active{background:rgba(101,224,255,.16);border-color:rgba(101,224,255,.5);color:var(--ink);}
+.list-actions{display:flex;gap:6px;margin-top:9px;}
+.list-actions .btn.active{background:rgba(255,143,208,.2);border-color:rgba(255,143,208,.55);}
+
+/* アイコン一覧。1画面に多く並ぶので文字は最小限にする */
+.char-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.char-grid.pick{max-height:52vh;overflow-y:auto;padding:2px;}
+.cg-cell{
+  position:relative;padding:0 0 15px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(165deg, color-mix(in srgb, var(--aura) 18%, transparent), rgba(255,255,255,0.03));
+  border:1px solid color-mix(in srgb, var(--rare) 45%, transparent);
+  display:flex;flex-direction:column;
+}
+.cg-cell:active{transform:scale(.97);}
+.cg-cell.dim{opacity:.45;}
+.cg-cell.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,198,92,.7) inset;}
+/* まとめて送還の選択。枠色だけだとレアリティの枠と紛らわしいので✓を重ねる */
+.cg-cell.selected::after{
+  content:'✓';position:absolute;inset:0 0 15px 0;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,198,92,.3);color:#fff;font-size:30px;font-weight:900;
+  text-shadow:0 2px 6px rgba(0,0,0,.8);pointer-events:none;
+}
+.cg-face{display:block;width:100%;aspect-ratio:1;overflow:hidden;background:rgba(0,0,0,.3);}
+.cg-img{width:100%;height:100%;object-fit:cover;display:block;}
+.cg-emoji{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:26px;}
+.cg-star{position:absolute;top:2px;left:3px;padding:0 2px;font-size:9px;font-weight:900;color:var(--rare);
+  text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
+.cg-lv{position:absolute;top:2px;right:3px;padding:0 2px;font-size:9px;font-weight:800;color:var(--ink);
+  font-variant-numeric:tabular-nums;text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
+.cg-corner{position:absolute;right:3px;bottom:17px;display:flex;gap:2px;align-items:center;
+  padding:1px 4px;border-radius:7px;background:rgba(8,5,18,.78);font-size:8.5px;font-weight:800;color:var(--ink);}
+.cg-corner .aw-pips{display:flex;gap:1px;}
+.cg-badge{position:absolute;left:3px;bottom:17px;padding:1px 5px;border-radius:7px;
+  background:rgba(255,198,92,.9);color:#231603;font-size:8px;font-weight:900;}
+.cg-name{position:absolute;left:0;right:0;bottom:0;height:15px;line-height:15px;
+  font-size:8.5px;color:var(--ink-dim);background:rgba(8,5,18,.72);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 3px;text-align:center;}
+
+/* まとめて送還の下バー */
+.bulk-bar{
+  position:sticky;bottom:calc(8px + var(--safe-bottom));z-index:6;
+  display:flex;align-items:center;justify-content:space-between;gap:9px;
+  padding:9px 11px;border-radius:15px;background:rgba(14,9,28,.94);
+  border:1px solid var(--panel-border-hi);box-shadow:var(--shadow-2);
+}
+.bulk-info{flex:1;min-width:0;font-size:11px;color:var(--ink-dim);line-height:1.5;}
+.bulk-info b{color:var(--ink);font-size:13px;}
+.bulk-gain{display:flex;flex-wrap:wrap;gap:3px 7px;font-size:10px;color:var(--accent);margin-top:2px;}
+.bulk-bar .btn{flex:0 0 auto;white-space:nowrap;padding:10px 14px;}
+
+/* 送還する数の指定 */
+.dismiss-head{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.dismiss-head b{display:block;font-size:14px;}
+.dismiss-head span{font-size:10.5px;color:var(--ink-dim);}
+.stepper{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0;}
+.stepper .btn{width:52px;min-width:52px;font-size:20px;font-weight:900;padding:8px 0;}
+.stepper-value{display:flex;align-items:baseline;gap:4px;min-width:74px;justify-content:center;}
+.stepper-value b{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;}
+.stepper-value i{font-size:12px;font-style:normal;color:var(--ink-dim);}
+.dismiss-reward{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:center;
+  font-size:12px;color:var(--accent);margin:8px 0 4px;}
+.dr-label{font-size:10px;color:var(--ink-faint);}
+
+/* 出撃(チーム → サポート → 確認) */
+.sortie-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.sortie-head h3{margin:0;}
+.sortie-steps{display:flex;gap:6px;margin-bottom:9px;}
+.sortie-step{flex:1;text-align:center;font-size:9.5px;font-weight:800;padding:4px 2px;border-radius:9px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);color:var(--ink-faint);}
+.sortie-step.done{color:var(--ink-dim);border-color:rgba(101,224,255,.35);}
+.sortie-step.now{background:rgba(101,224,255,.16);border-color:rgba(101,224,255,.5);color:var(--ink);}
+.sortie-team{
+  width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  padding:10px 11px;border-radius:15px;background:var(--panel);
+  border:1px solid var(--panel-border);color:var(--ink);
+}
+.sortie-team.active{border-color:rgba(255,198,92,.55);background:rgba(255,198,92,.12);}
+.sortie-team.empty{opacity:.5;}
+.st-no{flex:0 0 52px;font-size:10.5px;font-weight:900;color:var(--ink-dim);}
+.st-faces{display:flex;gap:3px;flex:0 0 auto;}
+.st-face{width:34px;height:34px;border-radius:11px;overflow:hidden;display:block;
+  background:rgba(0,0,0,.35);border:1px solid color-mix(in srgb, var(--aura,#fff) 55%, transparent);}
+.st-face.empty{display:flex;align-items:center;justify-content:center;font-style:normal;color:var(--ink-faint);}
+.st-ls{flex:1;min-width:0;}
+.st-ls b{display:block;font-size:11px;}
+.st-ls i{display:block;font-size:9.5px;font-style:normal;color:var(--ink-dim);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.sortie-lineup{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:11px;}
+.sl-card{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:16px 3px 7px;border-radius:14px;
+  background:linear-gradient(165deg, color-mix(in srgb, var(--aura,#fff) 15%, transparent), rgba(255,255,255,0.03));
+  border:1px solid color-mix(in srgb, var(--aura,#fff) 45%, transparent);
+}
+.sl-card.empty{border-style:dashed;border-color:var(--panel-border);}
+.sl-role{position:absolute;top:4px;left:0;right:0;text-align:center;font-size:8px;font-weight:700;
+  letter-spacing:.05em;color:var(--ink-faint);}
+.sl-face{width:42px;height:42px;border-radius:13px;overflow:hidden;display:block;background:rgba(0,0,0,.3);}
+.sl-img{width:100%;height:100%;object-fit:cover;display:block;}
+.sl-emoji{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:24px;}
+.sl-name{font-size:9px;color:var(--ink-dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sl-lv{font-size:8.5px;color:var(--accent);font-weight:700;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+
 .teamslots{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 .teamslot{
   position:relative;border-radius:var(--r-md);
   background:var(--panel);border:1px dashed var(--panel-border);
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;
   padding:17px 3px 8px;min-height:104px;
+  /* 枠そのものがボタンになったので、見た目は今までのカードのまま揃える */
+  font:inherit;color:inherit;text-align:center;
 }
+button.teamslot:active{transform:scale(.97);}
 .teamslot.filled{border-style:solid;border-color:color-mix(in srgb, var(--aura) 50%, transparent);
   background:linear-gradient(165deg, color-mix(in srgb, var(--aura) 12%, transparent), rgba(255,255,255,0.03));}
 .slot-label{position:absolute;top:4px;left:0;right:0;text-align:center;font-size:8px;color:var(--ink-faint);font-weight:700;letter-spacing:.05em;}
@@ -1073,6 +1241,14 @@ input[type=range]{accent-color:var(--accent);}
 .mt-emoji{font-size:15px;line-height:1;}
 .mt-name{flex:1;min-width:0;font-size:10px;color:var(--ink-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mt-count{font-size:13px;font-variant-numeric:tabular-nums;color:var(--mt);}
+/* 強化・開眼ページの素材は「今いくつ持っているか」の確認だけなので、
+   一覧を押し下げないよう横1列に流す(名前は出さずアイコンと数だけ) */
+#charMaterials{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch;}
+#charMaterials::-webkit-scrollbar{display:none;}
+#charMaterials .mt-chip{flex:0 0 auto;padding:5px 9px 5px 6px;gap:4px;border-radius:999px;}
+#charMaterials .mt-name{display:none;}
+#charMaterials .item-icon.material{width:22px;height:22px;}
+#charMaterials .mt-count{font-size:12px;}
 
 /* =========================================================
  * 進化UI
@@ -1292,6 +1468,9 @@ input[type=range]{accent-color:var(--accent);}
 @media (max-width:360px){
   .material-grid{grid-template-columns:1fr;}
   .pull-summary{grid-template-columns:repeat(4,1fr);}
+  /* 幅が狭い端末では1マスが潰れるので、一覧は3列に落とす */
+  .char-grid{grid-template-columns:repeat(3,1fr);}
+  .st-face{width:30px;height:30px;}
 }
 .sup-lv{font-size:8.5px;font-weight:800;color:var(--accent);
   background:rgba(255,198,92,.14);border-radius:5px;padding:1px 5px;}

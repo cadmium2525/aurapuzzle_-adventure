@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v32';
+const CACHE_NAME = 'aura-connect-v33';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -7,6 +7,7 @@ const ASSETS = [
   './assets/icons/icon-maskable-192.png',
   './assets/icons/icon-maskable-512.png',
   './assets/items/item_atlas.webp',
+  './assets/chars/char_atlas.webp',
   './assets/battle/aura_atlas.webp',
   './assets/ui/loading.webp',
   './assets/ui/title.webp',
@@ -19,6 +20,7 @@ const ASSETS = [
   './src/js/core/audio.js',
   './src/js/core/boot.js',
   './src/js/core/state.js',
+  './src/js/core/account.js',
   './src/js/core/nav.js',
   './src/js/core/sysmodal.js',
   './src/js/core/firebase.js',
@@ -36,6 +38,7 @@ const ASSETS = [
   './assets/chars/kyuko_1_icon.webp',
   './assets/chars/kyuko_2_icon.webp',
   './src/js/data/characters.js',
+  './src/js/data/char-atlas.js',
   './src/js/data/skills.js',
   './src/js/battle/board.js',
   './src/js/battle/party.js',

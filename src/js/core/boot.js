@@ -2,7 +2,7 @@
  * boot.js — loading → title → game の起動フロー
  * =======================================================*/
 import { $ } from './ui.js';
-import { ownCharacters } from './state.js';
+import { homeCharacters } from './state.js';
 import { preloadBgm } from './audio.js';
 
 const BASE_IMAGES = [
@@ -28,7 +28,8 @@ function preloadImage(src) {
 }
 
 function currentPartyImages() {
-  return ownCharacters()
+  // 起動直後に出るのはホームの1枚絵なので、そこに並ぶ3人を先に読む
+  return homeCharacters()
     .map(ch => ch.art && ch.art.full)
     .filter(Boolean)
     .map(src => `./${src.replace(/^\.\//, '')}`);

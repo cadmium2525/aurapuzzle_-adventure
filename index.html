@@ -187,37 +187,67 @@
       </div>
     </section>
 
-    <!-- ===================== キャラクター ===================== -->
+    <!-- ===================== キャラクター =====================
+         ホーム → キャラクター で4つの入口を出し、そこから
+         編成 / 強化・進化 / 開眼 / 送還 の各ページへ潜る。
+         一覧は共通の #charGrid、詳細は用途ごとに出す要素を絞る。 -->
     <section class="screen" id="screen-character">
-      <div class="segmented">
-        <button id="tabTeamBtn" class="active">編成</button>
-        <button id="tabListBtn">図鑑</button>
+      <div id="charMenu" class="char-menu">
+        <div class="dungeon-menu-lead">キャラクターの管理</div>
+        <button class="char-entry team" data-charpage="team">
+          <span class="char-entry-kicker">TEAM</span><b>編成</b>
+          <span>5つのチームを保存して出撃前に選ぶ</span><i>›</i>
+        </button>
+        <button class="char-entry enhance" data-charpage="enhance">
+          <span class="char-entry-kicker">ENHANCE</span><b>強化・進化</b>
+          <span>経験値アイテムで育て、素材で進化させる</span><i>›</i>
+        </button>
+        <button class="char-entry awaken" data-charpage="awaken">
+          <span class="char-entry-kicker">AWAKEN</span><b>開眼</b>
+          <span>同じキャラや開眼の証で潜在能力を開く</span><i>›</i>
+        </button>
+        <button class="char-entry dismiss" data-charpage="dismiss">
+          <span class="char-entry-kicker">RELEASE</span><b>送還</b>
+          <span>手持ちを素材とコインに戻す</span><i>›</i>
+        </button>
+        <!-- 4つの入口とは別枠。未所持を含む全キャラを進化前後で見比べる -->
+        <button class="char-sublink" data-charpage="catalog">図鑑を見る ›</button>
       </div>
 
-      <div id="characterTeamPane">
+      <!-- 編成ページ -->
+      <div id="charTeamPage" hidden>
+        <button class="dungeon-category-back" data-charpage="menu">‹ キャラクター</button>
+        <div class="preset-bar" id="presetBar"></div>
         <div class="card">
-          <div class="cardtitle">
-            <span>パーティ(自分3人 + サポート1人)</span>
-            <span class="hint">先頭がリーダー</span>
-          </div>
+          <div class="cardtitle"><span>編成</span><span class="hint">先頭がリーダー ・ タップで入れ替え</span></div>
           <div class="teamslots" id="teamSlots"></div>
           <div id="teamSummary" class="team-summary"></div>
         </div>
-        <div class="card" id="leaderSkillCard">
+        <div class="card">
           <div class="cardtitle"><span>リーダースキル(自陣)</span></div>
           <div id="teamLeaderSkill"></div>
         </div>
-        <div class="card">
-          <div class="cardtitle"><span>進化素材</span><span class="hint">ダンジョンで集まる</span></div>
-          <div id="materialList" class="material-grid"></div>
-        </div>
-        <div class="card">
-          <div class="cardtitle"><span>所持キャラクター</span><span class="hint" id="ownedCount"></span></div>
-          <div id="ownedList" class="stack"></div>
-        </div>
       </div>
 
-      <div id="characterListPane" style="display:none;">
+      <!-- 強化・進化 / 開眼 / 送還 で共通のアイコン一覧 -->
+      <div id="charListPage" hidden>
+        <button class="dungeon-category-back" data-charpage="menu">‹ キャラクター</button>
+        <div id="charMaterials" class="material-grid" hidden></div>
+        <div class="card list-head">
+          <div class="cardtitle"><span id="charListTitle">強化・進化</span><span class="hint" id="charListCount"></span></div>
+          <div class="sort-bar" id="charSortBar"></div>
+          <div class="list-actions" id="charListActions" hidden>
+            <button class="btn secondary tiny" id="charBulkToggleBtn">まとめて送還</button>
+            <button class="btn ghost tiny" id="charBulkDupBtn">被りだけ選ぶ</button>
+          </div>
+        </div>
+        <div id="charGrid" class="char-grid"></div>
+        <div id="charBulkBar" class="bulk-bar" hidden></div>
+      </div>
+
+      <!-- 図鑑 -->
+      <div id="charCatalogPage" hidden>
+        <button class="dungeon-category-back" data-charpage="menu">‹ キャラクター</button>
         <div class="card">
           <div class="cardtitle"><span>図鑑(進化前 / 進化後)</span></div>
           <div id="allCharacterList" class="stack"></div>
@@ -414,19 +444,40 @@
   </div>
 </div>
 
-<!-- ===================== サポート選択(ダンジョン出発前) ===================== -->
-<div class="modal" id="supportPickModal">
+<!-- ===================== 出撃(ダンジョン突入前) =====================
+     チーム選択 → サポート選択 → 編成の確認 の3段。
+     同じモーダルの中で中身だけ差し替え、‹ で1段ずつ戻れるようにする。 -->
+<div class="modal" id="sortieModal">
   <div class="modal-card wide">
-    <h3>サポートを選ぶ</h3>
-    <div class="mstats mb8">サポートの<b>リーダースキル</b>も発動します。フレンドがいなくてもNPCサポートを選べます。</div>
-    <div class="segmented small">
-      <button id="supTabFriendBtn" class="active">フレンド</button>
-      <button id="supTabOtherBtn">他のプレイヤー</button>
-      <button id="supTabNpcBtn">NPC</button>
+    <div class="sortie-head">
+      <button class="iconbtn small" id="sortieBackBtn" aria-label="前の手順へ">‹</button>
+      <h3 id="sortieTitle">チームを選ぶ</h3>
     </div>
-    <div id="supportPickList" class="stack scroll-area"></div>
-    <button class="btn secondary block mt8" id="supportSkipBtn">サポートなしで挑戦(3人)</button>
-    <button class="btn ghost block mt6" id="supportCloseBtn" data-back-close>キャンセル</button>
+    <div class="sortie-steps" id="sortieSteps"></div>
+    <div class="mstats mb8" id="sortieLead"></div>
+
+    <!-- 1. チーム選択 -->
+    <div id="sortieTeamStep" class="stack scroll-area"></div>
+
+    <!-- 2. サポート選択 -->
+    <div id="sortieSupportStep" hidden>
+      <div class="segmented small">
+        <button id="supTabFriendBtn" class="active">フレンド</button>
+        <button id="supTabOtherBtn">他のプレイヤー</button>
+        <button id="supTabNpcBtn">NPC</button>
+      </div>
+      <div id="supportPickList" class="stack scroll-area"></div>
+      <button class="btn secondary block mt8" id="supportSkipBtn">サポートなしで挑戦(3人)</button>
+    </div>
+
+    <!-- 3. 編成の確認 -->
+    <div id="sortieConfirmStep" hidden>
+      <div id="sortieLineup" class="sortie-lineup"></div>
+      <div id="sortieSummary" class="team-summary"></div>
+      <button class="btn block mt8" id="sortieGoBtn">ダンジョンへ突入</button>
+    </div>
+
+    <button class="btn ghost block mt6" id="sortieCloseBtn" data-back-close>キャンセル</button>
   </div>
 </div>
 
@@ -439,21 +490,48 @@
   </div>
 </div>
 
-<!-- ===================== キャラクター詳細 ===================== -->
+<!-- ===================== キャラクター詳細 =====================
+     ページごとに必要な箱だけを出す(強化なら育成と進化、開眼なら開眼だけ)。 -->
 <div class="modal" id="charDetailModal">
   <div class="modal-card wide">
     <div id="charDetailBody"></div>
+    <div class="evo-box" id="charExpBox"></div>
     <div class="evo-box" id="charEvolveBox"></div>
     <div class="evo-box" id="charAwakenBox"></div>
-    <div class="evo-box" id="charExpBox"></div>
-    <div class="evo-box" id="charDismissBox"></div>
     <div class="detail-actions">
       <button class="btn evo block" id="charEvolveBtn">進化する</button>
       <button class="btn block mt6" id="charAwakenBtn">開眼する</button>
       <button class="btn secondary block mt6" id="charAwakenTokenBtn">開眼の証で開眼</button>
-      <button class="btn danger block mt6" id="charDismissBtn">送還する</button>
-      <button class="btn block mt6" id="charDetailActionBtn">編成する</button>
       <button class="btn secondary block mt6" id="charDetailCloseBtn" data-back-close>閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 編成の入れ替え ===================== -->
+<div class="modal" id="teamPickModal">
+  <div class="modal-card wide">
+    <h3 id="teamPickTitle">キャラクターを選ぶ</h3>
+    <div class="sort-bar" id="teamPickSortBar"></div>
+    <div id="teamPickGrid" class="char-grid pick scroll-area"></div>
+    <button class="btn secondary block mt8" id="teamPickClearBtn">この枠を空にする</button>
+    <button class="btn ghost block mt6" id="teamPickCloseBtn" data-back-close>キャンセル</button>
+  </div>
+</div>
+
+<!-- ===================== 送還する数の指定 ===================== -->
+<div class="modal" id="dismissModal">
+  <div class="modal-card">
+    <h3>送還</h3>
+    <div id="dismissBody"></div>
+    <div class="stepper" id="dismissStepper">
+      <button class="btn secondary" id="dismissMinusBtn" aria-label="1つ減らす">−</button>
+      <span class="stepper-value"><b id="dismissCount">1</b><i id="dismissMax">/ 1</i></span>
+      <button class="btn secondary" id="dismissPlusBtn" aria-label="1つ増やす">＋</button>
+    </div>
+    <div id="dismissReward" class="dismiss-reward"></div>
+    <div class="confirm-actions">
+      <button class="btn secondary" id="dismissCancelBtn" data-back-close>やめる</button>
+      <button class="btn danger" id="dismissDoBtn">送還する</button>
     </div>
   </div>
 </div>

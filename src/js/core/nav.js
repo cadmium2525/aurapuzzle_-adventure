@@ -1,7 +1,7 @@
 /* =========================================================
  * nav.js — 画面遷移とトップバー
  * =======================================================*/
-import { $, formatMMSS, artImg, toast } from './ui.js';
+import { $, formatMMSS, charIcon, toast } from './ui.js';
 import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
 import { setBgmScene } from './audio.js';
 
@@ -130,7 +130,7 @@ function renderProfileIcon() {
   const key = src || 'emoji:' + emoji;
   if (el.dataset.iconKey !== key) {
     el.dataset.iconKey = key;
-    el.innerHTML = artImg(src, emoji, 'pi');
+    el.innerHTML = charIcon(src, emoji, 'pi');
   }
   el.title = ch ? `${ch.name}(貸し出し中)` : '貸し出しキャラクターを選ぶ';
 }

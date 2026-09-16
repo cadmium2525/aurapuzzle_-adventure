@@ -89,7 +89,8 @@ async function pushCloudSave() {
       coin: state.coin, frepo: state.frepo, orb: state.orb,
       rank: state.rank, exp: state.exp,
       stamina: state.stamina, staminaAt: state.staminaAt,
-      characters: state.characters, materials: state.materials, team: state.team,
+      characters: state.characters, materials: state.materials,
+      teams: state.teams, teamIndex: state.teamIndex, lastTeam: state.lastTeam,
       progress: state.progress, records: state.records,
       grants: state.grants || {},        // 一度きりの付与が別端末で重複しないように運ぶ
       gifts: state.gifts || [],          // 未受け取りのプレゼント

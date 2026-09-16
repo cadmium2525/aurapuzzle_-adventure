@@ -37,9 +37,12 @@ const server=http.createServer(async(req,res)=>{
     assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','降臨ダンジョン','曜日ダンジョン','トレーニング']);
     await page.locator('#openRaidDungeonBtn').click();
     await page.locator('.stage-card').filter({hasText:'九狐降臨'}).click();
-    // 説明ページは挟まず、カードからそのままサポート選択へ進む
-    assert.ok(await page.locator('#supportPickModal.show').isVisible());
+    // 説明ページは挟まず、カードからそのまま出撃(チーム→サポート→確認)へ進む
+    assert.ok(await page.locator('#sortieModal.show').isVisible());
+    assert.ok(await page.locator('#sortieTeamStep').isVisible());
+    await page.locator('.sortie-team').first().click();
     await page.locator('#supportSkipBtn').click();
+    await page.locator('#sortieGoBtn').click();
     await page.waitForFunction(()=>raidTest.snapshot().bstate==='idle');
     let snap=await page.evaluate(()=>raidTest.snapshot());
     assert.equal(snap.run.enemies.length,3);assert.ok(snap.run.enemies.every(e=>e.effects.defenses[0].turns===5));
@@ -98,7 +101,8 @@ const server=http.createServer(async(req,res)=>{
       const check=s.evolveCheck('dk_kyuko');
       s.state.materials[check.need.crystalId]=1000;s.state.materials.mt_star=1000;
       const evolved=s.evolveCharacter('dk_kyuko').ok;
-      s.state.team=['dk_kyuko','aq_mio','lm_mina'];s.saveState();
+      ['dk_kyuko','aq_mio','lm_mina'].forEach((id,slot)=>s.setTeamSlot(s.state.teamIndex,slot,id));
+      s.saveState();
       return {dropped,results,token,evolved,n:entry.n,awa:entry.awa,star:entry.star,own:s.ownCharacters().map(c=>c.id)};
     });
     assert.equal(growth.dropped,1);assert.ok(growth.results.every(Boolean));assert.equal(growth.n,1);assert.equal(growth.awa,10);assert.equal(growth.token,false);assert.equal(growth.evolved,true);assert.equal(growth.star,4);assert.equal(growth.own[0],'dk_kyuko');

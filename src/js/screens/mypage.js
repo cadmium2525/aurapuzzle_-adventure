@@ -1,5 +1,5 @@
 /* ===================== マイページ画面 ===================== */
-import { $, toast, artImg } from '../core/ui.js';
+import { $, toast, charIcon } from '../core/ui.js';
 import {
   state, saveState, resetState, maxStamina, ownedCharacters, resolveOwned
 } from '../core/state.js';
@@ -115,7 +115,7 @@ function initAccount() {
 function renderProfileAvatar() {
   const el = $('profileAvatar');
   const ch = state.profile.rentalCharId ? resolveOwned(state.profile.rentalCharId) : null;
-  el.innerHTML = ch ? artImg(ch.art && ch.art.icon, ch.portrait, 'pi') : '<span class="pi-emoji">🙂</span>';
+  el.innerHTML = ch ? charIcon(ch.art && ch.art.icon, ch.portrait, 'pi') : '<span class="pi-emoji">🙂</span>';
 }
 
 function renderRentalNow() {

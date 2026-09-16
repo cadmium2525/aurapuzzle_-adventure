@@ -10,7 +10,7 @@
  *  - 発動するリーダースキルは「自陣リーダー」と「サポート」の2つ。
  *  - オーラ操作の基本時間は10秒。リーダースキルとスキルで延長して戦う。
  * =======================================================*/
-import { $, sleep, randInt, toast, artImg, itemIcon } from '../core/ui.js';
+import { $, sleep, randInt, toast, artImg, charIcon, itemIcon } from '../core/ui.js';
 import {
   state, saveState, gainExp, maxStamina, gainCharExp, addMaterials, addCharacter
 } from '../core/state.js';
@@ -278,7 +278,7 @@ function renderParty() {
       <span class="unit-pending" hidden></span>
       <span class="unit-ready-burst" hidden>スキル準備完了！</span>
       <span class="unit-face">
-        <span class="unit-portrait">${artImg(m.art && m.art.icon, m.portrait, 'unit')}</span>
+        <span class="unit-portrait">${charIcon(m.art && m.art.icon, m.portrait, 'unit')}</span>
         <span class="unit-cd" hidden></span>
       </span></button><span class="unit-statuses" aria-label="個別の状態効果"></span>`;
     btn.querySelector('.unit-skill').addEventListener('click', () => confirmSkill(i));
@@ -457,7 +457,7 @@ function confirmSkill(i) {
   $('skillConfirmBody').innerHTML = `
     <div class="skill-confirm-head">
       <span class="skill-confirm-face" style="--aura:${COLOR_HEX[aura.key]}">
-        ${artImg(m.art && m.art.icon, m.portrait, 'sc')}
+        ${charIcon(m.art && m.art.icon, m.portrait, 'sc')}
       </span>
       <span class="skill-confirm-who">
         <b>${m.name}</b>
@@ -556,7 +556,7 @@ function openPartyInfo() {
     div.style.setProperty('--aura', COLOR_HEX[aura.key]);
     div.innerHTML = `
       <div class="pinfo-head">
-        <span class="pinfo-portrait">${artImg(m.art && m.art.icon, m.portrait, 'pinfo')}</span>
+        <span class="pinfo-portrait">${charIcon(m.art && m.art.icon, m.portrait, 'pinfo')}</span>
         <span class="pinfo-id">
           <b>${m.name}</b>
           <span class="pinfo-sub">${aura.emoji}${aura.name} ・ ${m.job} ・ ${RARITY_TITLE[m.rarity]}${

@@ -3,7 +3,7 @@ import {
   AURAS, COLOR_HEX, RARITY_TITLE, RARITY_HEX, ROLE_LABEL,
   MAX_RARITY, expToNextCharLevel
 } from '../data/gamedata.js';
-import { artImg } from '../core/ui.js';
+import { charIcon, artImg } from '../core/ui.js';
 
 /** ★表示(獲得ぶんは金、残りは薄く) */
 export function stars(n, max) {
@@ -17,7 +17,7 @@ export function portraitHTML(ch, size) {
   const icon = ch.art && ch.art.icon;
   return `<span class="portrait ${size || ''} r${ch.star || ch.rarity}${ch.evolved ? ' evolved' : ''}"
     style="--aura:${COLOR_HEX[aura.key]};--rare:${RARITY_HEX[ch.star || ch.rarity]}">
-    <span class="p-face">${artImg(icon, ch.portrait, 'p')}</span>
+    <span class="p-face">${charIcon(icon, ch.portrait, 'p')}</span>
     <span class="p-aura">${aura.emoji}</span>
   </span>`;
 }
@@ -66,8 +66,14 @@ export function awakenPipsHTML(awa, max) {
   return `<span class="aw-pips">${out}</span>`;
 }
 
-/** キャラ詳細(モーダル用) */
-export function charDetailHTML(ch, extra) {
+/**
+ * キャラ詳細(モーダル用)。
+ * 画面ごとに関係のある段だけを出せるように、出す段を opts で選べる。
+ * 既定は全部(図鑑やガチャの結果はこれで良い)。
+ * @param {object} [opts] {flavor, level, stats, skills} すべて true/false
+ */
+export function charDetailHTML(ch, extra, opts) {
+  const show = Object.assign({ flavor: true, level: true, stats: true, skills: true }, opts || {});
   const aura = AURAS[ch.aura];
   const ls = ch.leaderSkill, sk = ch.skill;
   const full = ch.art && ch.art.full;
@@ -88,20 +94,20 @@ export function charDetailHTML(ch, extra) {
         </div>
       </div>
     </div>
-    ${ch.flavor ? `<div class="cd-flavor">${ch.flavor}</div>` : ''}
-    ${ch.level ? levelBarHTML(ch) : ''}
-    <div class="cd-stats">
+    ${show.flavor && ch.flavor ? `<div class="cd-flavor">${ch.flavor}</div>` : ''}
+    ${show.level && ch.level ? levelBarHTML(ch) : ''}
+    ${show.stats ? `<div class="cd-stats">
       <div><span>ATK</span><b>${ch.atk}</b></div>
       <div><span>HP</span><b>${ch.hp}</b></div>
       <div><span>RCV</span><b>${ch.rcv}</b></div>
-    </div>
-    <div class="skill-line on">
+    </div>` : ''}
+    ${show.skills ? `<div class="skill-line on">
       <span class="skill-tag ls">LS</span>
       <span><b>${ls ? ls.name : '—'}</b><br>${ls ? ls.desc : ''}</span>
     </div>
     <div class="skill-line on">
       <span class="skill-tag sk">SKILL</span>
       <span><b>${sk ? sk.name : '—'}</b>(CT ${sk ? sk.cooldown : '-'})<br>${sk ? sk.desc : ''}</span>
-    </div>
+    </div>` : ''}
     ${extra || ''}`;
 }

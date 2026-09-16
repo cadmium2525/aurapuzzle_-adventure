@@ -1,5 +1,6 @@
 /* ===================== ホーム画面 =====================
- * 編成中の3人を1枚絵として見せる。
+ * 最後にダンジョンへ連れて行った3人を1枚絵として見せる
+ * (まだ出撃していなければ、選択中の編成で代用する)。
  * 3人を回転台(ターンテーブル)の上に並べ、前面・右奥・左奥の3つの位置を
  * 持ち回る。切り替えは位置そのものを動かすので、キャラが円周上を移動して
  * 入れ替わって見える。
@@ -10,7 +11,7 @@
  * 左右の△は「見せ方」だけの操作で、リーダー(編成の先頭)は変わらない。
  * ==================================================== */
 import { $, artImg } from '../core/ui.js';
-import { ownCharacters } from '../core/state.js';
+import { homeCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 import { updatePresentBadge } from './present.js';
 
@@ -64,12 +65,12 @@ function applyPositions(mons) {
 
 export function renderHome() {
   updatePresentBadge();
-  const mons = ownCharacters();
+  const mons = homeCharacters();
   const art = $('homePartyArt');
   const navs = [$('homePrevBtn'), $('homeNextBtn')];
 
   if (!mons.length) {
-    art.innerHTML = '<div class="empty">編成が空です。キャラクター画面で設定しましょう。</div>';
+    art.innerHTML = '<div class="empty">編成が空です。キャラクター → 編成 で設定しましょう。</div>';
     builtKey = '';
     navs.forEach(b => { if (b) b.hidden = true; });
     return;
@@ -86,7 +87,7 @@ export function renderHome() {
 
 /** 前面に出す人をずらす(リーダーは変わらない) */
 function shiftFront(step) {
-  const mons = ownCharacters();
+  const mons = homeCharacters();
   if (mons.length < 2 || spinning) return;
   spinning = true;
   frontIndex = (frontIndex + step + mons.length) % mons.length;
