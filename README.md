@@ -256,9 +256,12 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `36` |
-| `src/js/core/version.js` の `APP_VERSION` | `'36'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v36` |
+| `index.html` の `<meta name="app-version">` | `37` |
+| `src/js/core/version.js` の `APP_VERSION` | `'37'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v37` |
+
+いま動いている版は**マイページの「バージョン」**で確認できる。
+不具合の切り分けでは、まずここが最新かを見ること。
 
 食い違いを見つけると `main.js` がキャッシュとサービスワーカーを捨てて
 読み込み直す(`core/recovery.js` の `resetApp()`)。読み直しても直らないときは

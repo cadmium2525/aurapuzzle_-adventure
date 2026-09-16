@@ -52,28 +52,50 @@ const server=http.createServer(async(req,res)=>{
       new MutationObserver(()=>{const text=document.getElementById('bossDialogue').textContent;if(text)bossLines.push(text);}).observe(document.getElementById('bossDialogue'),{childList:true});
     });
     await page.screenshot({path:path.join(os.tmpdir(),'kyuko-raid-floor1.png')});
-    // HPバーは「見えていること」まで見る。中の塗りを % 高さで取ると
-    // WebKit で高さ0になって消えるので、実寸で確かめる。
+    // HPバーは「実際に色が塗られているか」まで見る。要素の大きさだけ測っても、
+    // 箱はあるのに描かれない不具合(iOSで起きた)は見つからない。
+    const HP_COLOR=/rgb\(255,\s*100,\s*127\)|#ff647f/i;
     const bars=()=>page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')].map(foe=>{
-      const fill=foe.querySelector('.foe-health i'),track=foe.querySelector('.foe-health');
-      return fill&&track?{fill:fill.getBoundingClientRect().height,track:track.getBoundingClientRect().height,
-        ratio:fill.getBoundingClientRect().width/track.getBoundingClientRect().width}:null;
+      const bar=foe.querySelector('.foe-health');
+      if(!bar)return null;
+      const r=bar.getBoundingClientRect(),style=getComputedStyle(bar);
+      const m=/([\d.]+)%/.exec(style.backgroundImage);
+      return {w:+r.width.toFixed(1),h:+r.height.toFixed(1),image:style.backgroundImage,
+        color:style.backgroundColor,stop:m?Number(m[1]):-1};
     }));
+    /** バーの中央を実際に撮って、その色を返す */
+    const paintedColor=async i=>{
+      const bar=page.locator('#enemyRoster .foe .foe-health').nth(i);
+      const png=(await bar.screenshot()).toString('base64');
+      return page.evaluate(async src=>{
+        const img=new Image();img.src='data:image/png;base64,'+src;await img.decode();
+        const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+        const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+        const d=ctx.getImageData(Math.floor(img.width*0.3),Math.floor(img.height/2),1,1).data;
+        return [d[0],d[1],d[2]];
+      },png);
+    };
+    const isHpPink=rgb=>rgb[0]>150&&rgb[0]-rgb[2]>30&&rgb[0]-rgb[1]>40;
     const full=await bars();
     assert.equal(full.length,3);
     full.forEach((b,i)=>{
-      assert.ok(b&&b.track>=3,`敵${i}のHPバーの枠が出ていない`);
-      assert.ok(b.fill>=3,`敵${i}のHPバーの塗りが潰れている(高さ${b&&b.fill})`);
-      assert.ok(b.ratio>.95,`満タンなのに塗りが足りない(${b.ratio})`);
+      assert.ok(b&&b.h>=5,`敵${i}のHPバーの高さが足りない(${b&&b.h})`);
+      assert.ok(b.w>=10,`敵${i}のHPバーの幅が足りない(${b&&b.w})`);
+      assert.ok(HP_COLOR.test(b.image),`敵${i}のHPバーに色が入っていない(${b.image})`);
+      assert.ok(b.stop>95,`満タンなのに塗りが足りない(${b.stop}%)`);
     });
+    const fullPixel=await paintedColor(0);
+    assert.ok(isHpPink(fullPixel),`満タンのHPバーが塗られていない(実際の色 rgb(${fullPixel.join(',')}))`);
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));
     snap=await page.evaluate(()=>raidTest.snapshot());assert.equal(snap.run.floorIndex,0);assert.equal(snap.run.enemies[1].hp,0);assert.equal(snap.run.enemies[0].hp,4200);
     // 倒した相手は塗りが消え、無傷の相手は満タンのまま。高さは保つ
     const after=await bars();
-    assert.ok(after[1].ratio<.05,`倒した相手の塗りが残っている(${after[1].ratio})`);
-    assert.ok(after[0].fill>=3&&after[0].ratio>.95,'無傷の相手のバーが崩れている');
+    assert.ok(after[1].stop<5,`倒した相手の塗りが残っている(${after[1].stop}%)`);
+    assert.ok(after[0].h>=5&&after[0].stop>95,'無傷の相手のバーが崩れている');
+    assert.ok(!isHpPink(await paintedColor(1)),'倒した相手のバーにHPの色が残っている');
+    assert.ok(isHpPink(await paintedColor(0)),'無傷の相手のバーが塗られていない');
     await page.evaluate(()=>raidTest.emptyTurn());
     snap=await page.evaluate(()=>raidTest.snapshot());assert.ok(snap.run.enemies.filter(e=>e.hp>0).every(e=>e.effects.defenses[0].turns===4));
     const visited=new Set();

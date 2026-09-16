@@ -397,6 +397,16 @@ function updateHPUI(flashEnemy, flashPlayer) {
   resizeBoard();
 }
 
+/**
+ * 敵のHPバーの塗り。子要素を重ねず、背景の色の境目で残量を表す。
+ * 箱1つに背景を塗るだけなので、どの環境でも描かれ方が変わらない。
+ */
+function foeHealthFill(enemy) {
+  const max = enemy.maxHP > 0 ? enemy.maxHP : 1;
+  const pct = Math.max(0, Math.min(100, enemy.hp / max * 100)).toFixed(1);
+  return `linear-gradient(to right,#ff647f ${pct}%,#3a1c3f ${pct}%)`;
+}
+
 function renderEncounter() {
   const root=$('enemyRoster');
   const ordered=run.enemies.length===3 && run.enemies[0].summoned ? [run.enemies[1],run.enemies[0],run.enemies[2]] : run.enemies;
@@ -408,7 +418,7 @@ function renderEncounter() {
     const target=document.createElement('button');target.className='foe-target';target.type='button';
     target.disabled=enemy.hp<=0;
     target.setAttribute('aria-label',`${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
-    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health"><i style="width:${enemy.hp/enemy.maxHP*100}%"></i></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}</span>`;
+    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health" style="background-image:${foeHealthFill(enemy)}"></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}</span>`;
     target.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
     button.appendChild(target);
     const badges=document.createElement('div');badges.className='foe-badges';button.appendChild(badges);

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="36">
+<meta name="app-version" content="37">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -427,6 +427,8 @@
         <div class="cardtitle"><span>プレイヤー</span></div>
         <div class="setting-row"><label>ランク</label><span class="val" id="mypageRank">-</span></div>
         <div class="setting-row"><label>スタミナ</label><span class="val" id="mypageStamina">-</span></div>
+        <!-- 端末がどの版を動かしているかの確認用。不具合の切り分けに使う -->
+        <div class="setting-row"><label>バージョン</label><span class="val" id="mypageVersion">-</span></div>
       </div>
 
       <div class="card">

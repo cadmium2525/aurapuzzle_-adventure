@@ -1,5 +1,6 @@
 /* ===================== マイページ画面 ===================== */
 import { $, toast, charIcon } from '../core/ui.js';
+import { APP_VERSION } from '../core/version.js';
 import {
   state, saveState, resetState, maxStamina, ownedCharacters, resolveOwned
 } from '../core/state.js';
@@ -20,6 +21,7 @@ export function renderMypage() {
   $('playerIdText').textContent = state.settings.playerId;
   $('mypageRank').textContent = `ランク:${state.rank}(EXP ${state.exp}/${expToNextRank(state.rank)})`;
   const over = state.stamina > maxStamina();
+  $('mypageVersion').textContent = APP_VERSION;
   $('mypageStamina').innerHTML = `${state.stamina} / ${maxStamina()}`
     + (over ? ' <span class="overtag">OVER</span>' : '');
   $('profileNameInput').value = state.profile.name;
