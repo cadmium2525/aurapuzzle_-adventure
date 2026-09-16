@@ -12,4 +12,4 @@
  *   2. index.html の <meta name="app-version">
  *   3. sw.js の CACHE_NAME
  * =======================================================*/
-export const APP_VERSION = '39';
+export const APP_VERSION = '40';

@@ -62,9 +62,6 @@
   font-family:"Hiragino Maru Gothic ProN","Yu Gothic Medium",system-ui,sans-serif;
 }
 .boot-error-card{max-width:400px;width:100%;text-align:center;}
-.sys-diag{margin:8px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);
-  border:1px solid var(--panel-border);font:11px/1.6 ui-monospace,monospace;color:var(--ink-dim);
-  white-space:pre-wrap;word-break:break-all;-webkit-user-select:text;user-select:text;}
 .boot-error-card h2{font-size:19px;margin:0 0 12px;}
 .boot-error-card p{font-size:13px;line-height:1.8;color:#A99CD0;margin:0 0 20px;}
 .boot-error-card p b{color:#F3EEFF;}
