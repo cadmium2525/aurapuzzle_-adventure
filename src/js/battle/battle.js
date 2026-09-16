@@ -412,17 +412,26 @@ function renderEncounter() {
   const ordered=run.enemies.length===3 && run.enemies[0].summoned ? [run.enemies[1],run.enemies[0],run.enemies[2]] : run.enemies;
   root.replaceChildren();
   for(const enemy of ordered){
-    const index=run.enemies.indexOf(enemy),button=document.createElement('div');
-    button.className='foe'+(index===run.targetIndex?' target':'')+(enemy.hp<=0?' defeated':'');
-    if(enemy===run.actingEnemy)button.dataset.acting='true';
+    const index=run.enemies.indexOf(enemy),card=document.createElement('div');
+    card.className='foe'+(index===run.targetIndex?' target':'')+(enemy.hp<=0?' defeated':'');
+    if(enemy===run.actingEnemy)card.dataset.acting='true';
+    // 絵と名前までがボタン。HPバーと数字はボタンの外に出す。
+    // iOS はボタンの中に置いた帯の背景を塗らないことがあり、バーが消えていた。
     const target=document.createElement('button');target.className='foe-target';target.type='button';
     target.disabled=enemy.hp<=0;
     target.setAttribute('aria-label',`${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
-    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span><span class="foe-health" style="background-image:${foeHealthFill(enemy)}"></span><span class="foe-numbers">${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}</span>`;
-    target.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
-    button.appendChild(target);
-    const badges=document.createElement('div');badges.className='foe-badges';button.appendChild(badges);
-    renderEnemyBadges(enemy.effects,badges);root.appendChild(button);
+    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span>`;
+    card.appendChild(target);
+    const health=document.createElement('div');health.className='foe-health';
+    health.style.backgroundImage=foeHealthFill(enemy);
+    card.appendChild(health);
+    const numbers=document.createElement('div');numbers.className='foe-numbers';
+    numbers.textContent=`${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}`;
+    card.appendChild(numbers);
+    // 当たり判定はカード全体。中のボタンのクリックもここへ上がってくる
+    card.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
+    const badges=document.createElement('div');badges.className='foe-badges';card.appendChild(badges);
+    renderEnemyBadges(enemy.effects,badges);root.appendChild(card);
   }
 }
 

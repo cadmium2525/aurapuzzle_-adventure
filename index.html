@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="38">
+<meta name="app-version" content="39">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -476,6 +476,10 @@
     <div class="modal-sec" id="sysRetreatBox" style="display:none;">
       <div class="cardtitle"><span>ダンジョン</span></div>
       <button class="btn danger block" id="sysRetreatBtn">リタイア</button>
+      <!-- 表示の不具合を調べるための覗き窓。実機でしか出ない症状を
+           手元で再現できないときに、状態をそのまま読めるようにする -->
+      <button class="btn ghost block mt8" id="sysDiagBtn">表示の診断</button>
+      <pre id="sysDiag" class="sys-diag" hidden></pre>
     </div>
     <button class="btn secondary block" id="sysCloseBtn" data-back-close>閉じる</button>
   </div>

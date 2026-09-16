@@ -62,6 +62,9 @@
   font-family:"Hiragino Maru Gothic ProN","Yu Gothic Medium",system-ui,sans-serif;
 }
 .boot-error-card{max-width:400px;width:100%;text-align:center;}
+.sys-diag{margin:8px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);
+  border:1px solid var(--panel-border);font:11px/1.6 ui-monospace,monospace;color:var(--ink-dim);
+  white-space:pre-wrap;word-break:break-all;-webkit-user-select:text;user-select:text;}
 .boot-error-card h2{font-size:19px;margin:0 0 12px;}
 .boot-error-card p{font-size:13px;line-height:1.8;color:#A99CD0;margin:0 0 20px;}
 .boot-error-card p b{color:#F3EEFF;}
@@ -1512,6 +1515,8 @@ input[type=range]{accent-color:var(--accent);}
 .foe.defeated { opacity:.18; }
 .foe-target { padding:0; background:none; color:inherit; border:0; width:100%; cursor:pointer;
   flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; }
+/* .foe 直下に並ぶようになった帯。ボタンの外なので確実に描かれる */
+.foe > .foe-health, .foe > .foe-numbers { flex-shrink:0; }
 .foe-art { display:flex; justify-content:center; align-items:flex-end; flex:1 1 auto; min-height:30px; }
 .foe-art .enemy-img { height:auto; max-height:100%; max-width:100%; width:auto; object-fit:contain; }
 .foe:only-child { max-width:300px; }

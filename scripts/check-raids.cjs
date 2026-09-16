@@ -86,20 +86,25 @@ const server=http.createServer(async(req,res)=>{
     });
     const fullPixel=await paintedColor(0);
     assert.ok(isHpPink(fullPixel),`満タンのHPバーが塗られていない(実際の色 rgb(${fullPixel.join(',')}))`);
-    // iOS は appearance が残ったボタンの中だと、位置指定なしのブロックの
-    // 背景を塗らない。HPバーはボタンの中なので、その条件を崩しておく。
+    // iOS はボタンの中に置いた帯の背景を塗らないことがあった。
+    // HPバーと数字はボタンの外(.foe 直下)に置くこと、
+    // ボタンのネイティブ描画は切ってあることを固定しておく。
     const paintable=await page.evaluate(()=>{
       const bar=document.querySelector('#enemyRoster .foe-health');
-      const button=bar.closest('button');
-      return {button:!!button,
-        appearance:button?getComputedStyle(button).appearance:'',
-        webkit:button?getComputedStyle(button).webkitAppearance:'',
-        position:getComputedStyle(bar).position};
+      const button=document.querySelector('#enemyRoster .foe-target');
+      return {inButton:!!bar.closest('button'),parent:bar.parentElement.className,
+        appearance:getComputedStyle(button).appearance,
+        webkit:getComputedStyle(button).webkitAppearance};
     });
-    assert.ok(paintable.button,'前提: HPバーはボタンの中にある');
+    assert.equal(paintable.inButton,false,'HPバーがボタンの中に戻っている');
+    assert.ok(/\bfoe\b/.test(paintable.parent),`HPバーの親が .foe でない(${paintable.parent})`);
     assert.equal(paintable.appearance,'none','ボタンのネイティブ描画が切れていない');
     assert.equal(paintable.webkit,'none','ボタンのネイティブ描画(WebKit)が切れていない');
-    assert.notEqual(paintable.position,'static','HPバーが位置指定なしのまま');
+    // カードのどこを押しても狙いが変わること(数字はボタンの外にあるため)
+    await page.locator('#enemyRoster .foe').nth(1).locator('.foe-numbers').click();
+    assert.equal(await page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')]
+      .findIndex(f=>f.classList.contains('target'))),1,'数字を押しても狙いが変わらない');
+    await page.locator('#enemyRoster .foe').nth(0).click();
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v38';
+const CACHE_NAME = 'aura-connect-v39';
 const ASSETS = [
   './index.html',
   './manifest.json',
