@@ -43,10 +43,19 @@ const server = http.createServer(async (req, res) => {
     await page.locator('#titleScreen.ready').click({ timeout: 30000 });
     const toMenu = async () => { await page.locator('[data-charpage="menu"]:visible').first().click(); };
 
-    /* --- 入口は4つ + 図鑑 --- */
+    /* --- 入口は5つ --- */
     await page.locator('.menu-tile.t-char').click();
     assert.deepEqual(await page.locator('#charMenu .char-entry b').allTextContents(),
-      ['編成', '強化・進化', '開眼', '送還']);
+      ['編成', '強化・進化', '開眼', '送還', '図鑑']);
+    // 図鑑は進化前と進化後を並べ、未所持も出す
+    await page.locator('[data-charpage="catalog"]').click();
+    assert.ok(await page.locator('#allCharacterList .catalog-card').count() >= 20);
+    assert.equal(await page.locator('#allCharacterList .catalog-card .catalog-form').count(),
+      await page.locator('#allCharacterList .catalog-card').count() * 2);
+    await page.locator('#allCharacterList .catalog-form').first().click();
+    assert.equal(await page.locator('#charDetailBody .catalog-switch').count(), 1, '進化前/後の切り替えがない');
+    await page.locator('#charDetailCloseBtn').click();
+    await toMenu();
 
     /* --- 強化・進化: アイコンにレベルと★が乗り、ソートが効く --- */
     await page.locator('[data-charpage="enhance"]').click();
