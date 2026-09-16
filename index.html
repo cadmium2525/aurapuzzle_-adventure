@@ -141,8 +141,6 @@
         <div class="enemy-ring"></div>
         <!-- 敵は1体でも複数でも同じ並びで出す。HPと攻撃までのターンは各敵の下に付く -->
         <div id="enemyRoster"></div>
-        <!-- 敵の下の空きを味方の状態バッジに使う(無いときは畳まれる) -->
-        <div id="playerEffects" aria-label="味方全体の状態効果"></div>
         <div id="banner"></div>
       </div>
 
@@ -155,6 +153,8 @@
           <div class="hpbar"><div class="fill player" id="playerHPFill"></div></div>
           <span id="playerHPText">0 / 0</span>
         </div>
+        <!-- 状態変化の置き場。空でも高さを確保して、敵や盤面の大きさを動かさない -->
+        <div id="playerEffects" aria-label="味方全体の状態効果"></div>
       </div>
 
       <div id="chanceNotice" hidden>チャンス盤面！ 隣り合うオーラを入れ替えて連鎖を狙おう</div>

@@ -1345,10 +1345,18 @@ input[type=range]{accent-color:var(--accent);}
 .dialogue-box.ready .dialogue-next { animation:dialogueReady 1.1s ease-in-out infinite; }
 @keyframes dialogueReady { 0%,100% { transform:none; } 50% { transform:translateY(-2px); } }
 @media(prefers-reduced-motion:reduce){ .dialogue-box,.dialogue-box.ready .dialogue-next { animation:none; } }
-/* 大きなHPバーを外して空いた場所に置く。無いときは畳まれて盤面に回る */
-#playerEffects { width:100%; display:flex; justify-content:center; flex-wrap:wrap; gap:5px; z-index:8; pointer-events:auto; }
-#playerEffects:empty { display:none; }
-.player-badge { position:relative; padding:0; border:0; border-radius:50%; width:32px; height:32px; flex:0 0 32px; background:#10091ae6; cursor:pointer; }
+/* 味方HPバーの下の固定席。状態が無いターンも高さを確保しておき、
+   バッジの増減で敵の大きさや盤面が動かないようにする */
+#playerEffects {
+  width:100%; height:32px; flex:0 0 32px;
+  /* 残りターン/オーラの小バッジが隣とぶつからないよう、間隔は広めに取る */
+  display:flex; align-items:center; gap:10px;
+  justify-content:center; justify-content:safe center;
+  flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+  scrollbar-width:none; z-index:8; pointer-events:auto;
+}
+#playerEffects::-webkit-scrollbar { display:none; }
+.player-badge { position:relative; padding:0; border:0; border-radius:50%; width:28px; height:28px; flex:0 0 28px; background:#10091ae6; cursor:pointer; }
 .player-badge-art { display:block; width:100%; height:100%; background:url('../../assets/battle/player_badges.webp') no-repeat; background-size:800% 100%; background-position:calc(var(--status-index) * 100% / 7) 0; }
 .player-badge:focus-visible { outline:2px solid #ffe29a; outline-offset:1px; }
 .unit-skill { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding:0; background:none; border:0; border-radius:inherit; color:inherit; }
