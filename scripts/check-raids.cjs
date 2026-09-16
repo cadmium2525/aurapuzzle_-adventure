@@ -52,10 +52,28 @@ const server=http.createServer(async(req,res)=>{
       new MutationObserver(()=>{const text=document.getElementById('bossDialogue').textContent;if(text)bossLines.push(text);}).observe(document.getElementById('bossDialogue'),{childList:true});
     });
     await page.screenshot({path:path.join(os.tmpdir(),'kyuko-raid-floor1.png')});
+    // HPバーは「見えていること」まで見る。中の塗りを % 高さで取ると
+    // WebKit で高さ0になって消えるので、実寸で確かめる。
+    const bars=()=>page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')].map(foe=>{
+      const fill=foe.querySelector('.foe-health i'),track=foe.querySelector('.foe-health');
+      return fill&&track?{fill:fill.getBoundingClientRect().height,track:track.getBoundingClientRect().height,
+        ratio:fill.getBoundingClientRect().width/track.getBoundingClientRect().width}:null;
+    }));
+    const full=await bars();
+    assert.equal(full.length,3);
+    full.forEach((b,i)=>{
+      assert.ok(b&&b.track>=3,`敵${i}のHPバーの枠が出ていない`);
+      assert.ok(b.fill>=3,`敵${i}のHPバーの塗りが潰れている(高さ${b&&b.fill})`);
+      assert.ok(b.ratio>.95,`満タンなのに塗りが足りない(${b.ratio})`);
+    });
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));
     snap=await page.evaluate(()=>raidTest.snapshot());assert.equal(snap.run.floorIndex,0);assert.equal(snap.run.enemies[1].hp,0);assert.equal(snap.run.enemies[0].hp,4200);
+    // 倒した相手は塗りが消え、無傷の相手は満タンのまま。高さは保つ
+    const after=await bars();
+    assert.ok(after[1].ratio<.05,`倒した相手の塗りが残っている(${after[1].ratio})`);
+    assert.ok(after[0].fill>=3&&after[0].ratio>.95,'無傷の相手のバーが崩れている');
     await page.evaluate(()=>raidTest.emptyTurn());
     snap=await page.evaluate(()=>raidTest.snapshot());assert.ok(snap.run.enemies.filter(e=>e.hp>0).every(e=>e.effects.defenses[0].turns===4));
     const visited=new Set();

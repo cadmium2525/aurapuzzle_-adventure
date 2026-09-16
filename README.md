@@ -256,9 +256,9 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `35` |
-| `src/js/core/version.js` の `APP_VERSION` | `'35'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v35` |
+| `index.html` の `<meta name="app-version">` | `36` |
+| `src/js/core/version.js` の `APP_VERSION` | `'36'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v36` |
 
 食い違いを見つけると `main.js` がキャッシュとサービスワーカーを捨てて
 読み込み直す(`core/recovery.js` の `resetApp()`)。読み直しても直らないときは
