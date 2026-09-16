@@ -23,6 +23,8 @@
         │   ├── storage.js  localStorage ラッパー
         │   ├── state.js    セーブデータ / 編成 / スタミナ / ランク
         │   ├── nav.js      画面遷移とトップバー
+        │   ├── version.js  アプリの版(index.html / sw.js と必ずそろえる)
+        │   ├── recovery.js 起動に失敗したときの復旧(キャッシュ破棄と案内)
         │   ├── sysmodal.js ⚙ システムモーダル(音量・リタイア)
         │   ├── ui.js       toast などの汎用ユーティリティ
         │   ├── firebase.js Firebase SDK の遅延読み込み
@@ -243,13 +245,37 @@ python3 -m http.server 8000
 - v8以前(編成が1つだけ): `team` を `teams[0]` へ移し、残り4つは空のプリセットにする。
   所持データには入手時刻 `at` が加わる(移行分は 0 = いちばん古い扱い)。
 
+### アプリの版(起動できなくなるのを防ぐ)
+
+サービスワーカーはHTMLとJSを**別々に**取りに行くので、通信が不安定だと
+「古い index.html + 新しいJS」で起動してしまうことがある。その状態では
+`main.js` が無い要素を触って落ち、**ローディングが0%のまま固まる**。
+利用者からは原因が分からず、手の打ちようもない。
+
+これを防ぐため、版を3か所にそろえて突き合わせている。**変えるときは必ず3つとも**:
+
+| 場所 | 例 |
+|---|---|
+| `index.html` の `<meta name="app-version">` | `34` |
+| `src/js/core/version.js` の `APP_VERSION` | `'34'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v34` |
+
+食い違いを見つけると `main.js` がキャッシュとサービスワーカーを捨てて
+読み込み直す(`core/recovery.js` の `resetApp()`)。読み直しても直らないときは
+**必ず画面に出す**(`showBootError()`)。どちらも**セーブデータには触らない**。
+
+さらに保険として、`index.html` の先頭に見張り番を直接書いてある。
+15秒たってもタイトルが出なければ同じ復旧画面を出すので、
+モジュールが1行も動かない場合でも「読み込み直す」を押せる。
+
 ### 動作確認
 
 ```sh
 node --test tests/*.test.mjs        # 盤面・ダメージ・敵スキルなどの単体テスト
-python3 -m http.server 8765 &       # 下の2本は :8765 を見る
+python3 -m http.server 8765 &       # check-training は :8765 を見る
 node scripts/check-training.cjs
-node scripts/check-character.cjs    # キャラクター4ページと出撃3段
+node scripts/check-character.cjs       # キャラクター5ページと出撃3段
+node scripts/check-boot-recovery.cjs   # 版ずれからの復帰(0%で固まらないこと)
 node scripts/check-save-migration.cjs  # 旧セーブの移行(バージョンを上げたら形を足す)
 node scripts/check-enemy-skills.cjs
 node scripts/check-raids.cjs

@@ -54,6 +54,20 @@
   background:url('../../assets/chars/char_atlas.webp')
     var(--cp,0% 0%)/var(--char-atlas-size,800% 500%) no-repeat;
 }
+/* 起動に失敗したときの画面。ローディングより手前に出す。
+   スタイルシートが読めていない可能性もあるので、色と配置は最小限で完結させる */
+.boot-error{
+  position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:#0B0718;color:#F3EEFF;
+  font-family:"Hiragino Maru Gothic ProN","Yu Gothic Medium",system-ui,sans-serif;
+}
+.boot-error-card{max-width:400px;width:100%;text-align:center;}
+.boot-error-card h2{font-size:19px;margin:0 0 12px;}
+.boot-error-card p{font-size:13px;line-height:1.8;color:#A99CD0;margin:0 0 20px;}
+.boot-error-card p b{color:#F3EEFF;}
+.boot-error-actions{margin-bottom:16px;}
+#bootErrorDetail{display:block;font-size:10px;color:#6F659A;word-break:break-all;line-height:1.6;}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 /* display を指定したクラスに負けて hidden が効かなくなるのを防ぐ(JSは el.hidden で切り替える) */
 [hidden]{display:none !important;}

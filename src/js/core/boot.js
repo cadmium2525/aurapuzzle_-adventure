@@ -53,6 +53,9 @@ export async function runBoot(onStart) {
   setProgress(tasks.length, tasks.length);
   await delay(220);
 
+  // ここまで来れば起動は成功。index.html の見張り番を解く
+  if (typeof window.__acbBootDone === 'function') window.__acbBootDone();
+
   const loading = $('loadingScreen');
   const title = $('titleScreen');
   title.hidden = false;

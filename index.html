@@ -11,9 +11,75 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
+     食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
+<meta name="app-version" content="34">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
+<!-- ===================== 起動の見張り番 =====================
+     起動に失敗したままだと、利用者からはローディングが0%で止まって
+     見えるだけで、何が起きたのか分からず手の打ちようがない。
+     例外と時間切れを拾って画面に出し、キャッシュを捨てて入れ直せる
+     ようにしておく(セーブデータには触らない)。
+     モジュールより先に動かしたいので、ここに直接書いている。 -->
+<script>
+(function () {
+  var LIMIT_MS = 15000;       // これだけ待ってタイトルが出なければ失敗とみなす
+  var timer = setTimeout(function () { fail('起動に時間がかかりすぎています'); }, LIMIT_MS);
+  var shown = false;
+
+  // 起動しきったら見張りを解く
+  window.__acbBootDone = function () { clearTimeout(timer); };
+
+  // 中身は src/js/core/recovery.js の resetApp() と同じ。
+  // モジュールが1行も動かない場合でも押せるように、ここにも置いている。
+  window.__acbReset = function () {
+    var box = document.getElementById('bootErrorActions');
+    if (box) box.textContent = '読み込み直しています…';
+    var jobs = [];
+    try { jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })); } catch (e) {}
+    try { jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (e) {}
+    Promise.all(jobs).catch(function () {}).then(function () {
+      // 同じURLだと端末側のキャッシュを引きやすいので、印を付けて読み直す
+      location.replace(location.pathname + '?v=' + Date.now());
+    });
+  };
+
+  function fail(detail) {
+    if (shown) return;
+    shown = true;
+    clearTimeout(timer);
+    var el = document.getElementById('bootError');
+    if (!el) return;
+    var d = document.getElementById('bootErrorDetail');
+    if (d) d.textContent = String(detail || '').slice(0, 300);
+    el.hidden = false;
+  }
+  window.__acbFail = fail;
+
+  // モジュールの読み込み失敗も、中で投げた例外もここに来る
+  window.addEventListener('error', function (e) {
+    if (e instanceof ErrorEvent) fail(e.message);
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    fail(e.reason && e.reason.message ? e.reason.message : e.reason);
+  });
+})();
+</script>
+
+<div id="bootError" class="boot-error" hidden>
+  <div class="boot-error-card">
+    <h2>起動できませんでした</h2>
+    <p>データの読み込みに失敗しました。下のボタンで読み込み直してください。<br>
+      <b>冒険の記録(セーブデータ)は消えません。</b></p>
+    <div id="bootErrorActions" class="boot-error-actions">
+      <button class="btn block" onclick="window.__acbReset()">読み込み直す</button>
+    </div>
+    <code id="bootErrorDetail"></code>
+  </div>
+</div>
+
 <!-- ===================== 起動演出 ===================== -->
 <div id="loadingScreen" class="boot-screen loading-screen" aria-live="polite">
   <img id="loadingVisual" src="./assets/ui/loading.webp" alt="">

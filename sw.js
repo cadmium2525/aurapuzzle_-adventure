@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v33';
+const CACHE_NAME = 'aura-connect-v34';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -21,6 +21,8 @@ const ASSETS = [
   './src/js/core/boot.js',
   './src/js/core/state.js',
   './src/js/core/account.js',
+  './src/js/core/version.js',
+  './src/js/core/recovery.js',
   './src/js/core/nav.js',
   './src/js/core/sysmodal.js',
   './src/js/core/firebase.js',
@@ -90,8 +92,13 @@ self.addEventListener('fetch', (e) => {
     (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.html') || url.pathname.endsWith('/'));
 
   if (isAppCode) {
+    // cache:'reload' で端末側のHTTPキャッシュを飛び越える。
+    // これをしないと index.html だけ古いものが返り、JSと版がずれて起動できなくなる。
+    // ページ遷移のリクエストは作り直せない環境があるので、駄目なら元のまま使う。
+    let fresh = e.request;
+    try { fresh = new Request(e.request, { cache: 'reload' }); } catch (err) { /* そのまま */ }
     e.respondWith(
-      fetch(e.request)
+      fetch(fresh)
         .then((res) => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone)).catch(() => {});
