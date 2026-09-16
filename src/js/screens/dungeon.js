@@ -13,7 +13,7 @@ import {
   CHAPTER_COUNT, STAGES_PER_CHAPTER, chapterNameOf, chapterLastStageId,
   dailyStagesFor, DAILY_THEMES, todayTheme
 } from '../data/gamedata.js';
-import { startDungeonRun } from '../battle/battle.js';
+import { startDungeonRun, resumeDungeonRun, pausedRun, discardPausedRun } from '../battle/battle.js';
 import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
 import { RAID_STAGES } from '../data/raids.js';
@@ -43,6 +43,36 @@ export function initDungeon() {
   $('supTabFriendBtn').addEventListener('click', () => { supportTab = 'friend'; renderSupportList(); });
   $('supTabOtherBtn').addEventListener('click', () => { supportTab = 'other'; renderSupportList(); });
   $('supTabNpcBtn').addEventListener('click', () => { supportTab = 'npc'; renderSupportList(); });
+}
+
+/* ===================== 中断したダンジョン ===================== */
+/**
+ * タスクキル等で中断したダンジョンがあれば、種別選択の上に復帰カードを出す。
+ * スタミナは入場時に消費済みなので、再開では取り直さない。
+ */
+function renderResumeCard() {
+  const box = $('dungeonResume');
+  const paused = pausedRun();
+  if (!paused || dungeonView !== 'menu') { box.hidden = true; box.innerHTML = ''; return; }
+  const floors = paused.stage.floors ? paused.stage.floors.length : FLOORS_PER_STAGE;
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="resume-head"><span class="resume-kicker">CONTINUE</span>中断したダンジョン</div>
+    <div class="resume-name">${paused.stage.name}${paused.hard ? ' / ハード' : ''}</div>
+    <div class="resume-meta">フロア ${paused.floorIndex + 1} / ${floors} ・ HP ${Math.max(0, Math.round(paused.playerHP))}</div>
+    <div class="resume-actions">
+      <button class="btn" id="resumeRunBtn">続きから挑戦</button>
+      <button class="btn ghost" id="discardRunBtn">やめる</button>
+    </div>`;
+  $('resumeRunBtn').addEventListener('click', () => {
+    if (!resumeDungeonRun()) { toast('中断データを読み込めませんでした'); discardPausedRun(); renderResumeCard(); }
+  });
+  $('discardRunBtn').addEventListener('click', () => {
+    if (!confirm('中断したダンジョンを終了します。消費したスタミナと進行は戻りません。よろしいですか?')) return;
+    discardPausedRun();
+    renderResumeCard();
+    toast('中断したダンジョンを終了しました');
+  });
 }
 
 function openDungeonType(mode) {
@@ -220,6 +250,7 @@ export function renderDungeon(options = {}) {
   if (!options.preserve) dungeonView = 'menu';
   const choosing = dungeonView === 'menu';
   $('dungeonMenu').hidden = !choosing;
+  renderResumeCard();
   $('dungeonStages').hidden = choosing;
   if (choosing) return;
 

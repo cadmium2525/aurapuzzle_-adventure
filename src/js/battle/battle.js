@@ -16,11 +16,12 @@ import {
 } from '../core/state.js';
 import { showScreen, currentScreen, updateStatusBar } from '../core/nav.js';
 import { setRetreatHandler } from '../core/sysmodal.js';
+import { saveRunSnapshot, loadRunSnapshot, clearRunSnapshot } from './resume.js';
 import { countRentalUse, addFriendByUid } from '../core/friends.js';
 import {
   AURAS, COLORS, COLOR_HEX, HEAL_COLOR, RARITY_TITLE,
   HARD_HP_MULT, HARD_REWARD_MULT,
-  MAX_DRAG_TIME, MATERIALS, materialById, crystalIdFor
+  MAX_DRAG_TIME, MATERIALS, materialById, crystalIdFor, resolveCharacter
 } from '../data/gamedata.js';
 import {
   COLS, ROWS, genBoard, findGroups, applyGravityNoRefill, refillBoard,
@@ -141,6 +142,7 @@ export function startDungeonRun(stage, hard, support) {
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
   attachEncounter(run);
+  clearRunSnapshot();           // 別のダンジョンに入ったら前の中断データは無効
   // 誰かの貸し出しキャラを借りたら、その人の使用回数を1つ増やす(相手は翌日フレポを受け取る)
   if (support && support.ownerUid) countRentalUse(support.ownerUid);
 
@@ -151,6 +153,113 @@ export function startDungeonRun(stage, hard, support) {
   showScreen('battle', { bgm: stage.bgm });
   loadFloor();
   resizeBoard();
+}
+
+/* ===================== 中断と再開 ===================== */
+/**
+ * 手番の切れ目で進行状況を保存する。
+ * パーティは編成から作り直せるので、サポートの素性だけ控えておく。
+ */
+function persistRun() {
+  if (!run) return;
+  const sup = run.party.support;
+  saveRunSnapshot({
+    stage: run.stage, hard: run.hard, floorIndex: run.floorIndex,
+    support: sup ? {
+      id: sup.id, star: sup.star, level: sup.level, awaken: sup.awaken,
+      isNpc: !!sup.isNpc, ownerName: sup.ownerName, ownerIcon: sup.ownerIcon, ownerUid: sup.ownerUid
+    } : null,
+    playerHP: run.playerHP,
+    cooldowns: run.cooldowns,
+    buffs: run.buffs,
+    chancePending: run.chancePending,
+    chanceActive: run.chanceActive,
+    enemies: run.enemies,
+    targetIndex: run.targetIndex,
+    // 味方にかかっている妨害。enemyEffects のうち敵側の値は敵ごとに持っている
+    playerEffects: {
+      binds: run.enemyEffects.binds, auraBinds: run.enemyEffects.auraBinds, time: run.enemyEffects.time
+    },
+    stats: run.stats,
+    board
+  });
+}
+
+/** 手番を player に返すときは必ずここを通す(中断データもここで更新する) */
+function goIdle() { bstate = 'idle'; persistRun(); }
+
+/** 中断中のダンジョンがあるか */
+export function pausedRun() {
+  const snap = loadRunSnapshot();
+  return snap ? { stage: snap.stage, hard: snap.hard, floorIndex: snap.floorIndex,
+    playerHP: snap.playerHP, savedAt: snap.savedAt } : null;
+}
+export function discardPausedRun() { clearRunSnapshot(); }
+
+/**
+ * 中断したダンジョンを再開する。スタミナは消費済みなので取り直さない。
+ * 敵の登場演出・セリフ・先制行動は適用済みなので、描画だけを作り直す。
+ */
+export function resumeDungeonRun() {
+  const snap = loadRunSnapshot();
+  if (!snap) return false;
+
+  const s = snap.support;
+  const support = s
+    ? { ...resolveCharacter(s.id, s.star, s.level, s.awaken), isSupport: true, isNpc: !!s.isNpc,
+        ownerName: s.ownerName, ownerIcon: s.ownerIcon, ownerUid: s.ownerUid }
+    : null;
+  const party = buildParty(support);
+  if (!party.own.length) { toast('チームにキャラクターを編成してください'); showScreen('character'); return false; }
+
+  run = {
+    stage: snap.stage, hard: snap.hard, floorIndex: snap.floorIndex,
+    party, mods: party.mods, matchMin: party.matchMin,
+    maxHP: party.maxHP,
+    playerHP: Math.max(1, Math.min(party.maxHP, snap.playerHP || party.maxHP)),
+    cooldowns: party.members.map((m, i) => Math.max(0, snap.cooldowns?.[i] ?? 0)),
+    buffs: snap.buffs || { atk: null, guard: null },
+    enemyEffects: createEnemyEffects(party.members.length),
+    chancePending: !!snap.chancePending,
+    chanceActive: !!snap.chanceActive,
+    enemies: snap.enemies,
+    targetIndex: Math.max(0, Math.min(snap.enemies.length - 1, snap.targetIndex || 0)),
+    turnTimeBonusMs: 0,
+    stats: snap.stats || { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
+  };
+  const pe = snap.playerEffects || {};
+  run.enemyEffects.auraBinds = pe.auraBinds || {};
+  run.enemyEffects.time = pe.time ?? null;
+  for (let i = 0; i < party.members.length; i++) run.enemyEffects.binds[i] = pe.binds?.[i] || 0;
+  attachEncounter(run);
+
+  setPalette(run.stage.auras);
+  board = Array.isArray(snap.board) && snap.board.length ? snap.board : genBoard(run.matchMin);
+  renderParty();
+  showScreen('battle', { bgm: run.stage.bgm });
+  restoreFloor();
+  return true;
+}
+
+/** 再開時の画面づくり。loadFloor から演出と先制行動を除いたもの。 */
+function restoreFloor() {
+  bstate = 'resolving';
+  clearConversion();
+  run.actingEnemy = null;
+  $('enemyStage').classList.toggle('multi-enemy', !!run.stage.raid);
+  $('screenTitle').textContent = run.stage.name + (run.hard ? ' / ハード' : '');
+  renderFloorPips();
+  grabbed = false;
+  clearingCells = [];
+  chainLabels = [];
+  run.turnTimeBonusMs = 0;
+  hideBanner();
+  resetTimerUI();
+  updateChanceUI();
+  updateHPUI(false, false);
+  updateSkillUI();
+  resizeBoard();
+  goIdle();
 }
 
 /* ===================== パーティ表示 ===================== */
@@ -257,7 +366,7 @@ async function loadFloor() {
   }
   run.actingEnemy=null;updateHPUI(false,false);
   if (run.playerHP <= 0) { battleDefeat(); return; }
-  bstate = 'idle';
+  goIdle();
 }
 
 function renderFloorPips() {
@@ -430,6 +539,8 @@ async function applySkill(i) {
 
   if (encounterCleared(run) && bstate !== 'resolving') { bstate = 'resolving'; floorClear(); }
   else if (sk.fixedDamage) { const previous=bstate;bstate='resolving';await checkBuildUps();retarget(run);updateHPUI(false,false);bstate=previous; }
+  // 盤面もクールダウンも変わったので、ここで中断データを取り直す
+  if (run) persistRun();
 }
 
 function openPartyInfo() {
@@ -608,7 +719,7 @@ async function resolveTurn() {
   resetTimerUI();
 
   if (run.playerHP <= 0) { battleDefeat(); return; }
-  bstate = 'idle';
+  goIdle();
 }
 
 /** ターン終了時のクールダウン/バフ更新 */
@@ -700,7 +811,7 @@ async function floorClear() {
   showBanner(`<span class="chain">フロア ${run.floorIndex + 1}</span>`);
   await sleep(700);
   hideBanner();
-  bstate = 'idle';
+  goIdle();
 }
 
 /* ===================== ドロップ ===================== */
@@ -747,6 +858,7 @@ function rollDrops(stage, hard) {
 /* ===================== リザルト ===================== */
 function finishRun() {
   bstate = 'over';
+  clearRunSnapshot();
   const { stage, hard, stats } = run;
   const prog = state.progress[stage.id] = state.progress[stage.id] || {};
   if (hard) prog.hard = true; else prog.normal = true;
@@ -822,6 +934,7 @@ function finishRun() {
 
 function battleDefeat() {
   bstate = 'over';
+  clearRunSnapshot();
   $('resultTitle').textContent = 'DEFEAT';
   $('resultCard').classList.add('defeat');
   $('resultStats').innerHTML = `
@@ -839,6 +952,7 @@ function battleDefeat() {
 function retreat() {
   if (bstate === 'resolving') return;
   bstate = 'over';
+  clearRunSnapshot();
   run = null;
   showScreen('dungeon', { preserve: true });
 }

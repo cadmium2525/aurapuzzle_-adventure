@@ -1379,3 +1379,17 @@ input[type=range]{accent-color:var(--accent);}
 .enemy-motion { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 2000; pointer-events: none; }
 .unit.bound .unit-portrait { filter: grayscale(1); opacity: .5; }
 .unit.bound .unit-cd { background: #782d75; color: white; }
+
+/* ===================== 中断したダンジョンの復帰カード ===================== */
+.resume-card { padding:14px 15px; border-radius:var(--r-lg);
+  border:1px solid rgba(255,198,92,.45);
+  background:linear-gradient(160deg, rgba(255,198,92,.18), rgba(255,255,255,.03));
+  box-shadow:var(--shadow-1); }
+.resume-card[hidden] { display:none; }
+.resume-head { display:flex; align-items:center; gap:10px; font-size:11px; line-height:1.5; color:var(--ink-dim); font-weight:700; }
+.resume-kicker { flex-shrink:0; font-size:8.5px; font-weight:900; letter-spacing:.1em; color:#2A1A05;
+  background:linear-gradient(180deg,var(--gold-1),var(--gold-2)); border-radius:5px; padding:2px 6px; }
+.resume-name { font-size:15px; font-weight:800; margin-top:6px; }
+.resume-meta { font-size:11px; color:var(--ink-dim); margin-top:3px; font-variant-numeric:tabular-nums; }
+.resume-actions { display:flex; gap:8px; margin-top:11px; }
+.resume-actions .btn { flex:1; padding:10px 8px; font-size:12.5px; }

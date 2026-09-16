@@ -11,6 +11,7 @@ import {
 import { getUid } from '../core/firebase.js';
 import { expToNextRank } from '../data/gamedata.js';
 import { charRowHTML } from './parts.js';
+import { clearRunSnapshot } from '../battle/resume.js';
 import { updateStatusBar } from '../core/nav.js';
 
 export function renderMypage() {
@@ -177,6 +178,7 @@ export function initMypage() {
   $('resetDataBtn').addEventListener('click', () => {
     if (!confirm('すべてのデータを初期化します。よろしいですか?')) return;
     resetState();
+    clearRunSnapshot();     // 中断したダンジョンも一緒に捨てる
     location.reload();
   });
 }
