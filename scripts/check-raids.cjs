@@ -59,9 +59,10 @@ const server=http.createServer(async(req,res)=>{
       const bar=foe.querySelector('.foe-health');
       if(!bar)return null;
       const r=bar.getBoundingClientRect(),style=getComputedStyle(bar);
-      const m=/([\d.]+)%/.exec(style.backgroundImage);
+      // 残量は background-size の幅。滑らかに補間できる書き方にしてある
+      const m=/([\d.]+)%/.exec(style.backgroundSize);
       return {w:+r.width.toFixed(1),h:+r.height.toFixed(1),image:style.backgroundImage,
-        color:style.backgroundColor,stop:m?Number(m[1]):-1};
+        fill:m?Number(m[1]):-1,mark:foe.dataset.mark};
     }));
     /** バーの中央を実際に撮って、その色を返す */
     const paintedColor=async i=>{
@@ -82,7 +83,7 @@ const server=http.createServer(async(req,res)=>{
       assert.ok(b&&b.h>=5,`敵${i}のHPバーの高さが足りない(${b&&b.h})`);
       assert.ok(b.w>=10,`敵${i}のHPバーの幅が足りない(${b&&b.w})`);
       assert.ok(HP_COLOR.test(b.image),`敵${i}のHPバーに色が入っていない(${b.image})`);
-      assert.ok(b.stop>95,`満タンなのに塗りが足りない(${b.stop}%)`);
+      assert.ok(b.fill>95,`満タンなのに塗りが足りない(${b.fill}%)`);
     });
     const fullPixel=await paintedColor(0);
     assert.ok(isHpPink(fullPixel),`満タンのHPバーが塗られていない(実際の色 rgb(${fullPixel.join(',')}))`);
@@ -105,16 +106,30 @@ const server=http.createServer(async(req,res)=>{
     assert.equal(await page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')]
       .findIndex(f=>f.classList.contains('target'))),1,'数字を押しても狙いが変わらない');
     await page.locator('#enemyRoster .foe').nth(0).click();
+    // 敵の要素は毎回作り直さない。作り直すとHPバーの補間の起点が消えて、
+    // 削れる動きが付かなくなる。印を付けて残っているかを見る
+    const markFoes=()=>page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')]
+      .map((el,i)=>el.dataset.mark||(el.dataset.mark='m'+i+'-'+Math.random().toString(36).slice(2,6))));
+    const marksBefore=await markFoes();
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));
     snap=await page.evaluate(()=>raidTest.snapshot());assert.equal(snap.run.floorIndex,0);assert.equal(snap.run.enemies[1].hp,0);assert.equal(snap.run.enemies[0].hp,4200);
     // 倒した相手は塗りが消え、無傷の相手は満タンのまま。高さは保つ
+    assert.deepEqual(await markFoes(),marksBefore,'敵の要素が作り直されている(削れる動きが消える)');
+    // 削れる動きと畳まれる動きが終わるまで待ってから測る
+    await page.waitForTimeout(700);
     const after=await bars();
-    assert.ok(after[1].stop<5,`倒した相手の塗りが残っている(${after[1].stop}%)`);
-    assert.ok(after[0].h>=5&&after[0].stop>95,'無傷の相手のバーが崩れている');
-    assert.ok(!isHpPink(await paintedColor(1)),'倒した相手のバーにHPの色が残っている');
+    assert.ok(after[1].fill<5,`倒した相手の塗りが残っている(${after[1].fill}%)`);
+    assert.ok(after[0].h>=5&&after[0].fill>95,'無傷の相手のバーが崩れている');
     assert.ok(isHpPink(await paintedColor(0)),'無傷の相手のバーが塗られていない');
+    // 倒した相手は薄く残さず、畳んで消す
+    const gone=await page.evaluate(()=>{
+      const el=[...document.querySelectorAll('#enemyRoster .foe')][1];
+      return {opacity:Number(getComputedStyle(el).opacity),w:Math.round(el.getBoundingClientRect().width)};
+    });
+    assert.equal(gone.opacity,0,`倒した敵が薄く残っている(不透明度 ${gone.opacity})`);
+    assert.ok(gone.w<=4,`倒した敵の幅が残っている(${gone.w}px)`);
     await page.evaluate(()=>raidTest.emptyTurn());
     snap=await page.evaluate(()=>raidTest.snapshot());assert.ok(snap.run.enemies.filter(e=>e.hp>0).every(e=>e.effects.defenses[0].turns===4));
     const visited=new Set();

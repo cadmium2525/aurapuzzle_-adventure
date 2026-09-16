@@ -142,6 +142,7 @@ export function startDungeonRun(stage, hard, support) {
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
   };
   attachEncounter(run);
+  resetFoeCards();
   clearRunSnapshot();           // 別のダンジョンに入ったら前の中断データは無効
   // 誰かの貸し出しキャラを借りたら、その人の使用回数を1つ増やす(相手は翌日フレポを受け取る)
   if (support && support.ownerUid) countRentalUse(support.ownerUid);
@@ -232,6 +233,7 @@ export function resumeDungeonRun() {
   run.enemyEffects.time = pe.time ?? null;
   for (let i = 0; i < party.members.length; i++) run.enemyEffects.binds[i] = pe.binds?.[i] || 0;
   attachEncounter(run);
+  resetFoeCards();
 
   setPalette(run.stage.auras);
   board = Array.isArray(snap.board) && snap.board.length ? snap.board : genBoard(run.matchMin);
@@ -336,6 +338,7 @@ async function loadFloor() {
   const floor = run.stage.floors[run.floorIndex];
   const reveal = floor.intro ? await bossTransition(floor.intro) : null;
   run.enemies = createEncounter(floor, run.hard ? HARD_HP_MULT : 1);
+  resetFoeCards();
   run.targetIndex = 0; run.actingEnemy = null;
 
   $('enemyStage').classList.toggle('multi-enemy', !!run.stage.raid);
@@ -398,41 +401,83 @@ function updateHPUI(flashEnemy, flashPlayer) {
 }
 
 /**
- * 敵のHPバーの塗り。子要素を重ねず、背景の色の境目で残量を表す。
- * 箱1つに背景を塗るだけなので、どの環境でも描かれ方が変わらない。
+ * 敵のHPバーの残量。塗りは単色の背景画像1枚で、その幅で残りを表す。
+ * background-size は滑らかに補間できるので、削れる動きがそのまま付く
+ * (グラデーションの色の境目を動かす書き方だと補間できず、カクつく)。
  */
-function foeHealthFill(enemy) {
+function foeHealthSize(enemy) {
   const max = enemy.maxHP > 0 ? enemy.maxHP : 1;
-  const pct = Math.max(0, Math.min(100, enemy.hp / max * 100)).toFixed(1);
-  return `linear-gradient(to right,#ff647f ${pct}%,#3a1c3f ${pct}%)`;
+  return `${Math.max(0, Math.min(100, enemy.hp / max * 100)).toFixed(1)}% 100%`;
+}
+
+function foeNumbersText(enemy) {
+  const turns = enemy.cloneOf !== undefined || !Number.isFinite(enemy.turnsLeft)
+    ? '' : ` ・ あと${enemy.turnsLeft}`;
+  return `${enemy.hp} / ${enemy.maxHP}${turns}`;
+}
+
+/* 敵1体ぶんの要素。作り直すとHPバーの補間の起点が消えて動かなくなるので、
+   顔ぶれが変わったときだけ作り、あとは中身を書き換えるだけにする。
+   倒れた敵が畳まれていくのも、同じ要素が残っているから見せられる。 */
+let foeCards = [];
+let foeRosterKey = '';
+
+/** 次の描画で敵の要素を作り直させる(出撃・フロア移動・再開のとき) */
+function resetFoeCards() { foeCards = []; foeRosterKey = ''; }
+
+function buildFoeCard(enemy, index) {
+  const card = document.createElement('div');
+  card.className = 'foe';
+  // 絵と名前までがボタン。HPバーと数字はボタンの外に出す。
+  // iOS はボタンの中に置いた帯の背景を塗らないことがあり、バーが消えていた。
+  const target = document.createElement('button');
+  target.className = 'foe-target';
+  target.type = 'button';
+  target.innerHTML = `<span class="foe-art">${artImg(enemy.spec.sprite, enemy.spec.emoji, 'enemy')}</span>`
+    + `<span class="foe-name">${enemy.spec.name}</span>`;
+  card.appendChild(target);
+  const health = document.createElement('div');
+  health.className = 'foe-health';
+  card.appendChild(health);
+  const numbers = document.createElement('div');
+  numbers.className = 'foe-numbers';
+  card.appendChild(numbers);
+  const badges = document.createElement('div');
+  badges.className = 'foe-badges';
+  card.appendChild(badges);
+  // 当たり判定はカード全体。中のボタンのクリックもここへ上がってくる
+  card.addEventListener('click', () => {
+    if (bstate === 'idle' || bstate === 'dragging') { run.targetIndex = index; updateHPUI(false, false); }
+  });
+  return { card, target, health, numbers, badges };
 }
 
 function renderEncounter() {
-  const root=$('enemyRoster');
-  const ordered=run.enemies.length===3 && run.enemies[0].summoned ? [run.enemies[1],run.enemies[0],run.enemies[2]] : run.enemies;
-  root.replaceChildren();
-  for(const enemy of ordered){
-    const index=run.enemies.indexOf(enemy),card=document.createElement('div');
-    card.className='foe'+(index===run.targetIndex?' target':'')+(enemy.hp<=0?' defeated':'');
-    if(enemy===run.actingEnemy)card.dataset.acting='true';
-    // 絵と名前までがボタン。HPバーと数字はボタンの外に出す。
-    // iOS はボタンの中に置いた帯の背景を塗らないことがあり、バーが消えていた。
-    const target=document.createElement('button');target.className='foe-target';target.type='button';
-    target.disabled=enemy.hp<=0;
-    target.setAttribute('aria-label',`${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
-    target.innerHTML=`<span class="foe-art">${artImg(enemy.spec.sprite,enemy.spec.emoji,'enemy')}</span><span class="foe-name">${enemy.spec.name}</span>`;
-    card.appendChild(target);
-    const health=document.createElement('div');health.className='foe-health';
-    health.style.backgroundImage=foeHealthFill(enemy);
-    card.appendChild(health);
-    const numbers=document.createElement('div');numbers.className='foe-numbers';
-    numbers.textContent=`${enemy.hp} / ${enemy.maxHP}${enemy.cloneOf!==undefined||!Number.isFinite(enemy.turnsLeft)?'':` ・ あと${enemy.turnsLeft}`}`;
-    card.appendChild(numbers);
-    // 当たり判定はカード全体。中のボタンのクリックもここへ上がってくる
-    card.addEventListener('click',()=>{if(bstate==='idle'||bstate==='dragging'){run.targetIndex=index;updateHPUI(false,false);}});
-    const badges=document.createElement('div');badges.className='foe-badges';card.appendChild(badges);
-    renderEnemyBadges(enemy.effects,badges);root.appendChild(card);
+  const root = $('enemyRoster');
+  const ordered = run.enemies.length === 3 && run.enemies[0].summoned
+    ? [run.enemies[1], run.enemies[0], run.enemies[2]] : run.enemies;
+  // 顔ぶれか並びが変わったときだけ作り直す(フロア移動・分身の召喚)
+  const key = ordered.map(e => `${run.enemies.indexOf(e)}:${e.spec.name}:${e.maxHP}`).join('|');
+  if (key !== foeRosterKey) {
+    foeRosterKey = key;
+    foeCards = ordered.map((enemy, i) => buildFoeCard(enemy, run.enemies.indexOf(enemy)));
+    root.replaceChildren(...foeCards.map(c => c.card));
   }
+  ordered.forEach((enemy, i) => {
+    const node = foeCards[i];
+    if (!node) return;
+    const index = run.enemies.indexOf(enemy);
+    node.card.classList.toggle('target', index === run.targetIndex);
+    node.card.classList.toggle('defeated', enemy.hp <= 0);
+    if (enemy === run.actingEnemy) node.card.dataset.acting = 'true';
+    else delete node.card.dataset.acting;
+    node.target.disabled = enemy.hp <= 0;
+    node.target.setAttribute('aria-label', `${enemy.spec.name}を狙う HP${enemy.hp}/${enemy.maxHP}`);
+    node.health.style.backgroundSize = foeHealthSize(enemy);
+    const text = foeNumbersText(enemy);
+    if (node.numbers.textContent !== text) node.numbers.textContent = text;
+    renderEnemyBadges(enemy.effects, node.badges);
+  });
 }
 
 function dealDamage(hits,chain=0,groups=[]) {
