@@ -256,9 +256,9 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `37` |
-| `src/js/core/version.js` の `APP_VERSION` | `'37'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v37` |
+| `index.html` の `<meta name="app-version">` | `38` |
+| `src/js/core/version.js` の `APP_VERSION` | `'38'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v38` |
 
 いま動いている版は**マイページの「バージョン」**で確認できる。
 不具合の切り分けでは、まずここが最新かを見ること。

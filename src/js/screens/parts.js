@@ -58,12 +58,16 @@ export function charRowHTML(ch, count) {
     </div>`;
 }
 
-/** 開眼の段階を◆で示す */
+/**
+ * 開眼の段階を◆で示す。
+ * 降臨キャラは10段階あり1行に並べると長すぎるので、6つ以上は
+ * 5つずつ2行に折り返す(並びはCSSの .aw-pips.wrap が決める)。
+ */
 export function awakenPipsHTML(awa, max) {
   const n = max || 4;
   let out = '';
   for (let i = 0; i < n; i++) out += `<span class="aw-pip${i < awa ? ' on' : ''}">◆</span>`;
-  return `<span class="aw-pips">${out}</span>`;
+  return `<span class="aw-pips${n > 5 ? ' wrap' : ''}">${out}</span>`;
 }
 
 /**

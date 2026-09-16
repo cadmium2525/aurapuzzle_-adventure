@@ -86,6 +86,20 @@ const server=http.createServer(async(req,res)=>{
     });
     const fullPixel=await paintedColor(0);
     assert.ok(isHpPink(fullPixel),`満タンのHPバーが塗られていない(実際の色 rgb(${fullPixel.join(',')}))`);
+    // iOS は appearance が残ったボタンの中だと、位置指定なしのブロックの
+    // 背景を塗らない。HPバーはボタンの中なので、その条件を崩しておく。
+    const paintable=await page.evaluate(()=>{
+      const bar=document.querySelector('#enemyRoster .foe-health');
+      const button=bar.closest('button');
+      return {button:!!button,
+        appearance:button?getComputedStyle(button).appearance:'',
+        webkit:button?getComputedStyle(button).webkitAppearance:'',
+        position:getComputedStyle(bar).position};
+    });
+    assert.ok(paintable.button,'前提: HPバーはボタンの中にある');
+    assert.equal(paintable.appearance,'none','ボタンのネイティブ描画が切れていない');
+    assert.equal(paintable.webkit,'none','ボタンのネイティブ描画(WebKit)が切れていない');
+    assert.notEqual(paintable.position,'static','HPバーが位置指定なしのまま');
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));

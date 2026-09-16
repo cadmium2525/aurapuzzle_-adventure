@@ -81,6 +81,31 @@ const server = http.createServer(async (req, res) => {
     await toMenu();
     await page.locator('[data-charpage="awaken"]').click();
     assert.ok(await page.locator('#charGrid .cg-cell .aw-pip').count() > 0, '開眼の🔸が出ていない');
+    // 点灯・消灯とも不透明の色。半透明だと後ろの絵で色が変わって見える
+    const pipColors = await page.evaluate(() => {
+      const on = document.querySelector('#charGrid .aw-pip.on');
+      const off = document.querySelector('#charGrid .aw-pip:not(.on)');
+      return [on && getComputedStyle(on).color, off && getComputedStyle(off).color];
+    });
+    pipColors.filter(Boolean).forEach(c =>
+      assert.ok(!/rgba/.test(c), `開眼の◆が半透明(${c})。絵によって色が変わって見える`));
+    // 10段階のキャラは5つ×2行に折り返す(1行だとセルからはみ出す)
+    const wide = await page.evaluate(() => {
+      const cell = [...document.querySelectorAll('#charGrid .cg-cell')]
+        .find(c => c.querySelectorAll('.aw-pip').length > 5);
+      if (!cell) return null;
+      const pips = [...cell.querySelectorAll('.aw-pip')];
+      const rows = new Set(pips.map(p => Math.round(p.getBoundingClientRect().y)));
+      const box = cell.querySelector('.aw-pips').getBoundingClientRect();
+      return { count: pips.length, rows: rows.size,
+        perRow: Math.round(pips.length / rows.size),
+        w: Math.round(box.width), cellW: Math.round(cell.getBoundingClientRect().width) };
+    });
+    assert.ok(wide, '10段階のキャラが一覧にいない');
+    assert.equal(wide.rows, 2, `10段階の◆が${wide.rows}行になっている`);
+    assert.equal(wide.perRow, 5, `1行あたり${wide.perRow}個になっている`);
+    assert.ok(wide.w < wide.cellW * 0.8,
+      `◆の並びがセルに収まっていない(${wide.w}px / セル${wide.cellW}px)`);
     await page.locator('#charGrid .cg-cell').first().click();
     assert.deepEqual(await page.evaluate(() => ['charExpBox', 'charEvolveBox', 'charAwakenBox']
       .map(id => !document.getElementById(id).hidden)), [false, false, true]);

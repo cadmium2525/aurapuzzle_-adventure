@@ -380,7 +380,13 @@ body[data-screen="home"] #app::before{
 .t-mypage{--tile:#65E0FF;} .t-guide{--tile:#B8A4FF;}
 
 /* ===================== ボタン ===================== */
-button{font-family:inherit;cursor:pointer;}
+/* iOS Safari はボタンを「ネイティブの部品」として描くので、その中に置いた
+   位置指定なしのブロック要素は背景が塗られないことがある。文字・画像・
+   絶対配置の要素は別の段で描かれるため出るので、背景を持つ帯だけが
+   消えて見える(敵のHPバーが iOS でだけ出なかったのはこれ)。
+   このアプリのボタンは見た目をすべて自前で作っているので、
+   ネイティブの見た目は最初から切っておく。 */
+button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;}
 .btn{
   font-size:13px;font-weight:800;color:#2A1A05;letter-spacing:.02em;
   background:linear-gradient(180deg,var(--gold-1),var(--gold-2));
@@ -745,7 +751,7 @@ canvas{display:block;border-radius:16px;touch-action:none;}
 .cg-lv{position:absolute;top:2px;right:3px;padding:0 2px;font-size:9px;font-weight:800;color:var(--ink);
   font-variant-numeric:tabular-nums;text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
 .cg-corner{position:absolute;right:3px;bottom:17px;display:flex;gap:2px;align-items:center;
-  padding:1px 4px;border-radius:7px;background:rgba(8,5,18,.78);font-size:8.5px;font-weight:800;color:var(--ink);}
+  padding:1px 4px;border-radius:7px;background:#0a0616;font-size:8.5px;font-weight:800;color:var(--ink);}
 .cg-corner .aw-pips{display:flex;gap:1px;}
 .cg-badge{position:absolute;left:3px;bottom:17px;padding:1px 5px;border-radius:7px;
   background:rgba(255,198,92,.9);color:#231603;font-size:8px;font-weight:900;}
@@ -992,7 +998,11 @@ input[type=range]{accent-color:var(--accent);}
 
 /* 開眼 */
 .aw-pips{display:inline-flex;gap:2px;margin-left:5px;vertical-align:middle;}
-.aw-pip{font-size:8px;color:rgba(255,255,255,.22);line-height:1;}
+/* 10段階(降臨キャラ)は1行だと長すぎるので5つずつ2行に折り返す */
+.aw-pips.wrap{display:inline-grid;grid-template-columns:repeat(5,auto);gap:1px 2px;}
+/* 消灯側を半透明にすると後ろのイラスト次第で灰にも白にも見えてしまう。
+   点灯・消灯とも不透明の色で固定して、どのキャラでも同じ見え方にする。 */
+.aw-pip{font-size:8px;color:#5d5573;line-height:1;}
 .aw-pip.on{color:var(--accent);text-shadow:0 0 6px rgba(255,198,92,.7);}
 .chip.awa{background:rgba(255,198,92,.16);border-color:rgba(255,198,92,.4);color:var(--accent);}
 .aw-list{display:flex;flex-direction:column;gap:5px;margin:9px 0 11px;}
@@ -1516,7 +1526,7 @@ input[type=range]{accent-color:var(--accent);}
    (% 高さ・overflow の切り抜き・高さより大きい角丸が重なると崩れる)。
    残量は battle.js が linear-gradient の色の境目として直接書き込む。
    角丸は高さの半分まで。これを超えるとブラウザ側で縮小計算が入る。 */
-.foe-health { display:block; height:6px; flex:0 0 6px; margin:2px 3px;
+.foe-health { position:relative; display:block; height:6px; flex:0 0 6px; margin:2px 3px;
   border-radius:3px; background-color:#3a1c3f; transition:background-image .25s; }
 /* バッジは敵の絵に重ねる。縦を使わないので盤面が狭くならない */
 .foe-badges { position:absolute; left:0; right:0; top:2px; z-index:2;
