@@ -72,8 +72,9 @@ function applyCellSize() {
 }
 
 /**
- * 画面サイズに合わせてセルサイズを決める。
- * まず横幅から仮決めし、縦にはみ出す場合は実測して縮める。
+ * 画面サイズに合わせてセルサイズを決めて盤面を作り直す。
+ * HP表示の更新のたびに呼ばれるので、結果が変わらないときは何もしない。
+ * (毎回 canvas を作り直すと中身が消えて画面がちらつく)
  */
 export function resizeBoard() {
   const appEl = document.getElementById('app');
@@ -83,21 +84,18 @@ export function resizeBoard() {
   const wrap = canvas.parentElement;
   const mainEl = canvas.closest('main');
   const availW = appW - px(mainEl, 'Left') - px(mainEl, 'Right') - px(wrap, 'Left') - px(wrap, 'Right');
-  CELL = Math.max(24, Math.min(96, Math.floor(availW / COLS)));
-  applyCellSize();
+  let cell = Math.max(24, Math.min(96, Math.floor(availW / COLS)));
 
-  const padBottom = (parseFloat(getComputedStyle(appEl).paddingBottom) || 0)
-    + px(mainEl, 'Bottom');
-  for (let i = 0; i < 5; i++) {
-    const rect = canvas.parentElement.getBoundingClientRect();
-    if (rect.height === 0) break;
-    const overflow = rect.bottom - (window.innerHeight - padBottom);
-    if (overflow <= 0.5) break;
-    const next = Math.floor((CELL * ROWS - overflow) / ROWS);
-    if (next >= CELL || next < 24) break;
-    CELL = next;
-    applyCellSize();
+  // 盤面より上の高さは盤面のサイズに左右されないので、残りの高さから直接求める
+  const rect = wrap.getBoundingClientRect();
+  if (rect.height > 0) {
+    const padBottom = (parseFloat(getComputedStyle(appEl).paddingBottom) || 0) + px(mainEl, 'Bottom');
+    const availH = window.innerHeight - padBottom - rect.top - px(wrap, 'Top') - px(wrap, 'Bottom');
+    if (availH > 0) cell = Math.max(24, Math.min(cell, Math.floor(availH / ROWS)));
   }
+  if (cell === CELL && canvas.width) return;
+  CELL = cell;
+  applyCellSize();
 }
 
 export function cellCenter(r, c) { return { x: c * CELL + CELL / 2, y: r * CELL + CELL / 2 }; }

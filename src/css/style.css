@@ -192,7 +192,7 @@ body{
 .cpill b{color:var(--accent);font-variant-numeric:tabular-nums;}
 
 main{flex:1;padding:var(--main-pad-top) var(--main-pad-x) 6px;display:flex;flex-direction:column;gap:13px;}
-body.in-battle main{padding-left:3px;padding-right:3px;}
+body.in-battle main{--main-pad-x:3px;padding-left:var(--main-pad-x);padding-right:var(--main-pad-x);}
 
 /* 画面ごとの背景。1つの疑似要素で持ち回り、絵と暗幕だけを差し替える。
    UIは半透明パネルなので、上に暗幕を重ねて可読性を保つ */
@@ -522,7 +522,8 @@ button{font-family:inherit;cursor:pointer;}
 
 #enemyStage{
   /* 盤面は縦で頭打ちになるので、敵フィールドの取り分に上限を設けて盤面へ回す */
-  position:relative;flex:0 1 auto;min-height:0;max-height:27vh;overflow:hidden;
+  /* 高さを固定する。中身が増減しても盤面のセルサイズが変わらず、画面が揺れない */
+  position:relative;flex:0 0 auto;height:26vh;min-height:164px;overflow:hidden;
   /* カード表示をやめ、トップバーの直下から画面いっぱいに敷く */
   margin:calc(var(--main-pad-top) * -1) calc(var(--main-pad-x) * -1) 0;
   /* 敵がいる場所の背景。全フロアで出す */
@@ -1297,10 +1298,11 @@ input[type=range]{accent-color:var(--accent);}
 .lh-lv{font-size:10px;color:var(--accent);font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;}
 .pm-lv{font-size:8px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;}
 .dungeon-entry.raid { border-color:#df8bd8; background:linear-gradient(120deg,#30163f,#19162e); }
-#enemyStage.multi-enemy { max-height:30vh; min-height:172px; }
+/* 敵が複数のときは1体あたりの絵が小さいので、少し詰める */
+#enemyStage.multi-enemy { height:24vh; min-height:152px; }
 #enemyRoster { display:flex; justify-content:center; align-items:stretch; width:100%; gap:4px; flex:1 1 auto; min-height:0; }
 /* 名前・HP・バッジは必ず出したいので、縮むのは敵の絵だけにする */
-.foe { flex:1; min-width:0; max-width:160px; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
+.foe { position:relative; flex:1; min-width:0; max-width:160px; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
   border:1px solid transparent; border-radius:10px; }
 .foe.target { border-color:#ffd980; background:#ffda7b12; }
 .foe.defeated { opacity:.18; }
@@ -1314,11 +1316,13 @@ input[type=range]{accent-color:var(--accent);}
 .foe:only-child.target { border-color:transparent; background:none; }
 /* 1体のときは名前とHPを読みやすく */
 .foe:only-child .foe-name,.foe:only-child .foe-numbers { font-size:11px; }
-.foe-name,.foe-numbers { display:block; font-size:9px; line-height:1.3; }
-.foe-health { display:block; height:4px; background:#240f27; border-radius:3px; overflow:hidden; margin:3px; }
+.foe-name,.foe-numbers { display:block; font-size:9px; line-height:1.3; flex-shrink:0; }
+.foe-health { display:block; height:4px; flex:0 0 4px; background:#240f27; border-radius:3px; overflow:hidden; margin:3px; }
 .foe-health i { display:block; height:100%; background:#ff647f; transition:width .25s; }
-/* バッジが無いターンは畳んで、その分を盤面に回す */
-.foe-badges { display:flex; justify-content:center; gap:2px; flex-wrap:wrap; }
+/* バッジは敵の絵に重ねる。縦を使わないので盤面が狭くならない */
+.foe-badges { position:absolute; left:0; right:0; top:2px; z-index:2;
+  display:flex; justify-content:center; gap:2px; flex-wrap:wrap; pointer-events:none; }
+.foe-badges .enemy-badge { pointer-events:auto; }
 .foe-badges:empty { display:none; }
 .foe-badges .enemy-badge { width:24px; height:24px; flex-basis:24px; }
 /* 敵のセリフ。画面全体ではなく、下に出るセリフ帯だけのモーダル。
