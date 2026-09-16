@@ -111,6 +111,24 @@ const server=http.createServer(async(req,res)=>{
     const markFoes=()=>page.evaluate(()=>[...document.querySelectorAll('#enemyRoster .foe')]
       .map((el,i)=>el.dataset.mark||(el.dataset.mark='m'+i+'-'+Math.random().toString(36).slice(2,6))));
     const marksBefore=await markFoes();
+    // 倒す前の位置と幅。倒したあとも変わらないことを後で確かめる
+    const {xs:foeXs,ws:foeWs}=await page.evaluate(()=>{
+      const all=[...document.querySelectorAll('#enemyRoster .foe')];
+      return {xs:all.map(el=>Math.round(el.getBoundingClientRect().x)),
+        ws:all.map(el=>Math.round(el.getBoundingClientRect().width))};
+    });
+    // 名前と絵の中央寄せはボタンの既定値に頼らない(iOSで左に寄っていた)
+    const centred=await page.evaluate(()=>{
+      const foe=document.querySelector('#enemyRoster .foe');
+      const img=foe.querySelector('.enemy-img'),art=foe.querySelector('.foe-art');
+      const c=el=>{const b=el.getBoundingClientRect();return b.x+b.width/2;};
+      return {align:getComputedStyle(foe.querySelector('.foe-target')).textAlign,
+        artAlign:getComputedStyle(art).textAlign,
+        off:img?+(c(img)-c(art)).toFixed(1):0};
+    });
+    assert.equal(centred.align,'center','敵の名前の中央寄せが指定されていない');
+    assert.equal(centred.artAlign,'center','敵の絵の中央寄せが指定されていない');
+    assert.ok(Math.abs(centred.off)<=1,`敵の絵が中央からずれている(${centred.off}px)`);
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));
@@ -123,13 +141,16 @@ const server=http.createServer(async(req,res)=>{
     assert.ok(after[1].fill<5,`倒した相手の塗りが残っている(${after[1].fill}%)`);
     assert.ok(after[0].h>=5&&after[0].fill>95,'無傷の相手のバーが崩れている');
     assert.ok(isHpPink(await paintedColor(0)),'無傷の相手のバーが塗られていない');
-    // 倒した相手は薄く残さず、畳んで消す
+    // 倒した相手は見えなくなるが、場所はそのまま。残りが横へ動かないこと
     const gone=await page.evaluate(()=>{
-      const el=[...document.querySelectorAll('#enemyRoster .foe')][1];
-      return {opacity:Number(getComputedStyle(el).opacity),w:Math.round(el.getBoundingClientRect().width)};
+      const all=[...document.querySelectorAll('#enemyRoster .foe')];
+      return {opacity:Number(getComputedStyle(all[1]).opacity),
+        xs:all.map(el=>Math.round(el.getBoundingClientRect().x)),
+        ws:all.map(el=>Math.round(el.getBoundingClientRect().width))};
     });
     assert.equal(gone.opacity,0,`倒した敵が薄く残っている(不透明度 ${gone.opacity})`);
-    assert.ok(gone.w<=4,`倒した敵の幅が残っている(${gone.w}px)`);
+    assert.deepEqual(gone.xs,foeXs,`倒したあとに敵が横へ動いた(${foeXs} → ${gone.xs})`);
+    assert.deepEqual(gone.ws,foeWs,`倒したあとに敵の幅が変わった(${foeWs} → ${gone.ws})`);
     await page.evaluate(()=>raidTest.emptyTurn());
     snap=await page.evaluate(()=>raidTest.snapshot());assert.ok(snap.run.enemies.filter(e=>e.hp>0).every(e=>e.effects.defenses[0].turns===4));
     const visited=new Set();

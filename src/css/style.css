@@ -1508,17 +1508,21 @@ input[type=range]{accent-color:var(--accent);}
 /* 名前・HP・バッジは必ず出したいので、縮むのは敵の絵だけにする */
 .foe { position:relative; flex:1 1 0; min-width:0; max-width:160px; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
   border:1px solid transparent; border-radius:10px;
-  /* 倒れた相手が畳まれ、残りが広がるまでを見せる */
-  transition:opacity .3s ease, max-width .42s ease, flex-grow .42s ease, margin .42s ease; }
+  /* 名前と絵の中央寄せをボタンの既定値に頼らない。iOS ではボタンの中で
+     効かず、名前も絵も左に寄ってしまう */
+  text-align:center;
+  transition:opacity .3s ease; }
 .foe.target { border-color:#ffd980; background:#ffda7b12; }
-/* 倒した相手は薄く残さず、その場から畳んで消す。要素は残るので
-   隣の敵はカクつかずに広がっていく */
-.foe.defeated { opacity:0; max-width:0; flex-grow:0; margin-inline:-2px; overflow:hidden; pointer-events:none; }
+/* 倒した相手は消えるが、場所はそのまま空けておく。
+   残りの敵が横へスライドしてこないようにするため */
+.foe.defeated { opacity:0; pointer-events:none; }
 .foe-target { padding:0; background:none; color:inherit; border:0; width:100%; cursor:pointer;
+  text-align:center; font:inherit;
   flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; }
 /* .foe 直下に並ぶようになった帯。ボタンの外なので確実に描かれる */
 .foe > .foe-health, .foe > .foe-numbers { flex-shrink:0; }
-.foe-art { display:flex; justify-content:center; align-items:flex-end; flex:1 1 auto; min-height:30px; }
+/* text-align も併せて指定しておく。flex が効かない環境でも絵が中央に残る */
+.foe-art { display:flex; justify-content:center; align-items:flex-end; text-align:center; flex:1 1 auto; min-height:30px; }
 .foe-art .enemy-img { height:auto; max-height:100%; max-width:100%; width:auto; object-fit:contain; }
 .foe:only-child { max-width:300px; }
 .foe:only-child .foe-art { animation:idleFloat 3.2s ease-in-out infinite; }
