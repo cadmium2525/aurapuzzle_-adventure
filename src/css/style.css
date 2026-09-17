@@ -259,6 +259,16 @@ body[data-screen="home"] #app::before{
 /* ホーム: 編成中の3人を1枚絵で見せる */
 #screen-home{flex:1;min-height:0;}
 #homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
+/* 九狐降臨のバナー。タップで降臨ダンジョンの一覧へ飛ぶ */
+.home-banner{
+  position:absolute;left:2px;top:0;z-index:5;
+  width:min(52%, 215px);padding:0;border:1px solid rgba(255,214,140,.55);
+  border-radius:8px;overflow:hidden;background:none;line-height:0;
+  box-shadow:0 5px 14px rgba(0,0,0,.5);
+}
+.home-banner img{width:100%;height:auto;display:block;}
+.home-banner:active{transform:scale(.97);filter:brightness(1.08);}
+
 /* プレゼントボックス。編成ボタンがあった位置に置く */
 #homePresentBtn{
   position:absolute;right:2px;top:0;z-index:5;

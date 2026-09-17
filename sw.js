@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v42';
+const CACHE_NAME = 'aura-connect-v43';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -11,6 +11,7 @@ const ASSETS = [
   './assets/battle/aura_atlas.webp',
   './assets/ui/loading.webp',
   './assets/ui/title.webp',
+  './assets/promo/kyuko_banner.webp',
   './assets/Welcome_to_the_Puzzle.mp3',
   './assets/Circuit_Breaker.mp3',
   './src/css/style.css',

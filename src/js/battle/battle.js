@@ -813,9 +813,10 @@ function activateChanceBoard() {
 
 /**
  * 敵の行動を実行する。
- * 先制行動は文字もエフェクトも出さず、効果だけを静かにかける。
- * ノーマル以外のダンジョンではほぼ毎フロア先制で妨害してくるため、
- * 毎回演出を挟むとテンポが悪い。かかった状態は敵・味方のバッジで分かる。
+ * 先制行動は文字も演出も出さず、効果だけを静かにかける。ノーマル以外の
+ * ダンジョンではほぼ毎フロア先制で妨害してくるため、毎回演出を挟むと
+ * テンポが悪い。かかった状態は敵・味方のバッジで分かる。
+ * ただし被弾の揺れだけは残す。HPが減ったことは伝わらないと困る。
  */
 async function executeEnemyAction(action, preemptive = false) {
   if(action.dialogue){const spec=combatEnemy(run).spec;await bossDialogue(spec.name,action.dialogue,spec.sprite);}
@@ -837,7 +838,7 @@ async function executeEnemyAction(action, preemptive = false) {
     dmg = Math.max(cut >= 1 ? 0 : 1, Math.round(dmg * (1 - cut)));
     run.playerHP = Math.max(0, run.playerHP - dmg);
     labels.push(`${dmg}ダメージ`);
-    if (!preemptive) shake($('partyBox'));
+    shake($('partyBox'));
   }
   updateSkillUI();
   if (preemptive) { updateHPUI(false, false); return; }

@@ -11,6 +11,7 @@
  * 左右の△は「見せ方」だけの操作で、リーダー(編成の先頭)は変わらない。
  * ==================================================== */
 import { $, artImg } from '../core/ui.js';
+import { showScreen } from '../core/nav.js';
 import { homeCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 import { updatePresentBadge } from './present.js';
@@ -98,4 +99,6 @@ function shiftFront(step) {
 export function initHome() {
   $('homePrevBtn').addEventListener('click', () => shiftFront(-1));
   $('homeNextBtn').addEventListener('click', () => shiftFront(1));
+  // バナーは降臨ダンジョンの一覧へ直接飛ばす(種別選択は挟まない)
+  $('homeRaidBannerBtn').addEventListener('click', () => showScreen('dungeon', { mode: 'raid' }));
 }

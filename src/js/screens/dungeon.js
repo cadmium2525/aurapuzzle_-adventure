@@ -402,6 +402,8 @@ function renderChapterBar() {
 
 export function renderDungeon(options = {}) {
   if (!options.preserve) dungeonView = 'menu';
+  // ホームのバナーなどから、種別選択を飛ばして直接開く
+  if (options.mode) { dungeonMode = options.mode; dungeonView = 'stages'; }
   const choosing = dungeonView === 'menu';
   $('dungeonMenu').hidden = !choosing;
   renderResumeCard();

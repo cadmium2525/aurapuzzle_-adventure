@@ -11,6 +11,7 @@ const BASE_IMAGES = [
   './assets/ui/bg.webp',
   './assets/ui/menu_atlas.webp',
   './assets/ui/present.webp',
+  './assets/promo/kyuko_banner.webp',
   './assets/items/item_atlas.webp',
   './assets/battle/aura_atlas.webp',
   './assets/battle/enemy_badges.webp'
