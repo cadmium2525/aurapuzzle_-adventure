@@ -36,6 +36,7 @@ function summary(d) {
       <dt>キャラクター</dt><dd>${d.characters.length} 件</dd>
       <dt>リーダースキル</dt><dd>${(d.leaderSkills || []).length} 件</dd>
       <dt>スキル</dt><dd>${(d.skills || []).length} 件</dd>
+      <dt>プレゼント</dt><dd>${(d.gifts || []).length} 件</dd>
       <dt>ガチャ等の設定</dt><dd>${Object.keys(d.settings || {}).length} 件</dd>
       <dt>添付ファイル</dt><dd>${images.length} 件</dd>
     </dl>
