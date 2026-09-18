@@ -236,8 +236,16 @@ async function doPull(kind, count) {
 
 /* ===================== 画面 ===================== */
 export function renderGacha() {
-  // ピックアップ表示
+  // ピックアップ表示。開催していないときは枠ごと隠す
+  // (空の枠が残ると、開催中に見えるうえに場所も食う)
   const box = $('pickupBox');
+  const note = $('orbGachaNote');
+  if (box) box.hidden = !PICKUP_CHARACTER;
+  if (note) {
+    note.textContent = PICKUP_CHARACTER
+      ? 'ピックアップ開催中 ・ 最高レア SSR(★4)'
+      : '最高レア SSR(★4)';
+  }
   if (box && PICKUP_CHARACTER) {
     const ch = resolveCharacter(PICKUP_CHARACTER.id, PICKUP_CHARACTER.rarity, 1);
     const aura = AURAS[ch.aura];

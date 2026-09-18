@@ -266,12 +266,18 @@ CHARACTERS.push(mk('dk_kyuko','キュウコ','化け狐','🦊',4,3,'attacker','
 const BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
 export function characterById(id) { return BY_ID.get(id) || null; }
 /**
- * ガチャの目玉(ピックアップ)キャラ。
- * 管理者ツールで差し替えられる。指定が無ければ featured 印のキャラ。
+ * ガチャの目玉(ピックアップ)キャラ。管理者ツールで差し替えられる。
+ *   pickupOff: true … ピックアップを開催しない
+ *   pickupId       … そのキャラにする
+ *   どちらも無ければ featured 印のキャラ
+ *
+ * 「なし」を空文字では表せない(未設定と区別が付かず既定へ戻ってしまう)ので、
+ * 専用の pickupOff を置いている。
  */
-export const FEATURED_CHARACTER =
-  (CUSTOM_SETTINGS.pickupId ? BY_ID.get(CUSTOM_SETTINGS.pickupId) : null)
-  || CHARACTERS.find(c => c.featured) || null;
+export const FEATURED_CHARACTER = CUSTOM_SETTINGS.pickupOff
+  ? null
+  : (CUSTOM_SETTINGS.pickupId ? BY_ID.get(CUSTOM_SETTINGS.pickupId) : null)
+    || CHARACTERS.find(c => c.featured) || null;
 
 /* =========================================================
  * レベル / 進化を反映した「実際に使うキャラクター」を組み立てる

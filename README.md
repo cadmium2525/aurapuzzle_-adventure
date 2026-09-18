@@ -458,7 +458,8 @@ node scripts/check-training.cjs
 node scripts/check-character.cjs       # キャラクター5ページと出撃3段
 node scripts/check-technical.cjs       # テクニカル(全フロア特殊行動・初クリア報酬)
 node scripts/check-shop.cjs            # ショップ(ダイヤ建て・1日の購入上限・日付で戻る)
-node scripts/check-admin.cjs           # 管理ツール(7画面・編集が下書きに入る)
+node scripts/check-admin.cjs           # 管理ツール(8画面・編集が下書きに入る)
+node scripts/check-gacha-pu.cjs        # PUの差し替えがガチャ画面と抽選に効くこと
 node scripts/check-gifts.cjs           # 配布が既存プレイヤーへ1回だけ届くこと
 node scripts/check-boot-recovery.cjs   # 版ずれからの復帰(0%で固まらないこと)
 node scripts/check-save-migration.cjs  # 旧セーブの移行(バージョンを上げたら形を足す)
@@ -545,8 +546,24 @@ data/enemy-master.js / raids.js / characters.js で本体と合流
 
 ### ガチャのピックアップ
 
-`CUSTOM_SETTINGS.pickupId` / `pickupRate` で差し替えられる(管理ツールの
-ガチャタブ)。指定が無ければ従来どおり `featured: true` のキャラと 0.3。
+`CUSTOM_SETTINGS` で差し替えられる(管理ツールのガチャタブ)。
+
+| キー | 意味 |
+| --- | --- |
+| `pickupId` | ピックアップにするキャラID |
+| `pickupRate` | ★4帯のうちPUが占める割合(既定 0.3) |
+| `pickupOff` | `true` でピックアップを開催しない |
+
+指定が無ければ従来どおり `featured: true` のキャラと 0.3。
+
+**「開催しない」を空文字で表さないこと。** 空文字は「未設定」と区別が付かず、
+既定の featured キャラへ黙って戻ってしまう。そのために `pickupOff` を
+分けてある。
+
+差し替えは**ガチャ画面の表示と抽選の両方**に効く。開催しないときは
+PU枠を `hidden` にし、「ピックアップ開催中」の文言も出さない
+(空の枠が残ると開催中に見えるため)。
+`scripts/check-gacha-pu.cjs` が3つの状態を本物の画面で確かめている。
 
 ### アイコンのアトラス
 

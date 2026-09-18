@@ -100,13 +100,32 @@ test('ガチャのバナーは、設定されていて かつ ピックアップ
 });
 
 test('ピックアップは管理ツールの設定を優先し、無ければ featured 印', () => {
-  if (CUSTOM_SETTINGS.pickupId) {
+  if (CUSTOM_SETTINGS.pickupOff) {
+    assert.equal(PICKUP_CHARACTER, null, '開催しない設定なのにピックアップがいる');
+  } else if (CUSTOM_SETTINGS.pickupId) {
     assert.equal(PICKUP_CHARACTER.id, CUSTOM_SETTINGS.pickupId);
   } else {
     assert.ok(PICKUP_CHARACTER === null || PICKUP_CHARACTER.featured);
   }
   assert.ok(PICKUP_RATE >= 0 && PICKUP_RATE <= 1, 'ピックアップ率が 0〜1 に収まっていない');
 });
+
+test('「ピックアップなし」は空文字ではなく pickupOff で表す', async () => {
+  /* 空文字だと「未設定」と区別が付かず、既定の featured キャラへ戻ってしまう。
+     管理ツールの「ピックアップなし」が黙って効かなくなるので、専用のキーを使う。
+     実際の振る舞いは scripts/check-gacha-pu.cjs が本物の画面で確かめている。 */
+  const { readFile } = await import('node:fs/promises');
+  const chars = await readFile(new URL('../src/js/data/characters.js', import.meta.url), 'utf8');
+  assert.ok(chars.includes('CUSTOM_SETTINGS.pickupOff'),
+    'characters.js が pickupOff を見ていない');
+
+  const tool = await readFile(new URL('../admin/js/views/gacha.js', import.meta.url), 'utf8');
+  assert.ok(tool.includes("setSetting('pickupOff', true)"),
+    '管理ツールが「なし」を pickupOff で保存していない');
+  assert.ok(!/setSetting\('pickupId',\s*v\.pickupId\s*\|\|\s*''\)/.test(tool),
+    '空文字で「なし」を表そうとしている(既定へ戻ってしまう)');
+});
+
 
 /* ===================== オフライン用の先読み ===================== */
 import { readFile } from 'node:fs/promises';

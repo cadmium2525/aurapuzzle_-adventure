@@ -32,9 +32,9 @@ export default {
   render(view) {
     const s = settings();
     const chars = allCharacters().filter(c => c.rarity >= G.MAX_GACHA_RARITY);
-    const current = s.pickupId
-      ? allCharacters().find(c => c.id === s.pickupId)
-      : G.PICKUP_CHARACTER;
+    const current = s.pickupOff
+      ? null
+      : (s.pickupId ? allCharacters().find(c => c.id === s.pickupId) : G.PICKUP_CHARACTER);
     const rate = s.pickupRate == null ? G.PICKUP_RATE : s.pickupRate;
     const bannerPath = s.gachaBanner || BANNER_PATH;
     const held = getBlob(bannerPath);
@@ -50,7 +50,8 @@ export default {
     view.innerHTML = `
       ${card('ピックアップ', `
         <p class="lead">★${G.MAX_GACHA_RARITY} の枠のうち、決めた割合をこの1体に寄せます。
-        残りは同じレアリティで均等に割ります。</p>
+        残りは同じレアリティで均等に割ります。「ピックアップなし」を選ぶと、
+        ガチャ画面のPU枠と「開催中」の表示も消えます。</p>
         ${field('ピックアップするキャラ', 'pickupId', current ? current.id : '', {
           type: 'select',
           options: [['', '（ピックアップなし）']].concat(chars.map(c =>
@@ -61,10 +62,10 @@ export default {
         <div class="scroll-x"><table class="data">
           <tr><th>枠</th><th class="num">確率</th></tr>
           <tr><td>★${G.MAX_GACHA_RARITY} 帯ぜんぶ</td><td class="num">${(share * 100).toFixed(1)}%</td></tr>
-          <tr><td>${current ? esc(current.name) : '(なし)'}</td>
-            <td class="num ${current ? 'ok' : ''}">${current ? (share * rate * 100).toFixed(2) : '0.00'}%</td></tr>
-          <tr><td>ほかの★${G.MAX_GACHA_RARITY} 1体あたり(${others}体)</td>
-            <td class="num">${(eachOther * 100).toFixed(2)}%</td></tr>
+          <tr><td>${current ? esc(current.name) : 'ピックアップなし'}</td>
+            <td class="num ${current ? 'ok' : ''}">${current ? (share * rate * 100).toFixed(2) : '—'}</td></tr>
+          <tr><td>★${G.MAX_GACHA_RARITY} 1体あたり(${current ? `ほか${others}体` : `${pool.length}体`})</td>
+            <td class="num">${((current ? eachOther : share / Math.max(1, pool.length)) * 100).toFixed(2)}%</td></tr>
         </table></div>
         <div class="row-btns">
           <button class="btn primary" id="savePickup">下書きに保存</button>
@@ -103,13 +104,22 @@ export default {
       const v = readForm(view.querySelector('.card'));
       const r = Number(v.pickupRate);
       if (!(r >= 0 && r <= 1)) { toast('割合は 0〜1 で入れてください', 'ng'); return; }
-      setSetting('pickupId', v.pickupId || '');
+      // 空文字では「未設定」と区別が付かず既定のキャラへ戻ってしまうので、
+      // 「開催しない」は専用の pickupOff で表す
+      if (v.pickupId) {
+        setSetting('pickupId', v.pickupId);
+        setSetting('pickupOff', null);
+      } else {
+        setSetting('pickupId', null);
+        setSetting('pickupOff', true);
+      }
       setSetting('pickupRate', r);
       toast('下書きに保存しました', 'ok');
       this.render(view);
     });
     $('clearPickup').addEventListener('click', () => {
       setSetting('pickupId', null);
+      setSetting('pickupOff', null);
       setSetting('pickupRate', null);
       toast('既定に戻しました');
       this.render(view);
