@@ -80,6 +80,16 @@ pre.err,pre.diff{overflow-x:auto;padding:10px;border-radius:10px;background:#0e0
 .field input,.field select,.field textarea{width:100%;padding:8px 10px;border-radius:9px;
   border:1px solid var(--line);background:#100e1c;color:var(--ink);
   -webkit-appearance:none;appearance:none;}
+/* チェックボックスは appearance を消すと入/切が見分けられなくなるので、
+   上の一括指定から外して自前で描く(素の見た目には戻せないため) */
+input[type=checkbox]{width:18px!important;height:18px;flex:0 0 18px;margin:0 6px 0 0;padding:0!important;
+  border:1.5px solid var(--line);border-radius:5px;background:#100e1c;
+  display:inline-grid;place-content:center;cursor:pointer;vertical-align:-3px;}
+input[type=checkbox]::before{content:'';width:10px;height:10px;transform:scale(0);
+  transition:transform .12s ease;box-shadow:inset 1em 1em var(--accent);
+  clip-path:polygon(14% 44%,0 65%,50% 100%,100% 16%,80% 0,43% 62%);}
+input[type=checkbox]:checked{border-color:var(--accent);}
+input[type=checkbox]:checked::before{transform:scale(1);}
 .field textarea{resize:vertical;line-height:1.5;}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 10px;}
 .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:0 10px;}
