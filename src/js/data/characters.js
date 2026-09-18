@@ -10,6 +10,7 @@
 import {
   LEADER_SKILLS, ACTIVE_SKILLS, evolvedLeaderSkill, evolvedActiveSkill
 } from './skills.js';
+import { CUSTOM_CHARACTERS } from './custom.js';
 
 /* --- オーラは5色。c3(癒)は攻撃ではなく回復を担当する。
        c4(闇)は3章から盤面に加わる後発のオーラ(ステージごとの出現色は
@@ -250,6 +251,18 @@ CHARACTERS.push(mk('dk_kyuko','キュウコ','化け狐','🦊',4,3,'attacker','
   artStages:twoStageArt('kyuko',3),
   flavor:'人に化けては甘い言葉で惑わせる狐の妖怪。九つの尾に宿るのは、嘘か、真心か。'
 }));
+/* --- 管理者ツール(admin/)で足したキャラクター ---
+   ステータスは省略できる。省いたぶんは既存キャラと同じく
+   レアリティ×ロールの基準値から組み立てる(mk の既定値がそのまま効く)。 */
+(CUSTOM_CHARACTERS || []).forEach(c => {
+  if (!c || !c.id || CHARACTERS.some(x => x.id === c.id)) return;
+  const { id, name, job, portrait, aura, rarity, role, leaderSkillId, skillId, ...extra } = c;
+  CHARACTERS.push(mk(
+    id, name, job, portrait || '🙂', aura, rarity, role || 'balance',
+    leaderSkillId, skillId, extra
+  ));
+});
+
 const BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
 export function characterById(id) { return BY_ID.get(id) || null; }
 /** ガチャの目玉(ピックアップ)キャラ */
