@@ -15,7 +15,9 @@ export {
   FEATURED_CHARACTER, resolveCharacter, canEvolveChar, finalStarOf
 } from '../../src/js/data/characters.js';
 
-export { LEADER_SKILLS, ACTIVE_SKILLS } from '../../src/js/data/skills.js';
+export {
+  LEADER_SKILLS, ACTIVE_SKILLS, describeLeaderSkill, describeActiveSkill
+} from '../../src/js/data/skills.js';
 
 export { ENEMIES, enemyById } from '../../src/js/data/enemies.js';
 
@@ -34,7 +36,10 @@ export {
   STAMINA_DRINK, ORB_POUCH
 } from '../../src/js/data/gamedata.js';
 
-export { CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS, CUSTOM_SETTINGS } from '../../src/js/data/custom.js';
+export {
+  CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS, CUSTOM_SETTINGS,
+  CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS
+} from '../../src/js/data/custom.js';
 
 export { CHAR_ATLAS, CHAR_ATLAS_COLUMNS, CHAR_ATLAS_ROWS } from '../../src/js/data/char-atlas.js';
 

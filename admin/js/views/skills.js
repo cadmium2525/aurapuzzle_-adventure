@@ -1,6 +1,7 @@
 /* スキル一覧 — リーダースキル / スキル / 敵の特殊行動を引くための画面 */
 import { esc, card, $ } from '../ui.js';
 import * as G from '../gamedata.js';
+import * as edit from './skill-edit.js';
 
 /** リーダースキルの効果を日本語にする */
 function leaderEffects(s) {
@@ -49,14 +50,19 @@ function usersOf(key, field) {
     .map(c => c.name);
 }
 
-function skillRow(id, s, effects, users) {
-  return `<button class="row flat" data-find="${esc(id)}">
+function skillRow(id, s, effects, users, kind) {
+  const mine = s._source === 'draft';
+  return `<div class="row flat" data-find="${esc(id)}">
     <div class="grow">
-      <b>${esc(s.name)} <span class="mono small" style="color:var(--ink-faint)">${esc(id)}</span></b>
+      <b>${esc(s.name)} <span class="mono small" style="color:var(--ink-faint)">${esc(id)}</span>
+        ${mine ? '<span class="tagline new">下書き</span>' : ''}</b>
       <span class="sub">${esc(s.desc || '')}</span>
       <span class="sub mono" style="color:var(--link)">${esc(effects.join(' ・ '))}</span>
       ${users.length ? `<span class="sub" style="color:var(--ink-faint)">使用: ${esc(users.join('、'))}</span>` : ''}
-    </div></button>`;
+    </div>
+    <button class="btn" data-copy="${esc(kind)}:${esc(id)}" style="padding:5px 9px;flex:0 0 auto">
+      ${mine ? '編集' : '複製して調整'}</button>
+  </div>`;
 }
 
 function enemyEffectRow(def) {
@@ -93,10 +99,15 @@ function enemiesUsing(type) {
 
 export default {
   render(view) {
-    const ls = Object.entries(G.LEADER_SKILLS);
-    const as = Object.entries(G.ACTIVE_SKILLS);
+    if (edit.isEditing()) { edit.renderEditing(view, () => this.render(view)); return; }
+    const ls = edit.allSkills('leader');
+    const as = edit.allSkills('active');
 
+    const back = () => this.render(view);
     view.innerHTML = `
+      <div class="note">新しい<b>効果の種類</b>そのものは足せません(battle/ の実装が要ります)。
+      できるのは、既存スキルを分解したパーツを組み替えて倍率を変え、
+      名前を付けて別のスキルにすることです。</div>
       <div class="card">
         <label class="field" style="margin:0">
           <span>絞り込み</span>
@@ -115,15 +126,24 @@ export default {
         </div>`)}
 
       ${card(`リーダースキル (${ls.length})`, `<div class="rows" id="lsList">
-        ${ls.map(([id, s]) => skillRow(id, s, leaderEffects(s), usersOf(id, 'leaderSkillId'))).join('')}
-      </div>`)}
+        ${ls.map(s => skillRow(s.id, s, leaderEffects(s), usersOf(s.id, 'leaderSkillId'), 'leader')).join('')}
+      </div>`, '<button class="btn primary" id="newLs">＋ 新規作成</button>')}
 
       ${card(`スキル (${as.length})`, `<div class="rows" id="asList">
-        ${as.map(([id, s]) => skillRow(id, s,
+        ${as.map(s => skillRow(s.id, s,
           activeEffects(s).concat(s.cooldown ? [`CT ${s.cooldown}`] : []),
-          usersOf(id, 'skillId'))).join('')}
-      </div>`)}
+          usersOf(s.id, 'skillId'), 'active')).join('')}
+      </div>`, '<button class="btn primary" id="newSk">＋ 新規作成</button>')}
     `;
+
+    $('newLs').addEventListener('click', () => edit.startNew('leader', view, back));
+    $('newSk').addEventListener('click', () => edit.startNew('active', view, back));
+    view.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => {
+      const [kind, id] = btn.dataset.copy.split(':');
+      const mine = (kind === 'leader' ? edit.allSkills('leader') : edit.allSkills('active'))
+        .find(s => s.id === id);
+      edit.startFrom(kind, id, view, back, mine && mine._source !== 'draft');
+    }));
 
     const q = $('q');
     q.addEventListener('input', () => {

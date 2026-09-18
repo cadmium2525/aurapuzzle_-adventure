@@ -8,6 +8,7 @@
 import { $, esc, card, toast, field, readForm, clampInt, modal, confirmAsk } from '../ui.js';
 import * as G from '../gamedata.js';
 import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
+import { allSkills, describe } from './skill-edit.js';
 import { toWebp, toIconWebp, toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 
 let editing = null;
@@ -163,8 +164,10 @@ function shot(path) {
 
 function renderEditor(view) {
   const c = editing;
-  const lsOpts = Object.entries(G.LEADER_SKILLS).map(([id, s]) => [id, `${s.name} — ${s.desc}`]);
-  const skOpts = Object.entries(G.ACTIVE_SKILLS).map(([id, s]) => [id, `${s.name} — ${s.desc}`]);
+  // 下書きで作ったスキルもここから選べる(先に作っておけば新キャラに付けられる)
+  const label = (s, kind) => `${s.name}${s._source === 'draft' ? '（下書き）' : ''} — ${describe(s, kind)}`;
+  const lsOpts = allSkills('leader').map(s => [s.id, label(s, 'leader')]);
+  const skOpts = allSkills('active').map(s => [s.id, label(s, 'active')]);
   const art = artPaths(c.artName || c.id || 'new');
   const exact = exactStats(c.rarity, c.role);
 

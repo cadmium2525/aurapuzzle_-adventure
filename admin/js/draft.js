@@ -11,7 +11,8 @@
 
 const KEY = 'acb_admin_draft';
 
-const empty = () => ({ enemies: [], raids: [], characters: [], settings: {}, gifts: null, notes: '' });
+const empty = () => ({ enemies: [], raids: [], characters: [],
+  skills: [], leaderSkills: [], settings: {}, gifts: null, notes: '' });
 
 /** localStorage に入る部分だけ */
 let data = load();
@@ -74,6 +75,7 @@ export function setSetting(key, value) {
 /** 下書きに何か入っているか(ヘッダーのバッジ) */
 export function pendingCount() {
   return data.enemies.length + data.raids.length + data.characters.length
+    + (data.skills || []).length + (data.leaderSkills || []).length
     + blobs.size + Object.keys(data.settings || {}).length + (data.gifts ? 1 : 0);
 }
 

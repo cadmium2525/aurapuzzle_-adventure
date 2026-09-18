@@ -157,3 +157,34 @@ test('main.js から辿れるモジュールは全部 sw.js の先読みに入�
   const missing = [...seen].filter(p => !listed.has(p));
   assert.deepEqual(missing, [], `sw.js の ASSETS に足りない: ${missing.join(', ')}`);
 });
+
+/* ===================== 足したスキル ===================== */
+import { CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS } from '../src/js/data/custom.js';
+import { LEADER_SKILLS, ACTIVE_SKILLS } from '../src/js/data/skills.js';
+
+test('custom.js のスキルは5つのキーを必ず配列/オブジェクトで持つ', () => {
+  [CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS].forEach(v => assert.ok(Array.isArray(v)));
+});
+
+test('足したスキルは本体のスキル表に合流している', () => {
+  CUSTOM_LEADER_SKILLS.forEach(s => {
+    assert.ok(LEADER_SKILLS[s.id], `${s.id} が合流していない`);
+    assert.ok(LEADER_SKILLS[s.id].desc, `${s.id} に説明が無い`);
+  });
+  CUSTOM_SKILLS.forEach(s => {
+    assert.ok(ACTIVE_SKILLS[s.id], `${s.id} が合流していない`);
+    assert.ok(ACTIVE_SKILLS[s.id].desc, `${s.id} に説明が無い`);
+    assert.ok(ACTIVE_SKILLS[s.id].cooldown > 0, `${s.id} のCTが0`);
+  });
+});
+
+test('敵の行動は「攻撃」と「特殊行動」を同時に持てる', async () => {
+  // キュウコの進化後が元からこの形。管理ツールもこれを作れないといけない
+  const { enemyFormOf } = await import('../src/js/data/enemy-master.js');
+  const boss = enemyFormOf('kyuko', 1);
+  const both = (boss.enemySkills.actions || []).filter(a => a.attack && a.effects && a.effects.length);
+  assert.ok(both.length > 0, '攻撃しながら効果も撃つ行動が1つも無い');
+  both.forEach(a => {
+    a.effects.forEach(ef => assert.ok(ef.type, '効果に type が無い'));
+  });
+});

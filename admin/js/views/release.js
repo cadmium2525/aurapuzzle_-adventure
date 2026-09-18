@@ -34,6 +34,9 @@ function summary(d) {
       <dt>モンスター</dt><dd>${d.enemies.length} 件</dd>
       <dt>降臨</dt><dd>${d.raids.length} 件</dd>
       <dt>キャラクター</dt><dd>${d.characters.length} 件</dd>
+      <dt>リーダースキル</dt><dd>${(d.leaderSkills || []).length} 件</dd>
+      <dt>スキル</dt><dd>${(d.skills || []).length} 件</dd>
+      <dt>ガチャ等の設定</dt><dd>${Object.keys(d.settings || {}).length} 件</dd>
       <dt>添付ファイル</dt><dd>${images.length} 件</dd>
     </dl>
     ${images.length ? `<div class="scroll-x"><table class="data">
@@ -53,7 +56,7 @@ export default {
 
     view.innerHTML = `
       ${!hasToken ? '<div class="warn">右上の ⚙ からアクセストークンを設定してください。</div>' : ''}
-      ${images.length === 0 && (d.characters.length || d.enemies.length)
+      ${images.length === 0 && (d.characters.length || d.enemies.length || d.raids.length)
         ? '<div class="note">画像とアトラスは端末のメモリにしか無いので、<b>再読み込みすると外れます</b>。選んだら、そのまま push してください。</div>'
         : ''}
 

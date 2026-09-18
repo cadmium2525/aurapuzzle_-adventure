@@ -88,6 +88,16 @@ export const CUSTOM_RAIDS = ${json(d.raids)};
 export const CUSTOM_CHARACTERS = ${json(d.characters)};
 
 /**
+ * 足すスキル。既存のスキルを分解したパーツの組み合わせ。
+ * 効果のキーは data/skills.js の冒頭にある一覧がすべて。
+ * 同じIDがあれば既存を上書きする(倍率の調整に使える)。
+ */
+export const CUSTOM_SKILLS = ${json(d.skills)};
+
+/** 足すリーダースキル */
+export const CUSTOM_LEADER_SKILLS = ${json(d.leaderSkills)};
+
+/**
  * 1つしか無い設定。空なら既定値が使われる。
  *   pickupId     ガチャのピックアップにするキャラID
  *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)

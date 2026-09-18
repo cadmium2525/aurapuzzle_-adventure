@@ -105,6 +105,52 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  assert.ok(atlasMsg.includes('焼けました'), 'アトラスが焼けなかった: '+atlasMsg);
  console.log('アトラス:', atlasMsg);
 
+ // --- スキル: 既存を分解して組み替え、新スキルにする ---
+ await page.locator('[data-go="skills"]').click(); await page.waitForTimeout(450);
+ const srow = page.locator('.row').filter({hasText:'業火の覇者'});
+ await srow.locator('[data-copy]').click(); await page.waitForTimeout(450);
+ const decomposed = await page.locator('#partList [data-part]').count();
+ assert.ok(decomposed >= 2, '既存スキルがパーツに分解されていない');
+ await page.locator('#partList [data-part]').first().locator('[data-pf="mult"]').fill('3');
+ await page.waitForTimeout(350);
+ await page.selectOption('#addPart','damageCut'); await page.waitForTimeout(400);
+ await page.fill('[name=id]','ls_check_nova'); await page.fill('[name=name]','検証の覇者');
+ await page.locator('#saveSkill').click(); await page.waitForTimeout(450);
+ const ls = await page.evaluate(()=>{
+   const d=JSON.parse(localStorage.getItem('acb_admin_draft')||'{}');
+   return (d.leaderSkills||[]).find(x=>x.id==='ls_check_nova');
+ });
+ assert.ok(ls, '組み立てたリーダースキルが保存されていない');
+ assert.equal(ls.auraAtk.c0, 3, '倍率の変更が入っていない');
+ assert.ok(ls.damageCut > 0, '足したパーツが入っていない');
+ assert.ok(ls.desc.includes('3倍') && ls.desc.includes('減'),
+   '説明がパーツに追随していない: ' + ls.desc);
+ console.log('組み立てたLS:', JSON.stringify(ls));
+
+ // 新キャラの候補に出る
+ await page.locator('[data-go="characters"]').click(); await page.waitForTimeout(400);
+ await page.locator('#newChar').click(); await page.waitForTimeout(400);
+ const opts = await page.locator('[name=leaderSkillId] option').allTextContents();
+ assert.ok(opts.some(o=>o.includes('検証の覇者')), '作ったスキルがキャラの候補に出ない');
+ await page.locator('#cancelBtn').click(); await page.waitForTimeout(300);
+
+ // --- モンスターの行動: 攻撃 + 特殊行動 ---
+ await page.locator('[data-go="enemies"]').click(); await page.waitForTimeout(400);
+ await page.locator('.icon-cell').first().click(); await page.waitForTimeout(450);
+ await page.locator('#addAction').click(); await page.waitForTimeout(400);
+ await page.locator('[data-add-act-effect]').first().click(); await page.waitForTimeout(450);
+ await page.locator('[data-action]').first().locator('[data-act-attack]').check();
+ await page.waitForTimeout(350);
+ await page.locator('#saveBtn').click(); await page.waitForTimeout(450);
+ const acts = await page.evaluate(()=>{
+   const d=JSON.parse(localStorage.getItem('acb_admin_draft')||'{}');
+   const e=(d.enemies||[]).find(x=>x.enemySkills&&x.enemySkills.actions);
+   return e? e.enemySkills.actions : [];
+ });
+ const both = acts.filter(a=>a.attack && a.effects && a.effects.length);
+ assert.ok(both.length > 0, '攻撃と特殊行動を同時に持つ行動が作れていない');
+ console.log('攻撃+特殊行動:', JSON.stringify(both[0]));
+
  // --- 点検 ---
  await page.locator('[data-go="tools"]').click(); await page.waitForTimeout(500);
  const rows = await page.locator('#view .card').first().locator('.row').allTextContents();
@@ -121,6 +167,6 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  // 画像未アップロードの 404 は想定内(絵文字にフォールバックする)
  const real = errors.filter(e => !/404/.test(e));
  assert.deepEqual(real, [], '想定外のエラーが出た');
- console.log('PASS: 8画面が開き、モンスター/変身ボス/降臨の倍率/キャラ生成/PU差し替え/アトラス焼き直し/点検/リリースが動く');
+ console.log('PASS: 8画面 + スキルの分解/組み替え + 攻撃と特殊行動の同時指定まで動く');
  await b.close(); server.close();
 })();

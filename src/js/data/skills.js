@@ -23,6 +23,7 @@
  *   - guard    {rate,turns}    一定ターン被ダメージ軽減
  *   - delay    ターン          敵の攻撃ターンを遅らせる
  * =======================================================*/
+import { CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS } from './custom.js';
 
 export const LEADER_SKILLS = {
   ls_kyuko:{name:'狐の戯れ',desc:'闇オーラ1.6倍・操作時間+1秒',auraAtk:{c4:1.6},time:1},
@@ -145,7 +146,11 @@ export function activeSkillById(id) { return ACTIVE_SKILLS[id] || null; }
 /** 倍率の「超過ぶん」を伸ばす(1.6倍 → 1.81倍 のように、1.0を基準に強くする) */
 const boostMult = (v, rate) => Math.round((1 + (v - 1) * rate) * 100) / 100;
 
-function describeLeaderSkill(ls) {
+/**
+ * リーダースキルの効果を日本語1行にする。
+ * 管理者ツールが説明を自動で書くのにも使う(desc を省いたときの既定)。
+ */
+export function describeLeaderSkill(ls) {
   const parts = [];
   if (ls.time) parts.push(`オーラ操作時間+${ls.time.toFixed(1)}秒`);
   if (ls.auraAtk) {
@@ -221,3 +226,44 @@ export function evolvedActiveSkill(id, overrideId) {
   up.desc = extras.join('・') + `(CT短縮 ${sk.cooldown}→${up.cooldown})`;
   return up;
 }
+
+
+/* =========================================================
+ * 管理者ツール(admin/)で足したスキル
+ *
+ * 既存のスキルを分解したパーツの組み合わせなので、扱いは同じ。
+ * 同じIDなら上書きする(倍率だけ直したいときに使える)。
+ * desc を省いたら効果から自動で書く。
+ * =======================================================*/
+
+/** アクティブスキルの効果を日本語1行にする */
+export function describeActiveSkill(sk) {
+  const AURA_NAME = { c0: '火', c1: '水', c2: '木', c3: '癒', c4: '闇' };
+  const parts = [];
+  if (sk.timeThisTurn) parts.push(`このターンの操作時間+${sk.timeThisTurn.toFixed(1)}秒`);
+  if (sk.healPct) parts.push(`最大HPの${Math.round(sk.healPct * 100)}%を回復`);
+  if (sk.fixedDamage) parts.push(`敵に攻撃力×${sk.fixedDamage}のダメージ`);
+  if (sk.convert) {
+    [].concat(sk.convert).forEach(c => {
+      parts.push(`${AURA_NAME[c.from]}オーラを${AURA_NAME[c.to]}オーラに変化`);
+    });
+  }
+  if (sk.spawn) parts.push(`ランダム${sk.spawn.count}個を${AURA_NAME[sk.spawn.to]}オーラに変化`);
+  if (sk.shuffle) parts.push('盤面をシャッフル');
+  if (sk.atkBuff) parts.push(`${sk.atkBuff.turns}ターンの間、攻撃力${sk.atkBuff.mult}倍`);
+  if (sk.guard) parts.push(`${sk.guard.turns}ターンの間、被ダメージ${Math.round(sk.guard.rate * 100)}%減`);
+  if (sk.delay) parts.push(`敵の攻撃を${sk.delay}ターン遅らせる`);
+  return parts.join('・');
+}
+
+(CUSTOM_LEADER_SKILLS || []).forEach(raw => {
+  if (!raw || !raw.id) return;
+  const { id, ...ls } = raw;
+  LEADER_SKILLS[id] = { ...ls, desc: ls.desc || describeLeaderSkill(ls) };
+});
+
+(CUSTOM_SKILLS || []).forEach(raw => {
+  if (!raw || !raw.id) return;
+  const { id, ...sk } = raw;
+  ACTIVE_SKILLS[id] = { ...sk, desc: sk.desc || describeActiveSkill(sk) };
+});

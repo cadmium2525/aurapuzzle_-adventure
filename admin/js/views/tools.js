@@ -8,6 +8,7 @@
 import { $, esc, card, toast } from '../ui.js';
 import * as G from '../gamedata.js';
 import { draft, blobEntries } from '../draft.js';
+import { partsFor } from '../skill-parts.js';
 
 /* ===================== 整合性チェック ===================== */
 
@@ -18,22 +19,51 @@ function checkAll() {
   const d = draft();
   const heldImages = new Set(blobEntries().map(([path]) => path));
 
+  /* --- 足したスキル --- */
+  const lsIds = new Set(Object.keys(G.LEADER_SKILLS));
+  const skIds = new Set(Object.keys(G.ACTIVE_SKILLS));
+  const checkSkill = (s, kind, where) => {
+    if (!s.name) warn('ng', where, '名前がありません');
+    const keys = partsFor(kind).map(p => p.key);
+    const used = keys.filter(k => s[k] != null && s[k] !== false);
+    if (!used.length) warn('ng', where, '効果が1つも入っていません(何も起きないスキルです)');
+    if (kind === 'active' && !(s.cooldown > 0)) warn('ng', where, 'クールタイムが0です');
+    // パーツ表に無いキーは、エンジンが読まないので効果が出ない
+    Object.keys(s).forEach(k => {
+      if (['id', 'name', 'desc', 'cooldown'].includes(k) || keys.includes(k)) return;
+      warn('warn', where, `${k} はエンジンが読まないキーです(効果が出ません)`);
+    });
+  };
+  (d.leaderSkills || []).forEach(s => {
+    const where = `リーダースキル ${s.id}`;
+    if (lsIds.has(s.id)) warn('warn', where, '既存と同じIDなので上書きします');
+    lsIds.add(s.id);
+    checkSkill(s, 'leader', where);
+  });
+  (d.skills || []).forEach(s => {
+    const where = `スキル ${s.id}`;
+    if (skIds.has(s.id)) warn('warn', where, '既存と同じIDなので上書きします');
+    skIds.add(s.id);
+    checkSkill(s, 'active', where);
+  });
+
   /* --- キャラクター --- */
   const charIds = new Map();
   G.CHARACTERS.forEach(c => charIds.set(c.id, 'ゲーム本体'));
   d.characters.forEach(c => {
     if (charIds.has(c.id)) warn('ng', `キャラ ${c.id}`, `IDが ${charIds.get(c.id)} と重複しています`);
     charIds.set(c.id, '下書き');
-    if (!G.LEADER_SKILLS[c.leaderSkillId]) {
+    // 下書きで作ったスキルも参照先として認める(先に作れば新キャラに付けられる)
+    if (!lsIds.has(c.leaderSkillId)) {
       warn('ng', `キャラ ${c.id}`, `リーダースキル ${c.leaderSkillId} がありません`);
     }
-    if (!G.ACTIVE_SKILLS[c.skillId]) {
+    if (!skIds.has(c.skillId)) {
       warn('ng', `キャラ ${c.id}`, `スキル ${c.skillId} がありません`);
     }
-    if (c.evoLeaderSkillId && !G.LEADER_SKILLS[c.evoLeaderSkillId]) {
+    if (c.evoLeaderSkillId && !lsIds.has(c.evoLeaderSkillId)) {
       warn('ng', `キャラ ${c.id}`, `進化後のリーダースキル ${c.evoLeaderSkillId} がありません`);
     }
-    if (c.evoSkillId && !G.ACTIVE_SKILLS[c.evoSkillId]) {
+    if (c.evoSkillId && !skIds.has(c.evoSkillId)) {
       warn('ng', `キャラ ${c.id}`, `進化後のスキル ${c.evoSkillId} がありません`);
     }
     (c.artStages || []).forEach(stage => {

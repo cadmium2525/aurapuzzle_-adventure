@@ -281,9 +281,42 @@ function renderEditor(view) {
   });
   $('actionList').addEventListener('click', e => {
     const drop = e.target.closest('[data-drop-action]');
-    if (!drop) return;
+    if (drop) {
+      collect(view);
+      cur().actions.splice(Number(drop.dataset.dropAction), 1);
+      renderEditor(view);
+      return;
+    }
+    const add = e.target.closest('[data-add-act-effect]');
+    if (add) {
+      collect(view);
+      const a = cur().actions[Number(add.dataset.addActEffect)];
+      a.effects = (a.effects || []).concat([newEffect('bind')]);
+      renderEditor(view);
+      return;
+    }
+    // 行動の中の効果を外す。効果の行は data-effect も持つので先に拾う
+    const dropEffect = e.target.closest('[data-drop-effect]');
+    if (dropEffect) {
+      const box = dropEffect.closest('[data-action]');
+      if (!box) return;
+      collect(view);
+      const a = cur().actions[Number(box.dataset.action)];
+      a.effects.splice(Number(dropEffect.dataset.dropEffect), 1);
+      if (!a.effects.length) delete a.effects;
+      renderEditor(view);
+    }
+  });
+  // 効果の型を変えたら、その型の既定値で作り直す
+  $('actionList').addEventListener('change', e => {
+    const sel = e.target.closest('[data-type]');
+    if (!sel) return;
+    const box = sel.closest('[data-action]');
+    const row = sel.closest('[data-effect]');
+    if (!box || !row) return;
     collect(view);
-    cur().actions.splice(Number(drop.dataset.dropAction), 1);
+    const a = cur().actions[Number(box.dataset.action)];
+    a.effects[Number(row.dataset.effect)] = newEffect(sel.value);
     renderEditor(view);
   });
 
@@ -307,16 +340,31 @@ function renderEditor(view) {
   });
 }
 
-/** 行動1つぶんの編集行 */
+/**
+ * 行動1つぶんの編集行。
+ * 「攻撃」と「特殊行動」は排他ではない。両方入れると、殴りながら
+ * 効果も撃つ(キュウコの進化後が元からこの形)。
+ */
 function actionRow(action, index) {
-  return `<div class="slot" data-action="${index}">
-    <label class="small" style="flex:0 0 auto">
-      <input type="checkbox" data-act-attack${action.attack ? ' checked' : ''}
-        style="width:auto;margin-right:4px">攻撃</label>
-    <input class="grow mini" style="width:auto;text-align:left" data-act-dialogue
-      placeholder="台詞(任意)" value="${esc(action.dialogue || '')}">
-    <button class="icon-btn" data-drop-action="${index}" aria-label="削除"
-      style="width:28px;height:28px;flex:0 0 28px;font-size:13px">✕</button>
+  const effects = action.effects || [];
+  return `<div class="slot slot-stack" data-action="${index}">
+    <div class="slot-line">
+      <label class="small" style="flex:0 0 auto">
+        <input type="checkbox" data-act-attack${action.attack ? ' checked' : ''}>攻撃する</label>
+      <span class="grow small" style="color:var(--ink-faint)">
+        ${effects.length ? `＋ 特殊行動 ${effects.length} 個` : '特殊行動なし'}</span>
+      <button class="icon-btn" data-drop-action="${index}" aria-label="削除"
+        style="width:28px;height:28px;flex:0 0 28px;font-size:13px">✕</button>
+    </div>
+    <div class="slot-line">
+      <input class="grow mini" style="text-align:left" data-act-dialogue
+        placeholder="台詞(任意)" value="${esc(action.dialogue || '')}">
+    </div>
+    <div data-act-effects="${index}">${effects.map((ef, i) =>
+      effectRow(ef, i).replace('data-effect="', `data-act-effect="${index}" data-effect="`)).join('')}</div>
+    <div class="slot-line">
+      <button class="btn" data-add-act-effect="${index}" style="padding:4px 9px">＋ 特殊行動を足す</button>
+    </div>
   </div>`;
 }
 
@@ -356,6 +404,9 @@ function collect(view) {
       if (box.querySelector('[data-act-attack]').checked) out.attack = true;
       const line = box.querySelector('[data-act-dialogue]').value.trim();
       if (line) out.dialogue = line;
+      const host = box.querySelector('[data-act-effects]');
+      const effects = host ? readEffects(host) : [];
+      if (effects.length) out.effects = effects;
       return out;
     });
   }
