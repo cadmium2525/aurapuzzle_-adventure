@@ -21,6 +21,7 @@ import {
   AURAS, COLOR_HEX, BASE_AURAS, characterById, resolveCharacter,
   availableNpcSupports, NPC_SUPPORTS, materialById, crystalIdFor,
   CHAPTER_COUNT, STAGES_PER_CHAPTER, chapterNameOf, chapterLastStageId,
+  TECHNICAL_STAGES, TECH_CHAPTER_COUNT, techChapterNameOf, techChapterLastStageId,
   dailyStagesFor, DAILY_THEMES, todayTheme
 } from '../data/gamedata.js';
 import { startDungeonRun, resumeDungeonRun, pausedRun, discardPausedRun } from '../battle/battle.js';
@@ -29,9 +30,11 @@ import { portraitHTML, awakenPipsHTML } from './parts.js';
 import { RAID_STAGES } from '../data/raids.js';
 
 let dungeonHard = false;
-let dungeonMode = 'story';     // 'story' = 章ごとの通常 / 'daily' = 曜日ダンジョン
+// 'story' = 章ごとの通常 / 'technical' = 全フロア特殊行動 / 'daily' = 曜日 / 'raid' = 降臨
+let dungeonMode = 'story';
 let dungeonView = 'menu';      // ホームからはまず種別選択を開く
-let chapter = 1;
+let chapter = 1;               // 通常ダンジョンで開いている章
+let techChapter = 1;           // テクニカルで開いている階層
 let pendingStage = null, pendingHard = false;
 let sortieStep = 'team';       // 'team' | 'support' | 'confirm'
 let pendingSupport = null;     // 選んだサポート(なしのときは null)
@@ -41,6 +44,7 @@ let strangerRentals = null;    // フレンド以外のプレイヤー(読み取
 
 export function initDungeon() {
   $('openStoryDungeonBtn').addEventListener('click', () => openDungeonType('story'));
+  $('openTechDungeonBtn').addEventListener('click', () => openDungeonType('technical'));
   $('openDailyDungeonBtn').addEventListener('click', () => openDungeonType('daily'));
   $('openRaidDungeonBtn').addEventListener('click', () => openDungeonType('raid'));
   $('dungeonCategoryBackBtn').addEventListener('click', showDungeonMenu);
@@ -374,28 +378,47 @@ function startPendingRun() {
 }
 
 /* ===================== ステージ一覧 ===================== */
+/* 通常とテクニカルは「章(階層)ごとに5ステージ、前の章の最終ステージを
+   ノーマルでクリアすると次が開く」という同じ形なので、名前と件数だけ
+   差し替えて同じ処理を使う。 */
+const SERIES = {
+  story: {
+    stages: () => STAGES, count: CHAPTER_COUNT,
+    nameOf: chapterNameOf, lastId: chapterLastStageId,
+    get: () => chapter, set: c => { chapter = c; }
+  },
+  technical: {
+    stages: () => TECHNICAL_STAGES, count: TECH_CHAPTER_COUNT,
+    nameOf: techChapterNameOf, lastId: techChapterLastStageId,
+    get: () => techChapter, set: c => { techChapter = c; }
+  }
+};
+/** 章タブを出す種別か */
+function chaptered(mode) { return !!SERIES[mode]; }
+
 /** その章が解禁されているか(前の章の最終ステージをノーマルでクリア) */
-export function chapterUnlocked(ch) {
+export function chapterUnlocked(ch, mode = 'story') {
   if (ch <= 1) return true;
-  return !!(state.progress[chapterLastStageId(ch - 1)] || {}).normal;
+  return !!(state.progress[SERIES[mode].lastId(ch - 1)] || {}).normal;
 }
 
 /** 解禁済みのいちばん先の章 */
-function latestChapter() {
+function latestChapter(mode) {
   let last = 1;
-  for (let c = 1; c <= CHAPTER_COUNT; c++) if (chapterUnlocked(c)) last = c;
+  for (let c = 1; c <= SERIES[mode].count; c++) if (chapterUnlocked(c, mode)) last = c;
   return last;
 }
 
-function renderChapterBar() {
+function renderChapterBar(mode) {
+  const series = SERIES[mode];
   const bar = $('chapterBar');
   bar.innerHTML = '';
-  for (let c = 1; c <= CHAPTER_COUNT; c++) {
-    const ok = chapterUnlocked(c);
+  for (let c = 1; c <= series.count; c++) {
+    const ok = chapterUnlocked(c, mode);
     const b = document.createElement('button');
-    b.className = 'chapter-btn' + (c === chapter ? ' active' : '') + (ok ? '' : ' locked');
-    b.innerHTML = ok ? `<b>${c}</b><span>${chapterNameOf(c)}</span>` : `<b>${c}</b><span>🔒</span>`;
-    if (ok) b.addEventListener('click', () => { chapter = c; renderDungeon({ preserve: true }); });
+    b.className = 'chapter-btn' + (c === series.get() ? ' active' : '') + (ok ? '' : ' locked');
+    b.innerHTML = ok ? `<b>${c}</b><span>${series.nameOf(c)}</span>` : `<b>${c}</b><span>🔒</span>`;
+    if (ok) b.addEventListener('click', () => { series.set(c); renderDungeon({ preserve: true }); });
     bar.appendChild(b);
   }
 }
@@ -410,7 +433,8 @@ export function renderDungeon(options = {}) {
   $('dungeonStages').hidden = choosing;
   if (choosing) return;
 
-  $('storyControls').hidden = dungeonMode !== 'story';
+  // 章タブと難易度切り替えは、通常とテクニカルで共通に使う
+  $('storyControls').hidden = !chaptered(dungeonMode);
   $('dailyHead').hidden = dungeonMode !== 'daily';
 
   if (dungeonMode === 'daily') { renderDailyList(); return; }
@@ -418,15 +442,15 @@ export function renderDungeon(options = {}) {
     const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES);return;
   }
 
+  const series = SERIES[dungeonMode];
   $('diffNormalBtn').classList.toggle('active', !dungeonHard);
   $('diffHardBtn').classList.toggle('active', dungeonHard);
-  if (!chapterUnlocked(chapter)) chapter = latestChapter();
-  renderChapterBar();
+  if (!chapterUnlocked(series.get(), dungeonMode)) series.set(latestChapter(dungeonMode));
+  renderChapterBar(dungeonMode);
 
   const list = $('stageList');
   list.innerHTML = '';
-  const inChapter = STAGES.filter(st => st.chapter === chapter);
-  renderStageCards(list, inChapter);
+  renderStageCards(list, series.stages().filter(st => st.chapter === series.get()));
 }
 
 /* ===================== 曜日ダンジョン ===================== */
@@ -453,8 +477,11 @@ function renderStageCards(list, stages) {
     else if (stage.daily) {
       isLocked = state.rank < stage.requireRank;
     } else {
-      const idx = STAGES.findIndex(x => x.id === stage.id);
-      const prev = idx > 0 ? STAGES[idx - 1] : null;
+      // 通常もテクニカルも「1つ前のステージをノーマルでクリア」で開く。
+      // ハードはそのステージ自身をノーマルでクリアしてから
+      const series = stage.technical ? TECHNICAL_STAGES : STAGES;
+      const idx = series.findIndex(x => x.id === stage.id);
+      const prev = idx > 0 ? series[idx - 1] : null;
       const unlockedNormal = !prev || (state.progress[prev.id] || {}).normal;
       isLocked = hard ? prog.normal !== true : !unlockedNormal;
     }
@@ -464,6 +491,9 @@ function renderStageCards(list, stages) {
     const rewardCoin = Math.round(stage.coinReward * (hard ? HARD_REWARD_MULT : 1));
     const orb = stage.orbReward
       ? ` ${itemIcon('orb')}${hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward}` : '';
+    // 初クリアぶんは、まだ取っていないときだけ出す
+    const firstOrb = stage.firstClearOrb && !cleared
+      ? ` <span class="first-orb">初${itemIcon('orb')}${stage.firstClearOrb}</span>` : '';
     const record = state.records[stage.id + '_' + (hard ? 'hard' : 'normal')];
     const dropText = dropLabel(stage);
 
@@ -475,7 +505,7 @@ function renderStageCards(list, stages) {
       <div class="sinfo">
         <div class="sname">${stage.name}${hard ? '<span class="hardtag">HARD</span>' : ''}
           ${cleared ? '<span class="clearbadge">CLEAR</span>' : ''}</div>
-        <div class="ssub">${auraChips(stage)} ・ ${itemIcon('coin')}${rewardCoin}${orb}</div>
+        <div class="ssub">${auraChips(stage)} ・ ${itemIcon('coin')}${rewardCoin}${orb}${firstOrb}</div>
         <div class="ssub dim">${dropText} ・ ${isLocked && stage.daily ? `ランク${stage.requireRank}で解放`
           : (record ? `最高コンボ ${record.maxChain}` : '未挑戦')}</div>
       </div>
@@ -524,6 +554,10 @@ function auraChips(stage) {
 /** そのステージで何が手に入るかの1行表示 */
 function dropLabel(stage) {
   if(stage.raid)return '全10フロア ・ キュウコ★3 基本50%ドロップ';
+  if (stage.technical) {
+    const mat = materialById(crystalIdFor(stage.dropAura));
+    return `全フロア特殊行動 ・ ${itemIcon(mat.id)}${mat.name}`;
+  }
   if (stage.dropType === 'gold') return `${itemIcon('coin')} ゴールド特化`;
   if (stage.dropType === 'exp') return `${itemIcon('mt_exp2')} キャラ経験値アイテム`;
   const mat = materialById(crystalIdFor(stage.dropAura));

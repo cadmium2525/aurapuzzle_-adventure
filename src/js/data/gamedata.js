@@ -120,6 +120,107 @@ export const STAGES = (() => {
   return list;
 })();
 
+/* ===================== テクニカルダンジョン =====================
+ * ボスはいない代わりに、**全フロア**が特殊行動を持つ。
+ * オーラを消すだけでは通らず、連鎖数・形・色を組み立てて崩す場所。
+ *
+ * 10階層 × 5ステージ × 5フロア。難易度はノーマルとハード。
+ * 初クリア(難易度ごとに1回)でダイヤが1個もらえる。
+ * ==============================================================*/
+export const TECH_CHAPTER_COUNT = 10;
+export const TECH_STAGES_PER_CHAPTER = 5;
+/** 通常(1〜50)・曜日(1000番台)・降臨(2001)と重ならない番号にする */
+const TECH_ID_BASE = 3000;
+/** 初クリアで配るダイヤの数(難易度ごとに1回だけ) */
+export const TECH_FIRST_CLEAR_ORB = 1;
+
+const TECH_CHAPTER_NAMES = [
+  '連鎖の試練', '形の試練',   '束縛の試練', '刻限の試練', '吸収の試練',
+  '鉄壁の試練', '沈黙の試練', '重圧の試練', '混沌の試練', '極まりの試練'
+];
+const TECH_STAGE_SUFFIX = ['初門', '二門', '三門', '四門', '極門'];
+const TECH_SHAPES = ['L', 'cross', 'square', 'line'];
+
+export function techChapterNameOf(ch) { return TECH_CHAPTER_NAMES[ch - 1] || ''; }
+/** その階層の最終ステージID(クリアで次の階層が解禁される) */
+export function techChapterLastStageId(ch) { return TECH_ID_BASE + ch * TECH_STAGES_PER_CHAPTER; }
+
+/**
+ * フロア1つぶんの特殊行動。10種類を順に巡らせるので、
+ * 1ステージ(5フロア)で5種類、2ステージで一巡する。
+ *
+ * ずっと続くのは耐えきれる3種類だけ(連鎖ガード・根性・ビルドアップ)。
+ * 形ガードや吸収をフロアの間ずっと続けると、手持ちのオーラ次第で
+ * 手も足も出なくなるので、こちらはターン数を区切って先制で撃たせる。
+ *
+ * @param {number} kind 0〜9 の種類
+ * @param {number} lv   階層(1〜10)。奥ほど条件が厳しくなる
+ * @param {number} seed 色や形を散らすための通し番号
+ */
+function techSkills(kind, lv, seed) {
+  const aura = seed % 5;
+  const hit = effect => ({ preemptive: { effects: [effect] } });
+  switch (kind) {
+    case 0: return { passives: [{ type: 'comboGuard', chains: 2 + Math.ceil(lv / 3) }] };
+    case 1: return hit({ type: 'shapeGuard', aura, shape: TECH_SHAPES[seed % TECH_SHAPES.length],
+      turns: 2 + Math.floor(lv / 4) });
+    case 2: return hit({ type: 'auraAbsorb', aura, turns: 2 + Math.floor(lv / 4) });
+    case 3: return hit({ type: 'bind', count: 1 + Math.floor(lv / 6), turns: 1 + Math.floor(lv / 4) });
+    case 4: return hit({ type: 'skillDelay', count: 2 + Math.floor(lv / 5), turns: 1 + Math.floor(lv / 6) });
+    case 5: return hit({ type: 'timeReduce', seconds: 1 + Math.floor(lv / 5), turns: 2 + Math.floor(lv / 3) });
+    case 6: return hit({ type: 'timeFixed', seconds: Math.max(3, 6 - Math.floor(lv / 3)),
+      turns: 1 + Math.floor(lv / 4) });
+    case 7: return { passives: [{ type: 'resolve', threshold: 25 + lv * 2 }] };
+    case 8: return { passives: [{ type: 'buildUp' }] };
+    default: return hit({ type: 'auraBind', aura, turns: 1 + Math.floor(lv / 4) });
+  }
+}
+
+export const TECHNICAL_STAGES = (() => {
+  const list = [];
+  for (let ch = 1; ch <= TECH_CHAPTER_COUNT; ch++) {
+    for (let i = 1; i <= TECH_STAGES_PER_CHAPTER; i++) {
+      const order = (ch - 1) * TECH_STAGES_PER_CHAPTER + i;   // 1〜50
+      const step = order - 1;                                  // 0始まりの通し難易度
+      const floors = [];
+      for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
+        const seed = step * FLOORS_PER_STAGE + (f - 1);
+        const enemy = ENEMIES[(seed * 3 + 1) % ENEMIES.length];
+        floors.push({
+          enemyId: enemy.id,
+          name: enemy.name,
+          emoji: ENEMY_EMOJIS[(seed * 3 + 1) % ENEMY_EMOJIS.length],
+          sprite: enemy.sprite,
+          // ボスがいないので、フロアごとの山谷は付けず素直に上げていく
+          hp: Math.round(200 + step * 250 + (f - 1) * (90 + step * 22)),
+          atk: Math.round(10 + step * 8 + (f - 1) * (3.5 + step * 0.7)),
+          interval: 2,
+          enemySkills: techSkills(seed % 10, ch, seed)
+        });
+      }
+      list.push({
+        id: TECH_ID_BASE + order,
+        technical: true,
+        chapter: ch,
+        name: `${ch}-${i} ${TECH_CHAPTER_NAMES[ch - 1]}・${TECH_STAGE_SUFFIX[i - 1]}`,
+        floors,
+        stamina: 8 + Math.floor(step * 1.1),
+        coinReward: 200 + step * 130,
+        orbReward: 0,                       // 周回では配らない
+        firstClearOrb: TECH_FIRST_CLEAR_ORB, // 初クリアのときだけ
+        expReward: 22 + step * 6,
+        charExpReward: 110 + step * 110,
+        auras: aurasForChapter(ch),
+        dropAura: (ch >= DARK_FROM_CHAPTER ? STAGE_AURA_DARK : STAGE_AURA)[(i - 1) % STAGE_AURA.length],
+        shardRate: Math.min(0.9, 0.25 + step * 0.05),
+        crystalBase: 3 + Math.floor(step / 5),
+        dropType: 'normal'
+      });
+    }
+  }
+  return list;
+})();
+
 /* ===================== 曜日ダンジョン ===================== */
 /**
  * 曜日ごとに手に入るものが変わる。0=日 〜 6=土。

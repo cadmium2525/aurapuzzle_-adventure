@@ -34,7 +34,7 @@ const server=http.createServer(async(req,res)=>{
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.locator('#titleScreen.ready').click({timeout:30000});
     await page.evaluate(async()=>{(await import('/src/js/core/nav.js')).showScreen('dungeon');});
-    assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','降臨ダンジョン','曜日ダンジョン','トレーニング']);
+    assert.deepEqual(await page.locator('#dungeonMenu b').allTextContents(),['ノーマルダンジョン','テクニカルダンジョン','降臨ダンジョン','曜日ダンジョン','トレーニング']);
     await page.locator('#openRaidDungeonBtn').click();
     await page.locator('.stage-card').filter({hasText:'九狐降臨'}).click();
     // 説明ページは挟まず、カードからそのまま出撃(チーム→サポート→確認)へ進む

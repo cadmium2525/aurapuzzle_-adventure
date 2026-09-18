@@ -1495,6 +1495,9 @@ input[type=range]{accent-color:var(--accent);}
   background:linear-gradient(180deg,var(--gold-1),var(--gold-2));border-radius:4px;padding:1px 3px;}
 #pullSummaryWrap h3{margin:0 0 10px;font-size:14px;font-weight:900;text-align:center;}
 
+/* 初クリアのときだけ出る報酬。周回の報酬と見分けが付くようにする */
+.rrow.first-clear{background:linear-gradient(160deg,rgba(255,198,92,.22),rgba(255,198,92,.06));
+  border-color:rgba(255,198,92,.5);color:var(--accent);font-weight:800;}
 /* リザルトのドロップ表示 */
 .rrow.drop{background:color-mix(in srgb, var(--mt) 14%, transparent);
   border-color:color-mix(in srgb, var(--mt) 40%, transparent);color:var(--ink-dim);}
@@ -1517,6 +1520,11 @@ input[type=range]{accent-color:var(--accent);}
 .lh-lv{font-size:10px;color:var(--accent);font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;}
 .pm-lv{font-size:8px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums;}
 .dungeon-entry.raid { border-color:#df8bd8; background:linear-gradient(120deg,#30163f,#19162e); }
+.dungeon-entry.technical{background:linear-gradient(135deg,#123244,#101A38);}
+.dungeon-entry.technical::before{background:radial-gradient(circle at 85% 25%,rgba(101,224,255,.34),transparent 42%);}
+.dungeon-entry.technical .dungeon-entry-kicker{color:#8FE0FF;}
+/* まだ取っていない初クリア報酬。周回ぶんと見分けが付くように金で出す */
+.first-orb{color:var(--accent);font-weight:800;}
 /* 敵が複数のときは1体あたりの絵が小さいので、少し詰める */
 #enemyStage.multi-enemy { height:24vh; min-height:152px; }
 #enemyRoster { display:flex; justify-content:center; align-items:stretch; width:100%; gap:4px; flex:1 1 auto; min-height:0; }

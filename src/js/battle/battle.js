@@ -926,10 +926,14 @@ function finishRun() {
   clearRunSnapshot();
   const { stage, hard, stats } = run;
   const prog = state.progress[stage.id] = state.progress[stage.id] || {};
+  // 初クリア報酬は難易度ごとに1回だけ。記録を付ける前に判定する
+  const firstClear = !(hard ? prog.hard : prog.normal);
   if (hard) prog.hard = true; else prog.normal = true;
 
   const coin = Math.round(stage.coinReward * (hard ? HARD_REWARD_MULT : 1));
-  const orb  = hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward;
+  // 初クリアぶんは周回報酬と違って倍率をかけない(ノーマルもハードも同じ数)
+  const firstOrb = firstClear ? (stage.firstClearOrb || 0) : 0;
+  const orb  = (hard ? Math.round(stage.orbReward * HARD_REWARD_MULT) : stage.orbReward) + firstOrb;
   const exp  = Math.round(stage.expReward * (hard ? HARD_REWARD_MULT : 1));
   state.coin += coin; state.orb += orb;
 
@@ -965,7 +969,8 @@ function finishRun() {
   }).join('');
   $('resultRewards').innerHTML = `
     <div class="rrow">${itemIcon('coin')} <b>${coin}</b></div>
-    ${orb ? `<div class="rrow">${itemIcon('orb')} <b>${orb}</b></div>` : ''}
+    ${orb - firstOrb ? `<div class="rrow">${itemIcon('orb')} <b>${orb - firstOrb}</b></div>` : ''}
+    ${firstOrb ? `<div class="rrow first-clear">🏅 初クリア報酬 ${itemIcon('orb')} <b>${firstOrb}</b></div>` : ''}
     <div class="rrow">⭐ <b>EXP ${exp}</b></div>
     <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
     ${dropHTML}${stage.raid ? `<div class="rrow">${characterDropped?'🦊 キュウコ ★3 ×1 獲得！':'キュウコのドロップなし'}（確率${Math.round(dropRate*100)}%）</div>` : ''}`;

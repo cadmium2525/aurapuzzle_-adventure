@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="43">
+<meta name="app-version" content="44">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -168,6 +168,11 @@
           <span class="dungeon-entry-kicker">STORY</span>
           <b>ノーマルダンジョン</b>
           <span>章を進めて新しい敵と報酬を解放</span><i>›</i>
+        </button>
+        <button id="openTechDungeonBtn" class="dungeon-entry technical">
+          <span class="dungeon-entry-kicker">TECHNICAL</span>
+          <b>テクニカルダンジョン</b>
+          <span>全フロアが特殊行動。連鎖と形を組み立てて崩す</span><i>›</i>
         </button>
         <button id="openRaidDungeonBtn" class="dungeon-entry raid">
           <span class="dungeon-entry-kicker">RAID</span><b>降臨ダンジョン</b>
