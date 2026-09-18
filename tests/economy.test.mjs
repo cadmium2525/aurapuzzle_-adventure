@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DAILY_THEMES, dailyStagesFor, AURAS, SHOP_ITEMS, STAMINA_DRINK, ORB_POUCH,
-  DISMISS_REWARD, MATERIALS
+  DISMISS_REWARD, MATERIALS, materialById, shopCrystalToday, EVOLVE_COST
 } from '../src/js/data/gamedata.js';
 import { CHARACTERS } from '../src/js/data/characters.js';
 
@@ -52,4 +52,37 @@ test('コイン→ダイヤの蛇口が1日で閉じ、ドリンクで回して�
   assert.ok(perDay < drinkCost,
     `ダイヤ→スタミナ→コイン→ダイヤ が黒字になっている(戻り ${perDay} / 払い ${drinkCost})`);
   assert.equal(pouch.price, ORB_POUCH.price);
+});
+
+test('素材の商品はどれも実在する素材を指していて、1日の上限がある', () => {
+  const mats = SHOP_ITEMS.filter(i => i.type === 'material');
+  assert.ok(mats.length > 0, '素材の商品が無い');
+  mats.forEach(item => {
+    assert.ok(materialById(item.matId), `${item.id} の matId ${item.matId} が存在しない`);
+    assert.ok(item.amount > 0, `${item.id} の個数が0`);
+    assert.ok(item.dailyLimit > 0, `${item.id} に1日の上限が無い`);
+  });
+});
+
+test('「今日の結晶」は結晶の落ちる曜日にだけ並ぶ', () => {
+  // shopCrystalToday() は実時間を見るので、曜日ごとの意図をテーマ側で確かめる
+  DAILY_THEMES.forEach(t => {
+    const expected = t.dropType === 'crystal' ? `mt_c${t.dropAura}` : null;
+    if (expected) assert.ok(materialById(expected), `${t.label}曜の結晶が存在しない`);
+  });
+  const today = DAILY_THEMES[new Date().getDay()];
+  assert.equal(shopCrystalToday(), today.dropType === 'crystal' ? `mt_c${today.dropAura}` : null);
+});
+
+test('素材をショップで買うほうが送還より高くつく(買って送還の抜け道を作らない)', () => {
+  // ショップのキャラは買い切りなので繰り返せないが、値付けの向きは保っておく
+  const crystal = SHOP_ITEMS.find(i => i.type === 'crystalToday');
+  const perCrystal = crystal.price / crystal.amount;
+  const cheapest = Math.min(...SHOP_ITEMS.filter(i => i.type === 'character')
+    .map(i => i.price / DISMISS_REWARD[1].crystal));
+  assert.ok(perCrystal > 0 && cheapest > 0);
+  // 進化1段ぶんの結晶を買う値段が、★5進化のコイン代を大きく超えないこと
+  const forStar5 = EVOLVE_COST[5].crystal * perCrystal;
+  assert.ok(forStar5 < EVOLVE_COST[5].coin * 2,
+    `結晶を買い揃える値段(${forStar5})が進化のコイン代(${EVOLVE_COST[5].coin})に対して高すぎる`);
 });

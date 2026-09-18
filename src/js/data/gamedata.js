@@ -296,6 +296,15 @@ export function dailyStagesFor(day) {
 /** 今日の曜日テーマ */
 export function todayTheme() { return DAILY_THEMES[new Date().getDay()]; }
 
+/**
+ * 今日の曜日ダンジョンが落とす結晶のID。
+ * ゴールド(金)と経験値(日)の日は結晶が無いので null を返す。
+ */
+export function shopCrystalToday() {
+  const t = todayTheme();
+  return t.dropType === 'crystal' ? `mt_c${t.dropAura}` : null;
+}
+
 export const HARD_HP_MULT = 1.8;
 export const HARD_REWARD_MULT = 1.6;
 export const HARD_STAMINA_MULT = 1.5;
@@ -418,6 +427,20 @@ export const SHOP_ITEMS = [
   { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200, totalLimit: 1 },
   { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200, totalLimit: 1 },
   { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200, totalLimit: 1 },
+  /* --- 素材枠。どれも1日1回で、コインの行き先を毎日作るためのもの ---
+   * 値段はショップのキャラを買い切りにして底値が消えたぶん、素直に決められる。
+   * 全部買うと1日21,500コイン。小袋と合わせて41,500コインなので、
+   * 回し込む人の1日の収入(平日の最良で約58,000コイン)でも選ぶことになる。 */
+  { id: 'sh_shard', type: 'material', matId: 'mt_star', amount: 2, price: 4000, dailyLimit: 1,
+    note: '進化に共通で要る' },
+  // 今日の曜日ダンジョンと同じ結晶。スタミナを使わずに買い足せる枠。
+  // ゴールドの金曜と経験値の日曜は落ちる結晶が無いので、その日は並べない。
+  { id: 'sh_crystal', type: 'crystalToday', amount: 5, price: 2500, dailyLimit: 1,
+    note: '今日の曜日と同じ' },
+  { id: 'sh_exp', type: 'material', matId: 'mt_exp2', amount: 3, price: 3000, dailyLimit: 1,
+    note: '編成外も育てる' },
+  { id: 'sh_awaken', type: 'material', matId: 'mt_awaken', amount: 1, price: 12000, dailyLimit: 1,
+    note: '被り以外の開眼' },
   { id: 'sh_orb', type: 'orb', amount: ORB_POUCH.amount, emoji: '💎',
     price: ORB_POUCH.price, dailyLimit: ORB_POUCH.dailyLimit, unit: '個' },
   { id: 'sh_stamina', type: 'stamina', amount: STAMINA_DRINK.amount, emoji: '⚡',

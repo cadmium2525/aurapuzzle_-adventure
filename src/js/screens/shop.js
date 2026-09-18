@@ -4,33 +4,65 @@
  * =======================================================*/
 import { $, toast, itemIcon } from '../core/ui.js';
 import {
-  state, saveState, addCharacter,
+  state, saveState, addCharacter, addMaterials,
   shopRemaining, shopRemainingToday, shopRemainingTotal, recordShopPurchase
 } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
-import { AURAS, SHOP_ITEMS, RARITY_TITLE, resolveCharacter } from '../data/gamedata.js';
+import {
+  AURAS, SHOP_ITEMS, RARITY_TITLE, resolveCharacter, materialById, shopCrystalToday
+} from '../data/gamedata.js';
 import { portraitHTML } from './parts.js';
 
-/** 商品ごとの見せ方。type を増やしたらここに足す */
+/**
+ * その商品が今日の棚に並ぶか。
+ * 「今日の結晶」は曜日ダンジョンに連動するので、結晶の落ちない
+ * 金曜(ゴールド)と日曜(経験値)には出さない。
+ */
+function inStock(item) {
+  return item.type !== 'crystalToday' || !!shopCrystalToday();
+}
+
+/** その商品が渡す素材のID(素材でなければ null) */
+function materialIdOf(item) {
+  if (item.type === 'material') return item.matId;
+  if (item.type === 'crystalToday') return shopCrystalToday();
+  return null;
+}
+
+/**
+ * 商品ごとの見せ方。type を増やしたらここに足す。
+ * name は行の見出し(HTMLを含むことがある)、plain はトースト用の素の名前。
+ */
 function present(item) {
+  const matId = materialIdOf(item);
+  if (matId) {
+    const mt = materialById(matId);
+    return {
+      visual: itemIcon(matId, 'shop'),
+      name: mt.name, plain: mt.name,
+      desc: `×${item.amount}${item.note ? ` ・ ${item.note}` : ''}`
+    };
+  }
   if (item.type === 'character') {
     const ch = resolveCharacter(item.charId, null, 1);
     return {
       visual: portraitHTML(ch),
-      name: `${ch.name}<span class="shop-job">${ch.job}</span>`,
+      name: `${ch.name}<span class="shop-job">${ch.job}</span>`, plain: ch.name,
       desc: `${AURAS[ch.aura].emoji}${AURAS[ch.aura].name} ・ ${RARITY_TITLE[ch.rarity]} ・ ATK ${ch.atk} / HP ${ch.hp}`
     };
   }
   if (item.type === 'orb') {
     // コインをダイヤに替える唯一の道。1日1個までで蛇口を止めている
-    return { visual: itemIcon('orb', 'shop'), name: 'オーブ小袋', desc: `オーブ +${item.amount}` };
+    return { visual: itemIcon('orb', 'shop'), name: 'オーブ小袋', plain: 'オーブ小袋',
+      desc: `オーブ +${item.amount}` };
   }
   if (item.type === 'frepo') {
-    return { visual: itemIcon('frepo', 'shop'), name: 'フレンドポイント袋', desc: `フレポ +${item.amount}` };
+    return { visual: itemIcon('frepo', 'shop'), name: 'フレンドポイント袋', plain: 'フレンドポイント袋',
+      desc: `フレポ +${item.amount}` };
   }
   return {
     visual: itemIcon('stamina', 'shop'),
-    name: 'スタミナドリンク',
+    name: 'スタミナドリンク', plain: 'スタミナドリンク',
     // 上限を超えて持てるのはランクアップと同じ扱い。満タンでも無駄にならない
     desc: `スタミナ +${item.amount}（上限を超えて持てる）`
   };
@@ -38,6 +70,8 @@ function present(item) {
 
 /** 買ったときに所持数へ反映する */
 function grant(item) {
+  const matId = materialIdOf(item);
+  if (matId) { addMaterials({ [matId]: item.amount }); return; }
   if (item.type === 'character') addCharacter(item.charId);
   if (item.type === 'orb') state.orb += item.amount;
   if (item.type === 'frepo') state.frepo += item.amount;
@@ -47,8 +81,8 @@ function grant(item) {
 export function renderShop() {
   const list = $('shopList');
   list.innerHTML = '';
-  SHOP_ITEMS.forEach(item => {
-    const { visual, name, desc } = present(item);
+  SHOP_ITEMS.filter(inStock).forEach(item => {
+    const { visual, name, plain, desc } = present(item);
     const currency = item.currency || 'coin';
     const left = shopRemaining(item);
     const soldOut = left <= 0;
@@ -81,7 +115,7 @@ export function renderShop() {
       saveState();
       recordShopPurchase(item);
       updateStatusBar();
-      toast(item.type === 'stamina' ? `スタミナ +${item.amount}` : '購入しました');
+      toast(item.type === 'stamina' ? `スタミナ +${item.amount}` : `${plain} を購入しました`);
       renderShop();
     });
     if (poor && !soldOut) row.classList.add('too-poor');
