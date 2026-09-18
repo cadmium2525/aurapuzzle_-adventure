@@ -9,6 +9,7 @@ export * from './enemies.js';
 import { ENEMIES } from './enemies.js';
 
 import { CHARACTERS, MAX_GACHA_RARITY, FEATURED_CHARACTER } from './characters.js';
+import { CUSTOM_SETTINGS } from './custom.js';
 
 /* --- 編成は自分3人 + サポート1人(フレンド or NPC)の計4人 --- */
 export const TEAM_SIZE = 3;
@@ -467,7 +468,9 @@ export const ORB_COST_MULTI = ORB_COST * 9;
 
 /** ピックアップ:★4を引いたとき、この確率で看板キャラになる */
 export const PICKUP_CHARACTER = FEATURED_CHARACTER;
-export const PICKUP_RATE = 0.3;
+/** ★4帯のうちピックアップが占める割合。管理者ツールで変えられる */
+export const PICKUP_RATE =
+  typeof CUSTOM_SETTINGS.pickupRate === 'number' ? CUSTOM_SETTINGS.pickupRate : 0.3;
 
 /* ===================== フレンド ===================== */
 export const MAX_FRIENDS = 30;

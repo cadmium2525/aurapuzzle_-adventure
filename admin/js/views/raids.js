@@ -4,7 +4,8 @@
  * =======================================================*/
 import { $, esc, card, toast, field, readForm, clampInt, modal, confirmAsk } from '../ui.js';
 import * as G from '../gamedata.js';
-import { draft, upsert, remove, find } from '../draft.js';
+import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
+import { toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 
 let editing = null;
 
@@ -187,7 +188,17 @@ function renderEditor(view) {
           { type: 'select', options: charOpts })}
         ${field('ドロップ率', 'dropRate', (r.characterDrop || {}).rate ?? 0.5,
           { type: 'number', min: 0, max: 1, step: 0.05 })}
-      </div>`)}
+      </div>
+
+      <h3 style="margin-top:12px">ホームのバナー</h3>
+      <p class="lead small">ホームに出す宣伝バナーです。
+        <b>降臨のバナーは常に1枚</b>で、新しい降臨を足すと今までのものと入れ替わります
+        (ガチャのバナーとは数秒ごとに交互に出ます)。</p>
+      ${field('バナー画像のパス', 'banner', r.banner || '',
+        { hint: 'assets/promo/xxx.webp', placeholder: 'assets/promo/xxx.webp' })}
+      <label class="drop">バナー画像を選ぶ(1080×608 に整えます)
+        <input type="file" accept="image/*" id="raidBannerFile"></label>
+      <div class="shots" id="raidBannerShot"></div>`)}
 
     ${card(`フロア (${r.floors.length})`, `
       <p class="lead">右の数字は「倍率をかけたあとのHP / 攻撃力」です。</p>
@@ -237,6 +248,32 @@ function renderEditor(view) {
     renderEditor(view);
   });
 
+  /* --- バナー --- */
+  const shot = () => {
+    const path = r.banner;
+    const held = path ? getBlob(path) : null;
+    $('raidBannerShot').innerHTML = held
+      ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(held)}" alt="">
+         <span class="cap">${esc(path)} / ${humanSize(held.size)}</span></div>`
+      : (path ? `<p class="empty">${esc(path)} を使う設定です(画像は未アップロード)</p>` : '');
+  };
+  shot();
+  $('raidBannerFile').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!canEncodeWebp()) { toast('この端末は webp を書き出せません', 'ng'); return; }
+    collect(view);
+    // パスを決めていなければ、降臨IDから作る
+    const dest = r.banner || `assets/promo/raid_${r.id}_banner.webp`;
+    try {
+      const blob = await toBannerWebp(file);
+      putBlob(dest, blob);
+      r.banner = dest;
+      toast(`webp にしました (${humanSize(blob.size)})`, 'ok');
+      renderEditor(view);
+    } catch (err) { toast(String(err.message || err), 'ng'); }
+  });
+
   $('addFloor').addEventListener('click', () => {
     collect(view);
     r.floors.push({ enemies: [{ id: G.ENEMY_MASTER_IDS[0], form: 0, mult: 1 }] });
@@ -250,6 +287,7 @@ function renderEditor(view) {
     if (empty >= 0) { toast(`${empty + 1}フロアにモンスターがいません`, 'ng'); return; }
     const out = {
       id: Number(r.id), name: r.name, bgm: r.bgm, stamina: r.stamina,
+      ...(r.banner ? { banner: r.banner } : {}),
       coinReward: r.coinReward, orbReward: 0, expReward: r.expReward,
       charExpReward: r.charExpReward, auras: [0, 1, 2, 3, 4],
       dropAura: r.dropAura, shardRate: r.shardRate, crystalBase: r.crystalBase,
@@ -282,6 +320,7 @@ function collect(view) {
   r.id = clampInt(v.id, 1, 999999, r.id);
   r.name = String(v.name || '').trim();
   r.bgm = String(v.bgm || '').trim();
+  r.banner = String(v.banner || '').trim() || undefined;
   r.stamina = clampInt(v.stamina, 1, 99, r.stamina);
   r.coinReward = clampInt(v.coinReward, 0, 9999999, r.coinReward);
   r.expReward = clampInt(v.expReward, 0, 999999, r.expReward);

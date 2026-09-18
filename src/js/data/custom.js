@@ -9,6 +9,7 @@
  *   enemies      → data/enemies.js  と data/enemy-master.js
  *   raids        → data/raids.js    の RAID_STAGES
  *   characters   → data/characters.js の CHARACTERS(=ガチャの母集団)
+ *   settings     → ガチャのピックアップとバナー
  *
  * 空でも読み込まれるので、この3つのキーは必ず配列で置いておくこと。
  * =======================================================*/
@@ -29,3 +30,11 @@ export const CUSTOM_RAIDS = [];
  * 1体ぶんの形は data/characters.js の mk() の引数を見ること。
  */
 export const CUSTOM_CHARACTERS = [];
+
+/**
+ * 1つしか無い設定。空なら既定値が使われる。
+ *   pickupId     ガチャのピックアップにするキャラID
+ *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)
+ *   gachaBanner  ホームに出すガチャのバナー画像
+ */
+export const CUSTOM_SETTINGS = {};

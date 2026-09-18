@@ -9,14 +9,16 @@ import home from './views/home.js';
 import enemies from './views/enemies.js';
 import raids from './views/raids.js';
 import characters from './views/characters.js';
+import gacha from './views/gacha.js';
 import skills from './views/skills.js';
 import tools from './views/tools.js';
 import release from './views/release.js';
 
-const SCREENS = { home, enemies, raids, characters, skills, tools, release };
+const SCREENS = { home, enemies, raids, characters, gacha, skills, tools, release };
 const TITLES = {
   home: '管理ツール', enemies: 'モンスター', raids: '降臨ダンジョン',
-  characters: 'キャラクター', skills: 'スキル一覧', tools: '点検', release: 'リリース'
+  characters: 'キャラクター', gacha: 'ガチャ', skills: 'スキル一覧',
+  tools: '点検', release: 'リリース'
 };
 
 /** 画面の中の階層(一覧→詳細)から戻るための積み場所 */

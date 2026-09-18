@@ -34,7 +34,11 @@ export {
   STAMINA_DRINK, ORB_POUCH
 } from '../../src/js/data/gamedata.js';
 
-export { CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS } from '../../src/js/data/custom.js';
+export { CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS, CUSTOM_SETTINGS } from '../../src/js/data/custom.js';
+
+export { CHAR_ATLAS, CHAR_ATLAS_COLUMNS, CHAR_ATLAS_ROWS } from '../../src/js/data/char-atlas.js';
+
+export { homeBanners, BANNER_INTERVAL } from '../../src/js/data/banners.js';
 
 /* ===================== 敵の特殊行動の一覧 =====================
  * battle/enemy-skills.js が解釈できる型。新しい型を足したら

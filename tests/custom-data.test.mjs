@@ -67,3 +67,74 @@ test('知らないモンスターIDは落ちずに無視される', () => {
   assert.equal(enemyFormOf('nope'), null);
   assert.equal(enemyMasterById('nope'), null);
 });
+
+/* ===================== ホームのバナー ===================== */
+import { homeBanners, BANNER_INTERVAL } from '../src/js/data/banners.js';
+import { CUSTOM_SETTINGS } from '../src/js/data/custom.js';
+import { PICKUP_CHARACTER, PICKUP_RATE } from '../src/js/data/gamedata.js';
+
+test('ホームのバナーは、いちばん新しい降臨のぶんだけ並ぶ', () => {
+  const list = homeBanners();
+  const raidOnes = list.filter(b => b.key.startsWith('raid-'));
+  assert.equal(raidOnes.length, 1, '降臨のバナーは常に1枚(新しいものと差し替わる)');
+  const newest = RAID_STAGES[RAID_STAGES.length - 1];
+  assert.equal(raidOnes[0].key, `raid-${newest.id}`);
+  assert.equal(raidOnes[0].screen, 'dungeon');
+  assert.deepEqual(raidOnes[0].params, { mode: 'raid' });
+});
+
+test('バナーは飛び先と画像を必ず持つ(枠だけ出さない)', () => {
+  homeBanners().forEach(b => {
+    assert.ok(b.image, `${b.key} に画像が無い`);
+    assert.ok(b.screen, `${b.key} に飛び先が無い`);
+    assert.ok(b.alt, `${b.key} に読み上げ用の説明が無い`);
+  });
+  assert.ok(BANNER_INTERVAL >= 2000, '切り替えが速すぎると読めない');
+});
+
+test('ガチャのバナーは、設定されていて かつ ピックアップがいるときだけ出す', () => {
+  const list = homeBanners();
+  const gacha = list.filter(b => b.key.startsWith('gacha-'));
+  const expected = CUSTOM_SETTINGS.gachaBanner && PICKUP_CHARACTER ? 1 : 0;
+  assert.equal(gacha.length, expected);
+});
+
+test('ピックアップは管理ツールの設定を優先し、無ければ featured 印', () => {
+  if (CUSTOM_SETTINGS.pickupId) {
+    assert.equal(PICKUP_CHARACTER.id, CUSTOM_SETTINGS.pickupId);
+  } else {
+    assert.ok(PICKUP_CHARACTER === null || PICKUP_CHARACTER.featured);
+  }
+  assert.ok(PICKUP_RATE >= 0 && PICKUP_RATE <= 1, 'ピックアップ率が 0〜1 に収まっていない');
+});
+
+/* ===================== オフライン用の先読み ===================== */
+import { readFile } from 'node:fs/promises';
+
+test('main.js から辿れるモジュールは全部 sw.js の先読みに入っている', async () => {
+  // 1つでも漏れるとオフライン起動が import エラーで死ぬ。
+  // データ層を足したときに入れ忘れやすいので、ここで見張る。
+  const root = new URL('../', import.meta.url);
+  const sw = await readFile(new URL('sw.js', root), 'utf8');
+  const listed = new Set([...sw.matchAll(/'\.\/(src\/js\/[^']+)'/g)].map(m => m[1]));
+
+  const seen = new Set();
+  async function walk(path) {
+    if (seen.has(path)) return;
+    seen.add(path);
+    const text = await readFile(new URL(path, root), 'utf8');
+    for (const m of text.matchAll(/from\s+'(\.[^']+)'/g)) {
+      const parts = path.split('/').slice(0, -1);
+      for (const part of m[1].split('/')) {
+        if (part === '.') continue;
+        else if (part === '..') parts.pop();
+        else parts.push(part);
+      }
+      await walk(parts.join('/'));
+    }
+  }
+  await walk('src/js/main.js');
+
+  const missing = [...seen].filter(p => !listed.has(p));
+  assert.deepEqual(missing, [], `sw.js の ASSETS に足りない: ${missing.join(', ')}`);
+});

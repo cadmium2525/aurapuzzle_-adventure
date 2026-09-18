@@ -264,15 +264,38 @@ body[data-screen="home"] #app::before{
 /* ホーム: 編成中の3人を1枚絵で見せる */
 #screen-home{flex:1;min-height:0;}
 #homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
-/* 九狐降臨のバナー。タップで降臨ダンジョンの一覧へ飛ぶ */
+/* 宣伝バナー。複数あるときは数秒ごとに入れ替わる。
+   高さを揃えるため、重ねた中で1枚だけを不透明にして見せる */
 .home-banner{
   position:absolute;left:2px;top:0;z-index:5;
-  width:min(52%, 215px);padding:0;border:1px solid rgba(255,214,140,.55);
-  border-radius:8px;overflow:hidden;background:none;line-height:0;
+  width:min(52%, 215px);border:1px solid rgba(255,214,140,.55);
+  border-radius:8px;overflow:hidden;background:none;
   box-shadow:0 5px 14px rgba(0,0,0,.5);
 }
+.home-banner .bslide{
+  display:block;width:100%;padding:0;border:0;background:none;line-height:0;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+}
+/* 2枚目以降は1枚目に重ねる。1枚目が高さを決める */
+.home-banner .bslide + .bslide{position:absolute;inset:0;}
+/* 透明なだけの板は指を吸ってしまい、出ていないバナーの飛び先に飛ばされる。
+   見えていないものは当たり判定ごと外す */
+.home-banner .bslide{opacity:0;pointer-events:none;transition:opacity .55s ease;}
+.home-banner .bslide.on{opacity:1;pointer-events:auto;}
 .home-banner img{width:100%;height:auto;display:block;}
 .home-banner:active{transform:scale(.97);filter:brightness(1.08);}
+/* 切り替えの点。1枚しか無いときは出さない */
+.home-banner .bdots{
+  position:absolute;right:5px;bottom:4px;display:flex;gap:3px;z-index:2;pointer-events:none;
+}
+.home-banner .bdots i{
+  width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);
+  transition:background .3s ease;
+}
+.home-banner .bdots i.on{background:var(--accent);}
+@media (prefers-reduced-motion: reduce){
+  .home-banner .bslide{transition:none;}
+}
 
 /* プレゼントボックス。編成ボタンがあった位置に置く */
 #homePresentBtn{

@@ -86,5 +86,13 @@ export const CUSTOM_RAIDS = ${json(d.raids)};
  * 1体ぶんの形は data/characters.js の mk() の引数を見ること。
  */
 export const CUSTOM_CHARACTERS = ${json(d.characters)};
+
+/**
+ * 1つしか無い設定。空なら既定値が使われる。
+ *   pickupId     ガチャのピックアップにするキャラID
+ *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)
+ *   gachaBanner  ホームに出すガチャのバナー画像
+ */
+export const CUSTOM_SETTINGS = ${JSON.stringify(d.settings || {}, null, 2)};
 `;
 }

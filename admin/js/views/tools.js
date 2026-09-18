@@ -82,21 +82,49 @@ function checkAll() {
     }
   });
 
-  /* --- 画像だけ残っている --- */
+  /* --- バナー --- */
+  d.raids.forEach(r => {
+    if (r.banner && !heldImages.has(r.banner) && !existingBanner(r.banner)) {
+      warn('warn', `降臨 ${r.id}`, `バナー ${r.banner} をまだアップロードしていません`);
+    }
+  });
+  const st = d.settings || {};
+  if (st.gachaBanner && !heldImages.has(st.gachaBanner)) {
+    warn('warn', 'ガチャ', `バナー ${st.gachaBanner} をまだアップロードしていません`);
+  }
+  if (st.pickupId && !charIds.has(st.pickupId)) {
+    warn('ng', 'ガチャ', `ピックアップの ${st.pickupId} というキャラがいません`);
+  }
+  if (st.pickupRate != null && !(st.pickupRate >= 0 && st.pickupRate <= 1)) {
+    warn('ng', 'ガチャ', `ピックアップの割合 ${st.pickupRate} が 0〜1 に収まっていません`);
+  }
+
+  /* --- どこからも使われていない画像 --- */
   const referenced = new Set();
   d.characters.forEach(c => (c.artStages || []).forEach(s => {
     if (s.icon) referenced.add(s.icon);
     if (s.full) referenced.add(s.full);
   }));
   d.enemies.forEach(e => (e.forms || [e]).forEach(s => { if (s.sprite) referenced.add(s.sprite); }));
+  d.raids.forEach(r => { if (r.banner) referenced.add(r.banner); });
+  if (st.gachaBanner) referenced.add(st.gachaBanner);
   blobEntries().forEach(([path]) => {
-    if (!referenced.has(path) && !path.includes('/banner/')) {
-      warn('warn', '画像', `${path} はどこからも参照されていません`);
+    // アトラスとその索引は焼き直しの成果物なので、参照が無くて当たり前
+    if (GENERATED.has(path)) return;
+    if (!referenced.has(path)) {
+      warn('warn', 'ファイル', `${path} はどこからも参照されていません`);
     }
   });
 
   return problems;
 }
+
+/** 焼き直しで作られるファイル。参照元が無くて当然なので見逃す */
+const GENERATED = new Set(['assets/chars/char_atlas.webp', 'src/js/data/char-atlas.js']);
+
+/** ゲーム本体が既に持っているバナー */
+const knownBanners = new Set(G.RAID_STAGES.map(r => r.banner).filter(Boolean));
+function existingBanner(path) { return knownBanners.has(path); }
 
 /** 既にリポジトリにある画像かどうかの当て推量(相対パスで引けるものだけ) */
 const knownSprites = new Set(G.ENEMIES.map(e => e.sprite));

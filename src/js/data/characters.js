@@ -10,7 +10,7 @@
 import {
   LEADER_SKILLS, ACTIVE_SKILLS, evolvedLeaderSkill, evolvedActiveSkill
 } from './skills.js';
-import { CUSTOM_CHARACTERS } from './custom.js';
+import { CUSTOM_CHARACTERS, CUSTOM_SETTINGS } from './custom.js';
 
 /* --- オーラは5色。c3(癒)は攻撃ではなく回復を担当する。
        c4(闇)は3章から盤面に加わる後発のオーラ(ステージごとの出現色は
@@ -265,8 +265,13 @@ CHARACTERS.push(mk('dk_kyuko','キュウコ','化け狐','🦊',4,3,'attacker','
 
 const BY_ID = new Map(CHARACTERS.map(c => [c.id, c]));
 export function characterById(id) { return BY_ID.get(id) || null; }
-/** ガチャの目玉(ピックアップ)キャラ */
-export const FEATURED_CHARACTER = CHARACTERS.find(c => c.featured) || null;
+/**
+ * ガチャの目玉(ピックアップ)キャラ。
+ * 管理者ツールで差し替えられる。指定が無ければ featured 印のキャラ。
+ */
+export const FEATURED_CHARACTER =
+  (CUSTOM_SETTINGS.pickupId ? BY_ID.get(CUSTOM_SETTINGS.pickupId) : null)
+  || CHARACTERS.find(c => c.featured) || null;
 
 /* =========================================================
  * レベル / 進化を反映した「実際に使うキャラクター」を組み立てる

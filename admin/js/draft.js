@@ -11,7 +11,7 @@
 
 const KEY = 'acb_admin_draft';
 
-const empty = () => ({ enemies: [], raids: [], characters: [], gifts: null, notes: '' });
+const empty = () => ({ enemies: [], raids: [], characters: [], settings: {}, gifts: null, notes: '' });
 
 /** localStorage に入る部分だけ */
 let data = load();
@@ -62,10 +62,19 @@ export function getBlob(path) { return blobs.get(path) || null; }
 export function dropBlob(path) { blobs.delete(path); persist(); }
 export function blobEntries() { return Array.from(blobs.entries()); }
 
+/** ガチャのピックアップなど、1つしか無い設定 */
+export function settings() { return data.settings || {}; }
+export function setSetting(key, value) {
+  if (!data.settings) data.settings = {};
+  if (value === '' || value == null) delete data.settings[key];
+  else data.settings[key] = value;
+  persist();
+}
+
 /** 下書きに何か入っているか(ヘッダーのバッジ) */
 export function pendingCount() {
   return data.enemies.length + data.raids.length + data.characters.length
-    + blobs.size + (data.gifts ? 1 : 0);
+    + blobs.size + Object.keys(data.settings || {}).length + (data.gifts ? 1 : 0);
 }
 
 /** push が終わったら空にする */

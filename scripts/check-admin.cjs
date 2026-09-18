@@ -84,6 +84,27 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  if (SHOT) await page.screenshot({path:SHOT+'admin-char-edit.png'});
  await page.locator('#saveBtn').click(); await page.waitForTimeout(400);
 
+ // --- ガチャ: PU の差し替えとアトラスの焼き直し ---
+ await page.locator('[data-go="gacha"]').click(); await page.waitForTimeout(400);
+ await page.selectOption('[name=pickupId]','aq_nereid');
+ await page.fill('[name=pickupRate]','0.5');
+ await page.locator('#savePickup').click(); await page.waitForTimeout(450);
+ const pu = await page.evaluate(()=>{
+   const d=JSON.parse(localStorage.getItem('acb_admin_draft')||'{}'); return d.settings||{};
+ });
+ assert.equal(pu.pickupId,'aq_nereid','ピックアップが保存されていない');
+ assert.equal(pu.pickupRate,0.5,'ピックアップ率が保存されていない');
+ console.log('ピックアップ:', JSON.stringify(pu));
+ page.on('dialog',d=>d.accept());
+ await page.locator('#bakeBtn').click(); await page.waitForTimeout(350);
+ await page.locator('[data-ok]').click();
+ await page.waitForFunction(()=>{
+   const o=document.getElementById('atlasOut'); return o && /焼けました|できません/.test(o.textContent);
+ },{timeout:90000});
+ const atlasMsg = (await page.locator('#atlasOut').textContent()).replace(/\s+/g,' ').trim();
+ assert.ok(atlasMsg.includes('焼けました'), 'アトラスが焼けなかった: '+atlasMsg);
+ console.log('アトラス:', atlasMsg);
+
  // --- 点検 ---
  await page.locator('[data-go="tools"]').click(); await page.waitForTimeout(500);
  const rows = await page.locator('#view .card').first().locator('.row').allTextContents();
@@ -100,6 +121,6 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  // 画像未アップロードの 404 は想定内(絵文字にフォールバックする)
  const real = errors.filter(e => !/404/.test(e));
  assert.deepEqual(real, [], '想定外のエラーが出た');
- console.log('PASS: 7画面が開き、モンスター/変身ボス/降臨の倍率/キャラ生成/点検/リリースが動く');
+ console.log('PASS: 8画面が開き、モンスター/変身ボス/降臨の倍率/キャラ生成/PU差し替え/アトラス焼き直し/点検/リリースが動く');
  await b.close(); server.close();
 })();

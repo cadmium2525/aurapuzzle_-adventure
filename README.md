@@ -434,9 +434,9 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `49` |
-| `src/js/core/version.js` の `APP_VERSION` | `'49'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v49` |
+| `index.html` の `<meta name="app-version">` | `50` |
+| `src/js/core/version.js` の `APP_VERSION` | `'50'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v50` |
 
 いま動いている版は**マイページの「バージョン」**で確認できる。
 不具合の切り分けでは、まずここが最新かを見ること。
@@ -518,9 +518,49 @@ data/enemy-master.js / raids.js / characters.js で本体と合流
 | モンスター | アイコン一覧 → タップで編集。ステータス・行動パターン・**変身(forms)** |
 | 降臨 | フロアごとの配置。マスターの基礎値に**倍率**をかける |
 | キャラ | 一覧 → 詳細。新規はロール選択でステータスを自動生成 |
+| ガチャ | ピックアップの差し替え・バナー・**アイコンのアトラス焼き直し** |
 | スキル | リーダースキル / スキル / 敵の特殊行動を検索して参照 |
 | 点検 | 整合性チェック・ガチャ排出率・コイン効率・経済の安全弁 |
 | リリース | 版を+1して push |
+
+### ホームのバナー
+
+ホームの宣伝バナーは `src/js/data/banners.js` が決め、**数秒ごとに入れ替わる**
+(`BANNER_INTERVAL`)。並ぶのは2種類:
+
+- **降臨** … `RAID_STAGES` の**いちばん新しいもの1枚だけ**。
+  新しい降臨を足すと、それまで出ていたバナーと自動で入れ替わる。
+  画像は降臨データの `banner`。
+- **ガチャ** … `CUSTOM_SETTINGS.gachaBanner`。ピックアップがいるときだけ出す。
+
+画像の無いものは並べない。1枚しか無ければ切り替えも点も出さない。
+
+実装で気をつけている点が2つある。
+
+1. **要素は作り直さず `on` クラスの付け替えだけで見せ替える**。
+   作り直すとCSSトランジションが効かず、その場で切り替わってしまう。
+2. **出ていないバナーは `pointer-events:none` で当たり判定ごと外す**。
+   `opacity:0` は透明になるだけで指は吸うので、
+   重なった裏のバナーの飛び先へ飛ばされてしまう。
+
+### ガチャのピックアップ
+
+`CUSTOM_SETTINGS.pickupId` / `pickupRate` で差し替えられる(管理ツールの
+ガチャタブ)。指定が無ければ従来どおり `featured: true` のキャラと 0.3。
+
+### アイコンのアトラス
+
+`python3 scripts/build-char-atlas.py` のほかに、**管理ツールからも焼ける**
+(`admin/js/atlas.js`。canvas で同じ結果を作る)。Python を回せない端末から
+キャラを足したいときのため。
+
+焼き直しは**必須ではない**。アトラスに無いアイコンは `core/ui.js` の
+`charIcon()` が `<img>` へフォールバックするので、足しただけでも表示される。
+一覧のリクエストを1回にまとめたいときだけ流せばよい。
+
+出力は `assets/chars/char_atlas.webp` と `src/js/data/char-atlas.js` の2つ。
+`tests/admin-release.test.mjs` が、ツールの書き出す索引が
+build-char-atlas.py のものと同じ形になることを確かめている。
 
 ### アクセストークン
 

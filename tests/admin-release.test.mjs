@@ -96,3 +96,37 @@ test('版の +1 は数字のときだけ', () => {
   assert.equal(nextVersion('あ'), null);
   assert.equal(nextVersion(''), null);
 });
+
+/* ===================== アトラスの索引 ===================== */
+import { buildAtlasIndexJs } from '../admin/js/atlas.js';
+import { CHAR_ATLAS, CHAR_ATLAS_COLUMNS, CHAR_ATLAS_ROWS } from '../src/js/data/char-atlas.js';
+
+test('管理ツールが作る char-atlas.js は、いまのものと同じ形になる', async () => {
+  // いまリポジトリにあるものを、そのまま入力にして書き出し直す。
+  // build-char-atlas.py と同じ結果にならないと、焼き直しで一覧が崩れる。
+  const text = buildAtlasIndexJs({
+    index: CHAR_ATLAS, columns: CHAR_ATLAS_COLUMNS, rows: CHAR_ATLAS_ROWS
+  });
+  const dir = await mkdtemp(join(tmpdir(), 'acb-atlas-'));
+  const file = join(dir, 'char-atlas.mjs');
+  await writeFile(file, text, 'utf8');
+  const mod = await import(`file://${file}`);
+
+  assert.equal(mod.CHAR_ATLAS_COLUMNS, CHAR_ATLAS_COLUMNS);
+  assert.equal(mod.CHAR_ATLAS_ROWS, CHAR_ATLAS_ROWS);
+  assert.equal(mod.CHAR_ATLAS_SRC, 'assets/chars/char_atlas.webp');
+  assert.deepEqual(mod.CHAR_ATLAS, CHAR_ATLAS, '格子の位置が変わってしまっている');
+});
+
+test('アトラスの索引は名前順で、格子からはみ出さない', async () => {
+  const keys = Object.keys(CHAR_ATLAS);
+  assert.deepEqual(keys, keys.slice().sort(), '並びが名前順でない(差分が読みにくくなる)');
+  keys.forEach(k => {
+    const [col, row] = CHAR_ATLAS[k];
+    assert.ok(col >= 0 && col < CHAR_ATLAS_COLUMNS, `${k} の列が範囲外`);
+    assert.ok(row >= 0 && row < CHAR_ATLAS_ROWS, `${k} の行が範囲外`);
+  });
+  // 同じマスに2枚入っていないこと
+  const seen = new Set(keys.map(k => CHAR_ATLAS[k].join(',')));
+  assert.equal(seen.size, keys.length, '同じマスに重なっているアイコンがある');
+});

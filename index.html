@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="49">
+<meta name="app-version" content="50">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -133,9 +133,8 @@
     <!-- ===================== ホーム ===================== -->
     <section class="screen active" id="screen-home">
       <div id="homePartyStage">
-        <button class="home-banner" id="homeRaidBannerBtn" aria-label="九狐降臨へ">
-          <img src="./assets/promo/kyuko_banner.webp" alt="新ダンジョン 九狐降臨 実装!">
-        </button>
+        <!-- 宣伝バナー。中身は data/banners.js が決め、数秒ごとに切り替わる -->
+        <div class="home-banner" id="homeBanner" hidden></div>
         <button class="present-btn" id="homePresentBtn" aria-label="プレゼントボックス">
           <img src="./assets/ui/present.webp" alt="">
           <span class="present-badge" id="homePresentBadge" hidden>0</span>

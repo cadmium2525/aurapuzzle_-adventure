@@ -34,7 +34,7 @@ function summary(d) {
       <dt>モンスター</dt><dd>${d.enemies.length} 件</dd>
       <dt>降臨</dt><dd>${d.raids.length} 件</dd>
       <dt>キャラクター</dt><dd>${d.characters.length} 件</dd>
-      <dt>画像</dt><dd>${images.length} 枚</dd>
+      <dt>添付ファイル</dt><dd>${images.length} 件</dd>
     </dl>
     ${images.length ? `<div class="scroll-x"><table class="data">
       <tr><th>置き場所</th><th class="num">大きさ</th></tr>
@@ -54,7 +54,7 @@ export default {
     view.innerHTML = `
       ${!hasToken ? '<div class="warn">右上の ⚙ からアクセストークンを設定してください。</div>' : ''}
       ${images.length === 0 && (d.characters.length || d.enemies.length)
-        ? '<div class="note">画像は端末のメモリにしか無いので、<b>再読み込みすると外れます</b>。画像を選んだら、そのまま push してください。</div>'
+        ? '<div class="note">画像とアトラスは端末のメモリにしか無いので、<b>再読み込みすると外れます</b>。選んだら、そのまま push してください。</div>'
         : ''}
 
       ${card('push する内容', n === 0

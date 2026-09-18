@@ -14,6 +14,7 @@ import { $, artImg } from '../core/ui.js';
 import { showScreen } from '../core/nav.js';
 import { homeCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
+import { homeBanners, BANNER_INTERVAL } from '../data/banners.js';
 import { updatePresentBadge } from './present.js';
 
 /** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
@@ -65,6 +66,7 @@ function applyPositions(mons) {
 }
 
 export function renderHome() {
+  renderBanners();
   updatePresentBadge();
   const mons = homeCharacters();
   const art = $('homePartyArt');
@@ -96,9 +98,80 @@ function shiftFront(step) {
   setTimeout(() => { spinning = false; }, 480);   // 回りきるまで次の操作を受けない
 }
 
+/* ===================== 宣伝バナー =====================
+ * 複数あるときは数秒ごとに入れ替える。
+ * 要素は一度だけ作り、`on` クラスの付け替えだけで見せ替える
+ * (作り直すとCSSトランジションが効かず、その場で切り替わってしまう)。
+ * ==================================================== */
+let bannerTimer = null;
+let bannerIndex = 0;
+
+function showBannerAt(i) {
+  const host = $('homeBanner');
+  const slides = host.querySelectorAll('.bslide');
+  if (!slides.length) return;
+  bannerIndex = ((i % slides.length) + slides.length) % slides.length;
+  slides.forEach((el, n) => el.classList.toggle('on', n === bannerIndex));
+  host.querySelectorAll('.bdots i').forEach((el, n) => el.classList.toggle('on', n === bannerIndex));
+}
+
+/** バナーを組み立てる。画面を開くたびに呼ばれるが、中身が同じなら作り直さない */
+function renderBanners() {
+  const host = $('homeBanner');
+  const list = homeBanners();
+  host.hidden = list.length === 0;
+  if (!list.length) { stopBannerRotation(); host.innerHTML = ''; return; }
+
+  const key = list.map(b => b.key).join('|');
+  if (host.dataset.key !== key) {
+    host.dataset.key = key;
+    host.innerHTML = list.map((b, i) => `
+      <button class="bslide${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${b.alt}">
+        <img src="./${b.image}" alt="${b.alt}">
+      </button>`).join('')
+      + (list.length > 1
+        ? `<div class="bdots" aria-hidden="true">${list.map((_, i) =>
+            `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>`
+        : '');
+    bannerIndex = 0;
+    host.querySelectorAll('[data-go]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = list[Number(btn.dataset.go)];
+        if (target) showScreen(target.screen, target.params);
+      });
+    });
+  }
+  startBannerRotation(list.length);
+}
+
+/** ホームが前に出ているか(画面は .active で切り替わる) */
+function homeIsVisible() {
+  const el = $('screen-home');
+  return !!el && el.classList.contains('active') && !document.hidden;
+}
+
+function startBannerRotation(count) {
+  stopBannerRotation();
+  if (count < 2) return;
+  // 画面を離れたことを知らせてもらう代わりに、毎回自分で確かめて止まる。
+  // nav.js から home.js を呼ぶと import が循環するため、この形にしている。
+  bannerTimer = setInterval(() => {
+    if (!homeIsVisible()) { stopBannerRotation(); return; }
+    showBannerAt(bannerIndex + 1);
+  }, BANNER_INTERVAL);
+}
+
+/** 見えていない画面のために動かし続けない */
+export function stopBannerRotation() {
+  if (bannerTimer) { clearInterval(bannerTimer); bannerTimer = null; }
+}
+
 export function initHome() {
   $('homePrevBtn').addEventListener('click', () => shiftFront(-1));
   $('homeNextBtn').addEventListener('click', () => shiftFront(1));
-  // バナーは降臨ダンジョンの一覧へ直接飛ばす(種別選択は挟まない)
-  $('homeRaidBannerBtn').addEventListener('click', () => showScreen('dungeon', { mode: 'raid' }));
+  // 裏に回ったまま切り替え続けても意味がないので、戻ってきたら再開する
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopBannerRotation();
+    else if (homeIsVisible()) renderBanners();
+  });
 }
