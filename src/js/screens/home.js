@@ -99,7 +99,7 @@ function shiftFront(step) {
 }
 
 /* ===================== 宣伝バナー =====================
- * 複数あるときは数秒ごとに入れ替える。
+ * 複数あるときは数秒ごとに入れ替える。左右の△で自分でも送れる。
  * 要素は一度だけ作り、`on` クラスの付け替えだけで見せ替える
  * (作り直すとCSSトランジションが効かず、その場で切り替わってしまう)。
  * ==================================================== */
@@ -112,7 +112,13 @@ function showBannerAt(i) {
   if (!slides.length) return;
   bannerIndex = ((i % slides.length) + slides.length) % slides.length;
   slides.forEach((el, n) => el.classList.toggle('on', n === bannerIndex));
-  host.querySelectorAll('.bdots i').forEach((el, n) => el.classList.toggle('on', n === bannerIndex));
+  host.querySelectorAll('.bpips i').forEach((el, n) => el.classList.toggle('on', n === bannerIndex));
+}
+
+/** 手で送る。自動送りの間隔も数え直して、すぐ次へ飛ばないようにする */
+function stepBanner(step, count) {
+  showBannerAt(bannerIndex + step);
+  startBannerRotation(count);
 }
 
 /** バナーを組み立てる。画面を開くたびに呼ばれるが、中身が同じなら作り直さない */
@@ -125,19 +131,30 @@ function renderBanners() {
   const key = list.map(b => b.key).join('|');
   if (host.dataset.key !== key) {
     host.dataset.key = key;
-    host.innerHTML = list.map((b, i) => `
-      <button class="bslide${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${b.alt}">
-        <img src="./${b.image}" alt="${b.alt}">
-      </button>`).join('')
-      + (list.length > 1
-        ? `<div class="bdots" aria-hidden="true">${list.map((_, i) =>
-            `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>`
-        : '');
+    const many = list.length > 1;
+    host.innerHTML = `
+      <div class="bframe">
+        ${list.map((b, i) => `
+          <button class="bslide${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${b.alt}">
+            <img src="./${b.image}" alt="${b.alt}">
+          </button>`).join('')}
+        ${many ? `
+          <button class="bnav left" data-step="-1" aria-label="前のバナー"></button>
+          <button class="bnav right" data-step="1" aria-label="次のバナー"></button>` : ''}
+      </div>
+      ${many ? `<div class="bpips" aria-hidden="true">${list.map((_, i) =>
+        `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}`;
     bannerIndex = 0;
     host.querySelectorAll('[data-go]').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = list[Number(btn.dataset.go)];
         if (target) showScreen(target.screen, target.params);
+      });
+    });
+    host.querySelectorAll('[data-step]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();          // 下のバナーの飛び先へ行かせない
+        stepBanner(Number(btn.dataset.step), list.length);
       });
     });
   }

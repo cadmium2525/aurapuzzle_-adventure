@@ -101,8 +101,9 @@ export const ACTIVE_PARTS = [
     make: v => Math.round(v.mult), read: value => ({ mult: value })
   },
   {
-    key: 'convert', label: 'オーラ変換',
-    hint: '盤面のあるオーラを別のオーラに変える',
+    // 1つのスキルに何組でも置ける(カイの「火と木→水」がこの形)
+    key: 'convert', label: 'オーラ変換', multi: true,
+    hint: '盤面のあるオーラを別のオーラに変える。組を足せば複数色を変えられる',
     fields: [
       { key: 'from', label: '変換元', type: 'aura', def: 'c0' },
       { key: 'to', label: '変換先', type: 'aura', def: 'c1' }
@@ -167,9 +168,16 @@ export function partsFor(kind) {
  * これが「既存を分解してパーツにする」の実体。
  */
 export function decompose(skill, kind) {
-  return partsFor(kind)
-    .filter(part => skill && skill[part.key] != null && skill[part.key] !== false)
-    .map(part => ({ key: part.key, values: part.read(skill[part.key]) }));
+  const out = [];
+  partsFor(kind).forEach(part => {
+    const value = skill ? skill[part.key] : null;
+    if (value == null || value === false) return;
+    // 複数持てるパーツは1組ずつ別のパーツとして並べる
+    // (まとめて1つにすると、2組目以降が分解のたびに消えてしまう)
+    const items = part.multi ? [].concat(value) : [value];
+    items.forEach(v => out.push({ key: part.key, values: part.read(v) }));
+  });
+  return out;
 }
 
 /** パーツの並びからスキル本体(効果のキーだけ)を組み立てる */
@@ -179,7 +187,10 @@ export function compose(picked, kind) {
   (picked || []).forEach(p => {
     const part = byKey[p.key];
     if (!part) return;
-    out[p.key] = part.make(p.values || {});
+    const made = part.make(p.values || {});
+    if (!part.multi || out[p.key] == null) { out[p.key] = made; return; }
+    // 2組目からは配列にまとめる(エンジンは単体でも配列でも読める)
+    out[p.key] = [].concat(out[p.key], made);
   });
   return out;
 }

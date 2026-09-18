@@ -160,10 +160,34 @@ function existingBanner(path) { return knownBanners.has(path); }
 const knownSprites = new Set(G.ENEMIES.map(e => e.sprite));
 function spriteExists(path) { return knownSprites.has(path); }
 
-/* ===================== ガチャの確率 ===================== */
+/* ===================== ガチャの確率 =====================
+ * 下書きを足したあとの姿で出す。ここがゲーム本体だけを見ていると、
+ * キャラを足してもピックアップを変えても数字が動かず、
+ * 「押す前の確認」にならない。
+ * ==================================================== */
+
+/** 下書きを重ねたガチャ母集団 */
+function gachaPool() {
+  const map = new Map();
+  G.GACHA_POOL.forEach(c => map.set(c.id, c));
+  draft().characters.forEach(c => {
+    if (c.rarity <= G.MAX_GACHA_RARITY && !c.giftOnly) map.set(c.id, c);
+  });
+  return Array.from(map.values());
+}
+
+/** 下書きを重ねたピックアップ設定 */
+function pickupNow() {
+  const st = draft().settings || {};
+  if (st.pickupOff) return { char: null, rate: 0 };
+  const rate = st.pickupRate == null ? G.PICKUP_RATE : st.pickupRate;
+  if (!st.pickupId) return { char: G.PICKUP_CHARACTER || null, rate: G.PICKUP_CHARACTER ? rate : 0 };
+  return { char: gachaPool().find(c => c.id === st.pickupId) || null, rate };
+}
 
 function gachaTable() {
-  const pool = G.GACHA_POOL;
+  const pool = gachaPool();
+  const { char: pickupChar, rate: pickupRate } = pickupNow();
   const weights = G.ORB_WEIGHTS || {};
   const byRarity = {};
   pool.forEach(c => { byRarity[c.rarity] = (byRarity[c.rarity] || 0) + 1; });
@@ -172,7 +196,7 @@ function gachaTable() {
   const rows = Object.keys(byRarity).sort((a, b) => b - a).map(r => {
     const share = (weights[r] || 0) / total;
     const count = byRarity[r];
-    const pickup = Number(r) === G.MAX_GACHA_RARITY && G.PICKUP_CHARACTER ? G.PICKUP_RATE : 0;
+    const pickup = Number(r) === G.MAX_GACHA_RARITY && pickupChar ? pickupRate : 0;
     const each = count ? (share * (1 - pickup)) / (pickup ? count - 1 : count) : 0;
     return { r, count, share, pickup, each };
   });
@@ -228,9 +252,14 @@ export default {
             <td class="num">${(g.share * 100).toFixed(1)}%</td>
             <td class="num">${(g.each * 100).toFixed(2)}%</td></tr>`).join('')}
         </table></div>
-        ${G.PICKUP_CHARACTER ? `<p class="small" style="color:var(--ink-dim)">
-          ピックアップ: ${esc(G.PICKUP_CHARACTER.name)} — ★${G.MAX_GACHA_RARITY}帯の
-          ${(G.PICKUP_RATE * 100).toFixed(0)}%</p>` : ''}
+        ${(() => {
+          const { char, rate } = pickupNow();
+          return char
+            ? `<p class="small" style="color:var(--ink-dim)">
+                ピックアップ: ${esc(char.name)} — ★${G.MAX_GACHA_RARITY}帯の
+                ${(rate * 100).toFixed(0)}%</p>`
+            : '<p class="small" style="color:var(--ink-dim)">ピックアップ: なし</p>';
+        })()}
         <p class="small" style="color:var(--ink-faint)">単発 ${G.ORB_COST}ダイヤ / 10連 ${G.ORB_COST_MULTI}ダイヤ</p>`)}
 
       ${card('コイン効率の上位', `

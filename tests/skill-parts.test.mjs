@@ -39,11 +39,7 @@ test('既存のスキルも分解して組み直すと元に戻る', () => {
     const rebuilt = compose(decompose(sk, 'active'), 'active');
     partsFor('active').forEach(part => {
       if (sk[part.key] == null || sk[part.key] === false) return;
-      // convert は複数持てる(カイ専用)。パーツ表は1つだけ扱うので先頭で比べる
-      if (part.key === 'convert' && Array.isArray(sk.convert)) {
-        assert.deepEqual(rebuilt.convert, sk.convert[0]);
-        return;
-      }
+      // convert は複数持てる(カイの「火と木→水」)。組の数ごと戻ること
       assert.deepEqual(rebuilt[part.key], sk[part.key], `${id} の ${part.key} が往復で変わった`);
     });
   });

@@ -266,9 +266,13 @@ body[data-screen="home"] #app::before{
 #homePartyStage{position:relative;flex:0 1 auto;height:44vh;min-height:180px;display:flex;}
 /* 宣伝バナー。複数あるときは数秒ごとに入れ替わる。
    高さを揃えるため、重ねた中で1枚だけを不透明にして見せる */
+/* 枠(絵)と、その下の枚数表示を縦に並べる入れ物 */
 .home-banner{
-  position:absolute;left:2px;top:0;z-index:5;
-  width:min(52%, 215px);border:1px solid rgba(255,214,140,.55);
+  position:absolute;left:2px;top:0;z-index:5;width:min(52%, 215px);
+}
+/* 絵はこの中だけ。角丸で切り抜くので、枚数表示は外へ出している */
+.home-banner .bframe{
+  position:relative;border:1px solid rgba(255,214,140,.55);
   border-radius:8px;overflow:hidden;background:none;
   box-shadow:0 5px 14px rgba(0,0,0,.5);
 }
@@ -283,16 +287,30 @@ body[data-screen="home"] #app::before{
 .home-banner .bslide{opacity:0;pointer-events:none;transition:opacity .55s ease;}
 .home-banner .bslide.on{opacity:1;pointer-events:auto;}
 .home-banner img{width:100%;height:auto;display:block;}
-.home-banner:active{transform:scale(.97);filter:brightness(1.08);}
-/* 切り替えの点。1枚しか無いときは出さない */
-.home-banner .bdots{
-  position:absolute;right:5px;bottom:4px;display:flex;gap:3px;z-index:2;pointer-events:none;
+.home-banner .bslide:active{filter:brightness(1.08);}
+/* 手で送る△。絵の端に重ねる(枠が細いので、外には置けない) */
+.home-banner .bnav{
+  position:absolute;top:0;bottom:0;width:24px;z-index:3;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;border:none;opacity:.85;
 }
-.home-banner .bdots i{
-  width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);
+.home-banner .bnav.left {left:0;  background:linear-gradient(to right, rgba(0,0,0,.5), transparent);}
+.home-banner .bnav.right{right:0; background:linear-gradient(to left,  rgba(0,0,0,.5), transparent);}
+.home-banner .bnav::before{
+  content:'';display:block;border-style:solid;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));
+}
+.home-banner .bnav.left::before {border-width:6px 8px 6px 0;border-color:transparent #fff transparent transparent;}
+.home-banner .bnav.right::before{border-width:6px 0 6px 8px;border-color:transparent transparent transparent #fff;}
+.home-banner .bnav:active{opacity:1;}
+/* 枚数。バトルのフロア表示と同じ横長。1枚しか無いときは出さない */
+.home-banner .bpips{
+  display:flex;gap:3px;justify-content:center;margin-top:4px;pointer-events:none;
+}
+.home-banner .bpips i{
+  width:13px;height:4px;border-radius:2px;background:rgba(255,255,255,0.18);
   transition:background .3s ease;
 }
-.home-banner .bdots i.on{background:var(--accent);}
+.home-banner .bpips i.on{background:var(--accent);box-shadow:0 0 8px rgba(255,198,92,.5);}
 @media (prefers-reduced-motion: reduce){
   .home-banner .bslide{transition:none;}
 }

@@ -29,9 +29,12 @@ function activeEffects(s) {
   if (s.healPct) out.push(`HP ${Math.round(s.healPct * 100)}% 回復`);
   if (s.fixedDamage) out.push(`攻撃力 ×${s.fixedDamage} のダメージ`);
   if (s.convert) {
-    const from = G.AURA_NAME[G.COLORS.indexOf(s.convert.from)] || s.convert.from;
-    const to = G.AURA_NAME[G.COLORS.indexOf(s.convert.to)] || s.convert.to;
-    out.push(`${from} → ${to} に変換`);
+    // 2色以上変えるスキル(カイ)は配列で持っている
+    [].concat(s.convert).forEach(c => {
+      const from = G.AURA_NAME[G.COLORS.indexOf(c.from)] || c.from;
+      const to = G.AURA_NAME[G.COLORS.indexOf(c.to)] || c.to;
+      out.push(`${from} → ${to} に変換`);
+    });
   }
   if (s.spawn) {
     const to = G.AURA_NAME[G.COLORS.indexOf(s.spawn.to)] || s.spawn.to;

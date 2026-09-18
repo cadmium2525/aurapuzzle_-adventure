@@ -141,7 +141,7 @@ function openDetail(view, id) {
     okLabel: inDraft ? 'この下書きを編集' : null,
     cancelLabel: '閉じる'
   }).then(ok => {
-    if (ok && inDraft) { editing = { ...find('characters', id), _new: false }; renderEditor(view); }
+    if (ok && inDraft) { editing = { ...toEditing(find('characters', id)), _new: false }; renderEditor(view); }
   });
 }
 
@@ -310,6 +310,21 @@ function renderEditor(view) {
     editing = null;
     renderList(view);
   });
+}
+
+/**
+ * 保存した1件を編集用の形へ戻す。
+ * build() は画像の名前を _artName に、進化の有無は artStages の段数に
+ * 畳んでいるので、開き直すときはそこから組み立て直す。
+ * (これをしないと、開いて保存し直すだけで画像の置き場所が変わり、
+ *  進化後の絵と肩書きが落ちる)
+ */
+function toEditing(saved) {
+  return {
+    ...saved,
+    artName: saved._artName || '',
+    evolve: (saved.artStages || []).length > 1
+  };
 }
 
 /** 保存する形(custom.js に入る1件)を作る */
