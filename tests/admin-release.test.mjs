@@ -33,10 +33,10 @@ const SAMPLE = {
   }]
 };
 
-async function loadGenerated(draft) {
+async function loadGenerated(draft, base) {
   const dir = await mkdtemp(join(tmpdir(), 'acb-custom-'));
   const file = join(dir, 'custom.mjs');
-  await writeFile(file, buildCustomJs(draft), 'utf8');
+  await writeFile(file, buildCustomJs(draft, base), 'utf8');
   return { module: await import(`file://${file}`), text: await readFile(file, 'utf8') };
 }
 
@@ -84,6 +84,41 @@ test('プレゼントは key・期間・中身をそのまま運ぶ', async () =
   assert.equal(g.to, '2026-12-31');
   assert.equal(g.orb, 45);
   assert.equal(g.char, 'fl_testnova');
+});
+
+test('下書きが空でも、いま入っているものは消えない', async () => {
+  // push のたびに下書きは空になる。base を足さずに書くと、前に push した
+  // キャラや設定が次の push で消える(実際に一度消えた)
+  const base = {
+    characters: [{ id: 'lm_keep', name: '残る子', rarity: 4 }],
+    skills: [{ id: 'sk_keep', name: '残るスキル' }],
+    leaderSkills: [{ id: 'ls_keep', name: '残るLS' }],
+    gifts: [{ key: 'gift_keep', title: '残る配布', orb: 10 }],
+    settings: { pickupId: 'lm_keep', pickupRate: 0.3 }
+  };
+  const { module } = await loadGenerated({ enemies: [], raids: [], characters: [] }, base);
+  assert.equal(module.CUSTOM_CHARACTERS[0].id, 'lm_keep');
+  assert.equal(module.CUSTOM_SKILLS[0].id, 'sk_keep');
+  assert.equal(module.CUSTOM_LEADER_SKILLS[0].id, 'ls_keep');
+  assert.equal(module.CUSTOM_GIFTS[0].key, 'gift_keep');
+  assert.equal(module.CUSTOM_SETTINGS.pickupId, 'lm_keep');
+});
+
+test('同じ id と key は下書きで上書きし、違うものは足す', async () => {
+  const base = {
+    characters: [{ id: 'lm_keep', name: '前の名前', rarity: 4 }],
+    gifts: [{ key: 'gift_keep', title: '前の配布', orb: 10 }],
+    settings: { pickupId: 'lm_keep', pickupRate: 0.3 }
+  };
+  const draft = {
+    characters: [{ id: 'lm_keep', name: '新しい名前', rarity: 4 }, { id: 'lm_new', name: '追加', rarity: 3 }],
+    gifts: [{ key: 'gift_new', title: '新しい配布', orb: 45 }],
+    settings: { pickupId: 'lm_new' }
+  };
+  const { module } = await loadGenerated(draft, base);
+  assert.deepEqual(module.CUSTOM_CHARACTERS.map(c => c.name), ['新しい名前', '追加']);
+  assert.deepEqual(module.CUSTOM_GIFTS.map(g => g.key), ['gift_keep', 'gift_new']);
+  assert.deepEqual(module.CUSTOM_SETTINGS, { pickupId: 'lm_new', pickupRate: 0.3 });
 });
 
 test('版の3か所を、実際のファイルから読めて書き換えられる', async () => {

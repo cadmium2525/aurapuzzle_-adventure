@@ -14,6 +14,16 @@ import { $, esc, card, toast, field, confirmAsk } from '../ui.js';
 import * as gh from '../github.js';
 import { buildCustomJs, VERSION_FILES, nextVersion } from '../custom-source.js';
 import { draft, blobEntries, clearAll, pendingCount, exportJson, importJson } from '../draft.js';
+import * as G from '../gamedata.js';
+
+/** いま custom.js に入っているもの。下書きはこれに重ねて書く */
+function currentCustom() {
+  return {
+    enemies: G.CUSTOM_ENEMIES, raids: G.CUSTOM_RAIDS, characters: G.CUSTOM_CHARACTERS,
+    skills: G.CUSTOM_SKILLS, leaderSkills: G.CUSTOM_LEADER_SKILLS,
+    gifts: G.CUSTOM_GIFTS, settings: G.CUSTOM_SETTINGS
+  };
+}
 
 let state = { versions: null, busy: false };
 
@@ -29,7 +39,12 @@ async function loadVersions() {
 
 function summary(d) {
   const images = blobEntries();
+  const base = currentCustom();
+  const kept = base.characters.length + base.enemies.length + base.raids.length
+    + base.skills.length + base.leaderSkills.length + base.gifts.length;
   return `
+    ${kept ? `<div class="note">いま custom.js にある <b>${kept} 件</b>はそのまま残します
+      (下書きは上書きぶんだけ)。</div>` : ''}
     <dl class="kv">
       <dt>モンスター</dt><dd>${d.enemies.length} 件</dd>
       <dt>降臨</dt><dd>${d.raids.length} 件</dd>
@@ -134,7 +149,7 @@ export default {
 
       try {
         const files = [
-          { path: 'src/js/data/custom.js', text: buildCustomJs(draft()) },
+          { path: 'src/js/data/custom.js', text: buildCustomJs(draft(), currentCustom()) },
           ...state.versions.map(v => ({ path: v.path, text: v.write(v.text, next) })),
           ...blobEntries().map(([path, blob]) => ({ path, blob }))
         ];

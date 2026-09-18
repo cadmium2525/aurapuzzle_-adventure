@@ -38,7 +38,7 @@ export {
 
 export {
   CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS, CUSTOM_SETTINGS,
-  CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS
+  CUSTOM_SKILLS, CUSTOM_LEADER_SKILLS, CUSTOM_GIFTS
 } from '../../src/js/data/custom.js';
 
 export { CHAR_ATLAS, CHAR_ATLAS_COLUMNS, CHAR_ATLAS_ROWS } from '../../src/js/data/char-atlas.js';

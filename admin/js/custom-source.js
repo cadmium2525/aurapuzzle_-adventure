@@ -49,12 +49,36 @@ export const VERSION_FILES = [
   }
 ];
 
+/** id(またはkey)で重ねる。下書き側が勝つ */
+function merge(baseList, draftList, idKey = 'id') {
+  const map = new Map();
+  (baseList || []).forEach(x => map.set(String(x[idKey]), x));
+  (draftList || []).forEach(x => map.set(String(x[idKey]), x));
+  return Array.from(map.values());
+}
+
 /**
  * custom.js の中身を作る。
- * @param {{enemies:Array, raids:Array, characters:Array}} draft
+ *
+ * **いま custom.js にあるもの(base)に、下書きを重ねて書く。**
+ * 下書きは push のたびに空になるので、base を足さずに書くと、
+ * 前に push したキャラや設定が次の push で消えてしまう。
+ *
+ * @param {object} draft 下書き
+ * @param {object} base  いまの custom.js の中身(省略時は空)
  */
-export function buildCustomJs(draft) {
-  const d = draft || {};
+export function buildCustomJs(draft, base = {}) {
+  const b = base || {};
+  const src = {
+    enemies: merge(b.enemies, (draft || {}).enemies),
+    raids: merge(b.raids, (draft || {}).raids),
+    characters: merge(b.characters, (draft || {}).characters),
+    skills: merge(b.skills, (draft || {}).skills),
+    leaderSkills: merge(b.leaderSkills, (draft || {}).leaderSkills),
+    gifts: merge(b.gifts, (draft || {}).gifts, 'key'),
+    settings: Object.assign({}, b.settings, (draft || {}).settings)
+  };
+  const d = src;
   const json = list => JSON.stringify((list || []).map(strip), null, 2);
   return `/* =========================================================
  * custom.js — 管理者ツール(admin/)が書き出すデータ

@@ -498,7 +498,12 @@ Android の端末側の戻るは `popstate` で拾う(`nav.js` の端末の戻�
 GitHub の Git Data API (blob → tree → commit → ref) を使っている。
 
 書き出し先は `src/js/data/custom.js` の1ファイルだけ。
-これは**機械生成なので手で編集しない**。中身は JSON リテラルだけで処理は
+これは**機械生成なので手で編集しない**。
+
+下書きは push のたびに空になるので、書き出しは
+**いまの custom.js に下書きを重ねる**形にしている(id / key が同じものは
+下書きが勝ち、無いものはそのまま残る)。重ねずに書くと、キャラを足した次の
+push でそのキャラが消える。`tests/admin-release.test.mjs` が見張っている。中身は JSON リテラルだけで処理は
 書かない方針にしてあり、`tests/admin-release.test.mjs` が
 「本当に import できる JS になるか」を毎回確かめている
 (引用符・山括弧・改行が名前や台詞に入っても壊れないこと)。
