@@ -83,6 +83,7 @@ function createInitialState() {
     giftLog: {},                       // 受け取り済みの運営プレゼントID
     login: { date: '', streak: 0 },    // 最後にログインボーナスを配った日と連続日数
     shopLog: { date: '', counts: {} }, // 1日に買える数に上限がある商品の、今日ぶんの購入数
+    shopTotal: {},                     // 買い切り商品の通算購入数(日付では戻らない)
     settings: { bgm: 60, se: 80, playerId: uid() },
     profile: {
       name: 'プレイヤー',
@@ -180,6 +181,7 @@ function migrate(old) {
   s.giftLog = old.giftLog || {};
   s.login = Object.assign({ date: '', streak: 0 }, old.login || {});
   s.shopLog = Object.assign({ date: '', counts: {} }, old.shopLog || {});
+  s.shopTotal = Object.assign({}, old.shopTotal || {});
   s.settings = Object.assign(fresh.settings, old.settings || {});
   s.profile = Object.assign(fresh.profile, old.profile || {});
   s.profile.friends = Array.isArray(s.profile.friends) ? s.profile.friends : [];
@@ -597,10 +599,35 @@ export function shopRemainingToday(item) {
   return Math.max(0, item.dailyLimit - shopBoughtToday(item.id));
 }
 
-/** 購入を1つ記録する */
-export function recordShopPurchase(itemId) {
-  const log = shopLogToday();
-  log.counts[itemId] = (log.counts[itemId] || 0) + 1;
+/**
+ * その商品をこれまでに何個買ったか(買い切り商品用。日付では戻らない)。
+ * v9 のまま項目を足しているので、古いセーブに無くても困らないようにする。
+ */
+export function shopBoughtTotal(itemId) {
+  return (state.shopTotal && state.shopTotal[itemId]) || 0;
+}
+
+/** 買い切り商品の残り(買い切りでなければ Infinity) */
+export function shopRemainingTotal(item) {
+  if (!item.totalLimit) return Infinity;
+  return Math.max(0, item.totalLimit - shopBoughtTotal(item.id));
+}
+
+/** 今日この商品を買える数。日ぶんと買い切りぶんの厳しいほう */
+export function shopRemaining(item) {
+  return Math.min(shopRemainingToday(item), shopRemainingTotal(item));
+}
+
+/** 購入を1つ記録する。上限の種類に応じて日ぶん/通算ぶんの両方を進める */
+export function recordShopPurchase(item) {
+  if (item.dailyLimit) {
+    const log = shopLogToday();
+    log.counts[item.id] = (log.counts[item.id] || 0) + 1;
+  }
+  if (item.totalLimit) {
+    if (!state.shopTotal) state.shopTotal = {};
+    state.shopTotal[item.id] = (state.shopTotal[item.id] || 0) + 1;
+  }
   saveState();
 }
 

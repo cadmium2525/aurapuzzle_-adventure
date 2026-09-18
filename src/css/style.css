@@ -1528,8 +1528,10 @@ input[type=range]{accent-color:var(--accent);}
 /* 1日に買える数のある商品 */
 .shop-limit{font-size:10px;color:var(--ink-faint);margin-top:3px;}
 .shop-limit b{color:var(--accent);font-variant-numeric:tabular-nums;}
-.shop-row.sold-out{opacity:.5;}
-.shop-row.sold-out .buybtn{background:rgba(255,255,255,.08);color:var(--ink-faint);box-shadow:none;}
+.shop-row.sold-out{opacity:.62;}
+/* 「購入済み」は消えない表示なので、完売より読めるようにしておく */
+.shop-row.sold-out .buybtn{background:rgba(255,255,255,.10);color:var(--ink-dim);box-shadow:none;
+  font-size:11px;letter-spacing:.02em;}
 .shop-row.too-poor .buybtn{filter:grayscale(.55) brightness(.85);}
 /* 敵が複数のときは1体あたりの絵が小さいので、少し詰める */
 #enemyStage.multi-enemy { height:24vh; min-height:152px; }

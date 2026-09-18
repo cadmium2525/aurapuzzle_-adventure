@@ -1,4 +1,4 @@
-/* ショップ:通貨の違う商品と、1日に買える数の上限(スタミナドリンク・オーブ小袋)。
+/* ショップ:通貨の違う商品、1日の購入上限(ドリンク・小袋)、買い切り(キャラ)。
    node scripts/check-shop.cjs                                       */
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
@@ -148,7 +148,74 @@ const server = http.createServer(async (req, res) => {
     assert.ok(perDay < drinkCost,
       `コインへ回しても ${perDay} ダイヤしか戻らないのに ${drinkCost} ダイヤ払う形でないと輪が閉じない`);
 
+    /* --- キャラは買い切り: 送還して所持数が0に戻っても買い直せないこと --- */
+    const chr = await page.evaluate(async () => {
+      const g = await import('/src/js/data/gamedata.js');
+      return g.SHOP_ITEMS.find(i => i.type === 'character');
+    });
+    console.log('ショップのキャラ:', JSON.stringify(chr));
+    assert.ok(chr.totalLimit > 0, '買い切りでないと「買って送還」で素材が無限に増える');
+
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      s.coin = 999999; s.shopLog = { date: '', counts: {} }; s.shopTotal = {};
+      localStorage.setItem('acb_state', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.locator('#titleScreen.ready').click({ timeout: 30000 });
+    await page.evaluate(async () => { (await import('/src/js/core/nav.js')).showScreen('shop'); });
+
+    const crow = page.locator('.shop-row').filter({ hasText: '買い切り' }).first();
+    await crow.locator('button').click();
+    await page.waitForTimeout(250);
+    // 所持数はキャラID、通算購入数は商品IDで引く(キーが違う)
+    const owned = await page.evaluate(([charId, itemId]) => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      return { n: (s.characters[charId] || {}).n || 0, total: (s.shopTotal || {})[itemId] || 0 };
+    }, [chr.charId, chr.id]);
+    console.log(`購入後: 所持 ${owned.n} 体 / 通算 ${owned.total} 回`);
+    assert.equal(owned.n, 1);
+    assert.equal(owned.total, 1);
+
+    const crow2 = page.locator('.shop-row').filter({ hasText: '購入済み' }).first();
+    assert.equal(await crow2.count(), 1, '買い切りの表示になっていない');
+
+    // 送還して所持数を0にしても、買い直せてはいけない
+    await page.evaluate(async id => {
+      const st = await import('/src/js/core/state.js');
+      st.dismissCharacter(id, 99);
+      (await import('/src/js/screens/shop.js')).renderShop();
+    }, chr.charId);
+    await page.waitForTimeout(200);
+    const afterDismiss = await page.evaluate(id => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      return { n: (s.characters[id] || {}).n || 0, coin: s.coin };
+    }, chr.charId);
+    console.log(`送還後: 所持 ${afterDismiss.n} 体 / コイン ${afterDismiss.coin}`);
+    assert.equal(afterDismiss.n, 0, '送還できていない(前提が崩れている)');
+    const stillBought = page.locator('.shop-row').filter({ hasText: '購入済み' }).first();
+    assert.equal(await stillBought.locator('button').getAttribute('disabled'), '',
+      '送還して所持数が0に戻ると買い直せてしまう');
+    await stillBought.locator('button').click({ force: true });
+    await page.waitForTimeout(200);
+    const reBuy = await page.evaluate(id => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      return (s.characters[id] || {}).n || 0;
+    }, chr.charId);
+    assert.equal(reBuy, 0, '買い切りなのに2体目が買えてしまった');
+
+    // 日付が変わっても買い切りは戻らない
+    await page.evaluate(async () => {
+      const { state } = await import('/src/js/core/state.js');
+      state.shopLog = { date: '2000-01-01', counts: {} };
+      (await import('/src/js/screens/shop.js')).renderShop();
+    });
+    await page.waitForTimeout(200);
+    assert.equal(await page.locator('.shop-row').filter({ hasText: '購入済み' }).count(), 1,
+      '日付が変わると買い切りが戻ってしまう');
+    console.log('日付が変わっても: 購入済みのまま');
+
     assert.deepEqual(errors, []);
-    console.log('PASS: ドリンクはオーブ建てで1日3本、小袋は1日1個。コイン→ダイヤの蛇口は上限で止まる');
+    console.log('PASS: ドリンクは1日3本、小袋は1日1個、キャラは買い切り。コイン→ダイヤの蛇口は上限で止まる');
   } finally { await browser.close(); server.close(); }
 })().catch(e => { console.error(e); server.close(); process.exitCode = 1; });

@@ -4,7 +4,8 @@
  * =======================================================*/
 import { $, toast, itemIcon } from '../core/ui.js';
 import {
-  state, saveState, addCharacter, shopRemainingToday, recordShopPurchase
+  state, saveState, addCharacter,
+  shopRemaining, shopRemainingToday, shopRemainingTotal, recordShopPurchase
 } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import { AURAS, SHOP_ITEMS, RARITY_TITLE, resolveCharacter } from '../data/gamedata.js';
@@ -49,8 +50,10 @@ export function renderShop() {
   SHOP_ITEMS.forEach(item => {
     const { visual, name, desc } = present(item);
     const currency = item.currency || 'coin';
-    const left = shopRemainingToday(item);
+    const left = shopRemaining(item);
     const soldOut = left <= 0;
+    // 買い切りを取り切ったのか、今日ぶんが尽きただけなのかで言い方を変える
+    const bought = shopRemainingTotal(item) <= 0;
     const poor = (currency === 'orb' ? state.orb : state.coin) < item.price;
 
     const row = document.createElement('div');
@@ -59,13 +62,16 @@ export function renderShop() {
       <div class="sinfo2">
         <div class="sname2">${name}</div>
         <div class="sprice">${desc}</div>
-        ${item.dailyLimit ? `<div class="shop-limit">本日あと <b>${left}</b> / ${item.dailyLimit} ${item.unit || '個'}</div>` : ''}
+        ${item.dailyLimit ? `<div class="shop-limit">本日あと <b>${shopRemainingToday(item)}</b> / ${item.dailyLimit} ${item.unit || '個'}</div>` : ''}
+        ${item.totalLimit && !bought ? '<div class="shop-limit">買い切り</div>' : ''}
       </div>
       <button class="btn buybtn"${soldOut ? ' disabled' : ''}>${
-        soldOut ? '本日分は完売' : `${itemIcon(currency)}${item.price.toLocaleString()}`}</button>`;
+        soldOut ? (bought ? '購入済み' : '本日分は完売')
+                : `${itemIcon(currency)}${item.price.toLocaleString()}`}</button>`;
 
     row.querySelector('button').addEventListener('click', () => {
-      // 押した時点で改めて見る。日付が変わっていれば上限も戻る
+      // 押した時点で改めて見る。日付が変わっていれば日ぶんの上限は戻る
+      if (shopRemainingTotal(item) <= 0) { toast('すでに購入済みです'); renderShop(); return; }
       if (shopRemainingToday(item) <= 0) { toast('本日分は売り切れです'); renderShop(); return; }
       if (currency === 'orb' ? state.orb < item.price : state.coin < item.price) {
         toast(currency === 'orb' ? 'オーブが足りません' : 'コインが足りません'); return;
@@ -73,7 +79,7 @@ export function renderShop() {
       if (currency === 'orb') state.orb -= item.price; else state.coin -= item.price;
       grant(item);
       saveState();
-      if (item.dailyLimit) recordShopPurchase(item.id);
+      recordShopPurchase(item);
       updateStatusBar();
       toast(item.type === 'stamina' ? `スタミナ +${item.amount}` : '購入しました');
       renderShop();

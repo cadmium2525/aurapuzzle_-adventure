@@ -227,7 +227,12 @@ export const TECHNICAL_STAGES = (() => {
  *  月      癒(回復キャラ)の進化素材
  *  火水木  それぞれ火・水・木の進化素材
  *  金      ゴールド特化
- *  土日    キャラクターの経験値アイテム
+ *  土      常闇の進化素材
+ *  日      キャラクターの経験値アイテム
+ *
+ * 常闇(オーラ4)だけ長らく曜日が無く、通常ダンジョンでも50ステージ中8つ
+ * (3章以降の各章5ステージ目)しか落とさない詰まりどころだった。
+ * 土日が両方とも経験値で重複していたので、土曜を常闇に充てて埋めている。
  */
 export const DAILY_THEMES = [
   { day: 0, label: '日', title: '賢者の書庫', emoji: '📗', dropType: 'exp',     dropAura: null, note: 'キャラ経験値アイテム' },
@@ -236,7 +241,7 @@ export const DAILY_THEMES = [
   { day: 3, label: '水', title: '蒼海の泉',   emoji: '🔵', dropType: 'crystal', dropAura: 1,    note: '水の進化素材' },
   { day: 4, label: '木', title: '翠緑の苗床', emoji: '🟢', dropType: 'crystal', dropAura: 2,    note: '木の進化素材' },
   { day: 5, label: '金', title: '黄金の坑道', emoji: '💰', dropType: 'gold',    dropAura: null, note: 'ゴールド特化' },
-  { day: 6, label: '土', title: '賢者の書庫', emoji: '📗', dropType: 'exp',     dropAura: null, note: 'キャラ経験値アイテム' }
+  { day: 6, label: '土', title: '常闇の深淵', emoji: '🟣', dropType: 'crystal', dropAura: 4,    note: '闇キャラの進化素材' }
 ];
 
 /** 曜日ダンジョンの難易度(プレイヤーランクで解放) */
@@ -404,10 +409,15 @@ export const STAMINA_DRINK = {
 export const ORB_POUCH = { amount: 3, price: 20000, dailyLimit: 1 };
 
 export const SHOP_ITEMS = [
-  { id: 'sh_c1', type: 'character', charId: 'fl_gald',   emoji: '🔥', price: 800  },
-  { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200 },
-  { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200 },
-  { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200 },
+  // 買い切り。初心者向けの拾い物枠であって、素材の自動販売機ではない。
+  // 何度も買えると「買って送還」で素材とコインが増え続けてしまう:
+  //   ゴラン 800コイン → 送還で 500コイン + 結晶2 + 開眼の証1
+  //   = 実質300コインで結晶2個。結晶1個あたり150コインで無制限に買えた。
+  // 送還すると所持数は0に戻るので、所持の有無ではなく通算購入数で止める。
+  { id: 'sh_c1', type: 'character', charId: 'fl_gald',   emoji: '🔥', price: 800,  totalLimit: 1 },
+  { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200, totalLimit: 1 },
+  { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200, totalLimit: 1 },
+  { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200, totalLimit: 1 },
   { id: 'sh_orb', type: 'orb', amount: ORB_POUCH.amount, emoji: '💎',
     price: ORB_POUCH.price, dailyLimit: ORB_POUCH.dailyLimit, unit: '個' },
   { id: 'sh_stamina', type: 'stamina', amount: STAMINA_DRINK.amount, emoji: '⚡',
