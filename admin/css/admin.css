@@ -157,7 +157,9 @@ table.data td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .shot{width:104px;}
 .shot img{width:104px;height:104px;object-fit:cover;border-radius:10px;
   border:1px solid var(--line);background:#0e0c18;}
-.shot.wide img{width:100%;height:auto;aspect-ratio:16/9;}
+/* 横長のプレビュー。書き出すバナーと同じ比率で見せる(ここがずれると、
+   切り落とされていないのに切れて見える) */
+.shot.wide img{width:100%;height:auto;aspect-ratio:2.7;object-fit:contain;}
 .shot .cap{display:block;font-size:10.5px;color:var(--ink-faint);margin-top:3px;word-break:break-all;}
 
 /* --- モーダル --- */
