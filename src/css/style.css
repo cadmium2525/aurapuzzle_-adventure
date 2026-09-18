@@ -135,9 +135,14 @@ body{
   transition:width .24s ease;}
 .title-screen{border:0;padding:0;font-family:inherit;text-align:center;opacity:0;cursor:pointer;}
 .title-screen.ready{opacity:1;}
+/* タイトルのロゴは画面の上から5〜18%あたりにある。そこへ暗幕をかけると
+   ロゴが沈んで読みづらいので、上の暗幕はロゴの手前(6%)で切り上げる。
+   いちばん上だけ薄く残すのは、端末の時計や電池が白文字で乗るため。
+   下の暗幕は TAP TO START を読ませるためなのでそのまま。
+   まわりを落とす楕円も、ロゴのある上端まで届かないよう内側を広げて薄くする。 */
 .title-screen .boot-vignette{background:
-  linear-gradient(180deg,rgba(4,2,12,.63) 0%,rgba(4,2,12,.10) 25%,transparent 61%,rgba(4,2,12,.80) 100%),
-  radial-gradient(ellipse at center,transparent 46%,rgba(4,2,12,.36) 100%);}
+  linear-gradient(180deg,rgba(4,2,12,.30) 0%,rgba(4,2,12,0) 6%,rgba(4,2,12,0) 58%,rgba(4,2,12,.80) 100%),
+  radial-gradient(ellipse at center,rgba(4,2,12,0) 62%,rgba(4,2,12,.20) 100%);}
 .title-start{position:absolute;z-index:2;left:0;right:0;bottom:calc(42px + env(safe-area-inset-bottom));
   font-size:14px;font-weight:900;letter-spacing:.22em;color:#fff;text-shadow:0 2px 12px #000,0 0 14px #65E0FF;
   animation:titleTap 1.65s ease-in-out infinite;}
