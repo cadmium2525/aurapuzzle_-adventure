@@ -97,8 +97,9 @@ async function openSettings() {
         out.textContent = '確認中…';
         try {
           const info = await gh.checkAccess();
-          out.textContent = `OK: ${info.login} / ${info.repo} / 書き込み ${info.canWrite ? '可' : '不可'}`;
-          out.className = 'mono small ok';
+          out.textContent = `OK: ${info.repo} / 書き込み ${info.canWrite ? '可' : '不可'}`
+            + (info.login ? ` / ${info.login}` : '');
+          out.className = info.canWrite ? 'mono small ok' : 'mono small ng';
         } catch (e) {
           out.textContent = String(e.message || e);
           out.className = 'mono small ng';

@@ -71,12 +71,23 @@ const base = () => {
   return `/repos/${owner}/${repo}`;
 };
 
-/** 接続確認。ログイン名とリポジトリの書き込み可否を返す */
+/**
+ * 接続確認。リポジトリの書き込み可否を返す。
+ *
+ * ログイン名は分かれば添えるだけで、取れなくても失敗にしない。
+ * fine-grained token は Account の権限を1つも付けずに作れる(むしろ
+ * そのほうが安全)ので、/user で弾かれただけで「接続できない」と
+ * 出してしまうと、push はできるのに壊れて見える。
+ * 本当に要るのはリポジトリへの書き込み可否だけ。
+ */
 export async function checkAccess() {
-  const me = await call('/user');
   const repo = await call(base());
+  let login = '';
+  try {
+    login = (await call('/user')).login || '';
+  } catch { /* Account の権限が無いだけ。判定には使わない */ }
   return {
-    login: me.login,
+    login,
     repo: repo.full_name,
     canWrite: !!(repo.permissions && repo.permissions.push),
     defaultBranch: repo.default_branch
