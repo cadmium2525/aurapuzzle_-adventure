@@ -96,6 +96,7 @@ async function pushCloudSave() {
       gifts: state.gifts || [],          // 未受け取りのプレゼント
       giftLog: state.giftLog || {},      // 受け取り済みの運営プレゼント
       login: state.login || {},          // ログインボーナスの連続日数
+      shopLog: state.shopLog || {},      // 1日の購入上限を端末をまたいでも守る
       updatedAt: FB.serverTimestamp()
     });
     // 貸し出しキャラのレベル/開眼は後から変わるので、保存のたびに最新へ揃える

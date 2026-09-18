@@ -82,6 +82,7 @@ function createInitialState() {
     gifts: [],                         // プレゼントボックスの中身(未受け取り)
     giftLog: {},                       // 受け取り済みの運営プレゼントID
     login: { date: '', streak: 0 },    // 最後にログインボーナスを配った日と連続日数
+    shopLog: { date: '', counts: {} }, // 1日に買える数に上限がある商品の、今日ぶんの購入数
     settings: { bgm: 60, se: 80, playerId: uid() },
     profile: {
       name: 'プレイヤー',
@@ -178,6 +179,7 @@ function migrate(old) {
   s.gifts = Array.isArray(old.gifts) ? old.gifts : [];
   s.giftLog = old.giftLog || {};
   s.login = Object.assign({ date: '', streak: 0 }, old.login || {});
+  s.shopLog = Object.assign({ date: '', counts: {} }, old.shopLog || {});
   s.settings = Object.assign(fresh.settings, old.settings || {});
   s.profile = Object.assign(fresh.profile, old.profile || {});
   s.profile.friends = Array.isArray(s.profile.friends) ? s.profile.friends : [];
@@ -571,6 +573,35 @@ export function evolveCharacter(charId) {
   e.lv = Math.min(e.lv, maxLevelFor(e.star));
   saveState();
   return { ok: true, message: '進化しました!', before, after: resolveOwned(charId) };
+}
+
+/* ===================== ショップの購入制限 ===================== */
+/** YYYY-MM-DD。日をまたいだかどうかの判定に使う */
+export function todayStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** 今日ぶんの記録。日付が変わっていたら捨てて作り直す(古い日は溜めない) */
+function shopLogToday() {
+  const today = todayStr();
+  if (!state.shopLog || state.shopLog.date !== today) state.shopLog = { date: today, counts: {} };
+  return state.shopLog;
+}
+
+/** その商品を今日いくつ買ったか */
+export function shopBoughtToday(itemId) { return shopLogToday().counts[itemId] || 0; }
+
+/** 今日あと何個買えるか(上限のない商品は Infinity) */
+export function shopRemainingToday(item) {
+  if (!item.dailyLimit) return Infinity;
+  return Math.max(0, item.dailyLimit - shopBoughtToday(item.id));
+}
+
+/** 購入を1つ記録する */
+export function recordShopPurchase(itemId) {
+  const log = shopLogToday();
+  log.counts[itemId] = (log.counts[itemId] || 0) + 1;
+  saveState();
 }
 
 /* ===================== ランク ===================== */

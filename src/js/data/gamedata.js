@@ -355,12 +355,40 @@ export const EXP_ITEMS = {
 };
 
 /* ===================== ショップ ===================== */
+/**
+ * スタミナドリンク。
+ *
+ * 値段を決めるにあたって測った数字:
+ *   スタミナは3分で1回復 = 1日480。
+ *   金曜「黄金の坑道 上級」は 15000コイン / スタミナ25 = 600コイン/スタミナ。
+ *     (曜日ダンジョンにハードはないので、これがコイン効率の上限)
+ *   ショップのオーブ小袋は 5000コイン = 3ダイヤ → 1ダイヤ = 1667コイン。
+ *   この2つを繋ぐと スタミナ1 = 0.36ダイヤ。
+ *
+ * コイン建てにすると即壊れる。0.36ダイヤ = 600コインより安くコインで
+ * スタミナを買えたら、そのまま無限に回せてしまうため。
+ *
+ * ダイヤ建てにしても輪が閉じるわけではない。オーブ小袋がある限り
+ * 「ダイヤ→スタミナ→コイン→ダイヤ」は繋がっていて、💎2で買った50スタミナは
+ * 金曜上級なら 30000コイン = 18ダイヤぶんになる。ただしこれは
+ * オーブ小袋と曜日ダンジョンのレートの問題で、ドリンク側で塞ぐものではない
+ * (塞げる値段は💎18以上で、ガチャ1回5ダイヤに対して誰も買わない死に商品になる)。
+ * ドリンクにできるのは増える量を頭打ちにすることなので、1日の本数を絞る。
+ */
+export const STAMINA_DRINK = {
+  amount: 50,      // 3分で1回復なので、2時間半ぶん
+  price: 2,        // ガチャ1回が5ダイヤ。1回ぶんで125スタミナ買える計算
+  dailyLimit: 3    // 1日 +150 まで。自然回復(1日480)の3割程度に収まる
+};
+
 export const SHOP_ITEMS = [
   { id: 'sh_c1', type: 'character', charId: 'fl_gald',   emoji: '🔥', price: 800  },
   { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200 },
   { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200 },
   { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200 },
-  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 }
+  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 },
+  { id: 'sh_stamina', type: 'stamina', amount: STAMINA_DRINK.amount, emoji: '⚡',
+    currency: 'orb', price: STAMINA_DRINK.price, dailyLimit: STAMINA_DRINK.dailyLimit }
 ];
 
 /* ===================== ガチャ ===================== */
