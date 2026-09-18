@@ -14,8 +14,13 @@
 export const FULL_MAX = 1024;
 /** アイコンの一辺。一覧は最大64px程度なので2倍解像度で足りる */
 export const ICON_SIZE = 128;
-/** バナーの幅 */
+/* --- バナーの大きさ ---
+   ホームのバナー枠(src/css/style.css の .home-banner)に合わせる。
+   枠は最初の1枚が高さを決め、2枚目以降はそこへ重ねるので、
+   縦横比がずれた絵は上下を切られてしまう。既存の降臨バナー
+   (assets/promo/kyuko_banner.webp = 1024×381)とそろえた 2.7:1 にする。 */
 export const BANNER_WIDTH = 1080;
+export const BANNER_RATIO = 2.7;
 
 /** File/Blob を <img> として読む */
 export function loadImage(file) {
@@ -78,7 +83,7 @@ export async function toIconWebp(file, size = ICON_SIZE, quality = 0.92, focusY 
 }
 
 /** 横長のバナーに整える(はみ出しは中央で切る) */
-export async function toBannerWebp(file, width = BANNER_WIDTH, ratio = 16 / 9, quality = 0.88) {
+export async function toBannerWebp(file, width = BANNER_WIDTH, ratio = BANNER_RATIO, quality = 0.88) {
   const img = await loadImage(file);
   const height = Math.round(width / ratio);
   const scale = Math.max(width / img.width, height / img.height);

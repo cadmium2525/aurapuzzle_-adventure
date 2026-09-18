@@ -196,7 +196,7 @@ function renderEditor(view) {
         (ガチャのバナーとは数秒ごとに交互に出ます)。</p>
       ${field('バナー画像のパス', 'banner', r.banner || '',
         { hint: 'assets/promo/xxx.webp', placeholder: 'assets/promo/xxx.webp' })}
-      <label class="drop">バナー画像を選ぶ(1080×608 に整えます)
+      <label class="drop">バナー画像を選ぶ(1080×400 に整えます)
         <input type="file" accept="image/*" id="raidBannerFile"></label>
       <div class="shots" id="raidBannerShot"></div>`)}
 

@@ -75,7 +75,7 @@ export default {
       ${card('ガチャのバナー', `
         <p class="lead">ホームに出す宣伝バナーです。降臨のバナーと数秒ごとに入れ替わります。
         設定しなければガチャのバナーは出ません。</p>
-        <label class="drop">バナー画像を選ぶ(1080×608 に整えます)
+        <label class="drop">バナー画像を選ぶ(1080×400 に整えます)
           <input type="file" accept="image/*" id="bannerFile"></label>
         <div class="shots">${held
           ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(held)}" alt="">

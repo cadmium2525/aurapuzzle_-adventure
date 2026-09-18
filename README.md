@@ -638,7 +638,8 @@ GitHub の **Fine-grained personal access token** を使う。
 PNG/JPEG を選ぶとツール内で webp にしてから push する
 (`admin/js/image.js`、`canvas.toBlob('image/webp')`)。
 1枚絵は長辺1024px、アイコンは中央で正方形に切って128px角、
-バナーは1080×608。
+バナーは1080×400(ホームのバナー枠と同じ 2.7:1。ここがずれると
+上下を切られる)。
 
 ⚠️ **画像はメモリにしか置いていない**(localStorage に Blob は入らない)。
 選んだセッションのうちに push すること。再読み込みすると画像だけ外れる。

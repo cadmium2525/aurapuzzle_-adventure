@@ -226,7 +226,7 @@ function renderEditor(view) {
 
       <h3 style="margin-top:12px">画像</h3>
       <p class="lead small">選ぶとツール内で webp にします。
-        1枚絵は長辺1024px、アイコンは128px角、バナーは1080×608。</p>
+        1枚絵は長辺1024px、アイコンは128px角、バナーは1080×400。</p>
       <div class="grid2">
         <label class="drop">進化前の1枚絵<input type="file" accept="image/*" data-pic="full1"></label>
         <label class="drop">進化前のアイコン<input type="file" accept="image/*" data-pic="icon1"></label>
