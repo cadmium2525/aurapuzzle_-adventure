@@ -4,7 +4,7 @@
  * 受け取りを1か所にまとめる箱。中身は次の4種類。
  *   1. ログインボーナス(その日はじめての起動で1つ入る)
  *   2. フレンド由来のフレポ(あいさつされたぶん / 貸し出しキャラが使われたぶん)
- *   3. 配布(BUILTIN_GIFTS。コードに書いた内容を全員へ)
+ *   3. 配布(コードの BUILTIN_GIFTS と、管理ツールが書き出す CUSTOM_GIFTS)
  *   4. 運営からのプレゼント(Firestore の gifts コレクション)
  *
  * 中身はゴールド/フレポ/オーブ/スタミナに加えて、キャラクターも配れる。
@@ -22,6 +22,9 @@ import { state, saveState, addCharacter } from './state.js';
 import { FB, firebaseEnabled } from './firebase.js';
 import { itemIcon } from './ui.js';
 import { loginBonusFor, BUILTIN_GIFTS, characterById } from '../data/gamedata.js';
+/* 管理ツールが書き出すぶん。名前空間で読むのは、まだ CUSTOM_GIFTS を
+   持たない custom.js(ツールが古い)でも起動を止めないため */
+import * as CUSTOM from '../data/custom.js';
 
 /** 運営プレゼントの取得件数の上限(無料枠の読み取り数を抑える) */
 const NOTICE_LIMIT = 20;
@@ -163,10 +166,15 @@ export function loginStreak() { return (state.login && state.login.streak) || 0;
  */
 export function checkBuiltinGifts() {
   if (!state.giftLog) state.giftLog = {};
+  const today = todayStr();
   let added = 0;
-  BUILTIN_GIFTS.forEach(g => {
-    if (state.giftLog[g.key]) return;
-    state.giftLog[g.key] = todayStr();
+  BUILTIN_GIFTS.concat(CUSTOM.CUSTOM_GIFTS || []).forEach(g => {
+    if (!g || !g.key || state.giftLog[g.key]) return;
+    // 管理ツールから配るぶんは期間を持てる。期間外は配らない
+    // (期間前に配ってしまうと、あとで期間内に入っても届かなくなる)
+    if (g.from && today < g.from) return;
+    if (g.to && today > g.to) return;
+    state.giftLog[g.key] = today;
     addGift({
       title: g.title, note: g.note || '',
       char: g.char || null,

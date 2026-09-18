@@ -12,7 +12,7 @@
  * =======================================================*/
 import { $, sleep, randInt, toast, artImg, charIcon, itemIcon } from '../core/ui.js';
 import {
-  state, saveState, gainExp, maxStamina, gainCharExp, addMaterials, addCharacter
+  state, saveState, gainExp, maxStamina, gainCharExp, addMaterials, addCharacter, ownCharacters
 } from '../core/state.js';
 import { showScreen, currentScreen, updateStatusBar } from '../core/nav.js';
 import { setRetreatHandler } from '../core/sysmodal.js';
@@ -157,15 +157,26 @@ export function startDungeonRun(stage, hard, support) {
 }
 
 /* ===================== 中断と再開 ===================== */
+/** キャラ1人を、あとから resolveCharacter で組み直せる形にする */
+const memberRef = m => ({ id: m.id, star: m.star, level: m.level, awaken: m.awaken });
+
+/** 中断したときの3人と、いまの編成が違うか(知らせるためだけに使う) */
+function teamChangedSince(own) {
+  const now = ownCharacters();
+  return own.length !== now.length || own.some((m, i) => m.id !== now[i].id);
+}
+
 /**
  * 手番の切れ目で進行状況を保存する。
- * パーティは編成から作り直せるので、サポートの素性だけ控えておく。
+ * 自陣の3人も控える。ここを編成から作り直すと、中断中にチームを
+ * 入れ替えられたときに別の面子で再開してしまう。
  */
 function persistRun() {
   if (!run) return;
   const sup = run.party.support;
   saveRunSnapshot({
     stage: run.stage, hard: run.hard, floorIndex: run.floorIndex,
+    own: run.party.own.map(memberRef),
     support: sup ? {
       id: sup.id, star: sup.star, level: sup.level, awaken: sup.awaken,
       isNpc: !!sup.isNpc, ownerName: sup.ownerName, ownerIcon: sup.ownerIcon, ownerUid: sup.ownerUid
@@ -210,8 +221,13 @@ export function resumeDungeonRun() {
     ? { ...resolveCharacter(s.id, s.star, s.level, s.awaken), isSupport: true, isNpc: !!s.isNpc,
         ownerName: s.ownerName, ownerIcon: s.ownerIcon, ownerUid: s.ownerUid }
     : null;
-  const party = buildParty(support);
+  // 入ったときの3人で再開する(中断中にチームを変えても、この潜行には効かない)
+  const own = (snap.own || [])
+    .map(m => resolveCharacter(m.id, m.star, m.level, m.awaken))
+    .filter(Boolean);
+  const party = buildParty(support, own);
   if (!party.own.length) { toast('チームにキャラクターを編成してください'); showScreen('character'); return false; }
+  if (teamChangedSince(own)) toast('中断したときの編成で再開します');
 
   run = {
     stage: snap.stage, hard: snap.hard, floorIndex: snap.floorIndex,

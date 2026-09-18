@@ -39,9 +39,11 @@ function applyLeaderSkill(mods, ls) {
 /**
  * 出撃パーティを組み立てる。
  * @param {object|null} support サポート枠のキャラクター({...character, isSupport, ownerName, ownerIcon, isNpc})
+ * @param {Array|null} ownOverride 自陣3人を明示する(中断したダンジョンの再開用)。
+ *        省略すると、いまの編成を使う。
  */
-export function buildParty(support) {
-  const own = ownCharacters();
+export function buildParty(support, ownOverride) {
+  const own = ownOverride && ownOverride.length ? ownOverride : ownCharacters();
   const members = support ? [...own, support] : own.slice();
   const leader = own[0] || null;
 

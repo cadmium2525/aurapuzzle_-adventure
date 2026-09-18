@@ -26,6 +26,10 @@ const SAMPLE = {
     id: 'fl_testnova', name: 'ノヴァ', job: '検証役', portrait: '🧪',
     aura: 0, rarity: 4, role: 'tank', leaderSkillId: 'ls_blaze', skillId: 'sk_strike',
     atk: 30, hp: 80, rcv: 16, _artName: 'testnova', _form: 0
+  }],
+  gifts: [{
+    key: 'gift_test', title: '記念<プレゼント>', note: 'ありがとう"ございます"',
+    from: '2026-01-01', to: '2026-12-31', orb: 45, char: 'fl_testnova'
   }]
 };
 
@@ -41,6 +45,7 @@ test('空の下書きからでも、読み込める custom.js になる', async 
   assert.deepEqual(module.CUSTOM_ENEMIES, []);
   assert.deepEqual(module.CUSTOM_RAIDS, []);
   assert.deepEqual(module.CUSTOM_CHARACTERS, []);
+  assert.deepEqual(module.CUSTOM_GIFTS, []);
 });
 
 test('引用符・記号・改行が入っていても壊れない JS を書き出す', async () => {
@@ -63,10 +68,22 @@ test('ツールの作業用キーはリポジトリに出さない', async () =>
   assert.equal(module.CUSTOM_CHARACTERS[0].atk, 30);
 });
 
-test('書き出した custom.js は、ゲーム側が期待する3つの配列を必ず持つ', async () => {
+test('書き出した custom.js は、ゲーム側が期待する配列を必ず持つ', async () => {
   const { module } = await loadGenerated(SAMPLE);
-  [module.CUSTOM_ENEMIES, module.CUSTOM_RAIDS, module.CUSTOM_CHARACTERS]
+  [module.CUSTOM_ENEMIES, module.CUSTOM_RAIDS, module.CUSTOM_CHARACTERS, module.CUSTOM_GIFTS]
     .forEach(v => assert.ok(Array.isArray(v)));
+});
+
+test('プレゼントは key・期間・中身をそのまま運ぶ', async () => {
+  const { module } = await loadGenerated(SAMPLE);
+  const g = module.CUSTOM_GIFTS[0];
+  assert.equal(g.key, 'gift_test');
+  assert.equal(g.title, '記念<プレゼント>');
+  assert.equal(g.note, 'ありがとう"ございます"');
+  assert.equal(g.from, '2026-01-01');
+  assert.equal(g.to, '2026-12-31');
+  assert.equal(g.orb, 45);
+  assert.equal(g.char, 'fl_testnova');
 });
 
 test('版の3か所を、実際のファイルから読めて書き換えられる', async () => {

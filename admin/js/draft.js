@@ -12,7 +12,7 @@
 const KEY = 'acb_admin_draft';
 
 const empty = () => ({ enemies: [], raids: [], characters: [],
-  skills: [], leaderSkills: [], settings: {}, gifts: null, notes: '' });
+  skills: [], leaderSkills: [], settings: {}, gifts: [], notes: '' });
 
 /** localStorage に入る部分だけ */
 let data = load();
@@ -22,7 +22,10 @@ const blobs = new Map();
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    return raw ? Object.assign(empty(), raw) : empty();
+    const data = raw ? Object.assign(empty(), raw) : empty();
+    // 昔の下書きは gifts を持っていない(または null)ので形をそろえる
+    if (!Array.isArray(data.gifts)) data.gifts = [];
+    return data;
   } catch { return empty(); }
 }
 
@@ -76,7 +79,8 @@ export function setSetting(key, value) {
 export function pendingCount() {
   return data.enemies.length + data.raids.length + data.characters.length
     + (data.skills || []).length + (data.leaderSkills || []).length
-    + blobs.size + Object.keys(data.settings || {}).length + (data.gifts ? 1 : 0);
+    + (data.gifts || []).length
+    + blobs.size + Object.keys(data.settings || {}).length;
 }
 
 /** push が終わったら空にする */

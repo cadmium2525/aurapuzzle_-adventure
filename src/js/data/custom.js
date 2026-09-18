@@ -100,6 +100,8 @@ export const CUSTOM_LEADER_SKILLS = [
  *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)
  *   gachaBanner  ホームに出すガチャのバナー画像
  */
+export const CUSTOM_GIFTS = [];
+
 export const CUSTOM_SETTINGS = {
   "pickupId": "lm_emiri",
   "pickupRate": 0.3,
