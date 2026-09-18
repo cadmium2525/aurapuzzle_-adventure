@@ -1,4 +1,4 @@
-/* ショップ:通貨の違う商品と、1日に買える数の上限(スタミナドリンク)。
+/* ショップ:通貨の違う商品と、1日に買える数の上限(スタミナドリンク・オーブ小袋)。
    node scripts/check-shop.cjs                                       */
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
@@ -103,7 +103,52 @@ const server = http.createServer(async (req, res) => {
     assert.deepEqual(await read(), poor, 'オーブ0でも買えてしまった');
     console.log('オーブ0のとき:', (await page.locator('#toast').textContent()).trim());
 
+    /* --- オーブ小袋: コイン→ダイヤの蛇口が1日1個で止まること --- */
+    const pouch = await page.evaluate(async () => {
+      const g = await import('/src/js/data/gamedata.js');
+      return g.SHOP_ITEMS.find(i => i.type === 'orb');
+    });
+    console.log('オーブ小袋:', JSON.stringify(pouch));
+    assert.ok(pouch.dailyLimit > 0, '上限がないとコイン収入がそのままダイヤに化ける');
+
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      s.coin = 999999; s.orb = 0; s.shopLog = { date: '', counts: {} };
+      localStorage.setItem('acb_state', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.locator('#titleScreen.ready').click({ timeout: 30000 });
+    await page.evaluate(async () => { (await import('/src/js/core/nav.js')).showScreen('shop'); });
+
+    const prow = page.locator('.shop-row').filter({ hasText: 'オーブ小袋' });
+    const preadFn = () => page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('acb_state'));
+      return { coin: s.coin, orb: s.orb, bought: (s.shopLog && s.shopLog.counts['sh_orb']) || 0 };
+    });
+    const p0 = await preadFn();
+    for (let i = 0; i < pouch.dailyLimit; i++) {
+      await prow.locator('button').click();
+      await page.waitForTimeout(220);
+    }
+    const p1 = await preadFn();
+    console.log(`上限まで: コイン ${p0.coin}→${p1.coin} / オーブ ${p0.orb}→${p1.orb}`,
+      `/ ${(await prow.locator('button').textContent()).trim()}`);
+    assert.equal(p1.orb, pouch.amount * pouch.dailyLimit, '買えた数が上限と合わない');
+    assert.equal(p1.coin, p0.coin - pouch.price * pouch.dailyLimit);
+    assert.equal(await prow.locator('button').getAttribute('disabled'), '', 'コインが余っていても上限で止まること');
+    await prow.locator('button').click({ force: true });
+    await page.waitForTimeout(200);
+    assert.deepEqual(await preadFn(), p1, 'コインさえあれば上限を超えて買えてしまった');
+
+    // ダイヤ→スタミナ→コイン→ダイヤ の輪が赤字で閉じていること。
+    // 1日に得られるダイヤは上限で頭打ちなので、ドリンクを買い切る値段より安いはず。
+    const perDay = pouch.amount * pouch.dailyLimit;
+    const drinkCost = drink.price * drink.dailyLimit;
+    console.log(`1日に替えられるダイヤ: ${perDay} / ドリンクを買い切る値段: ${drinkCost} ダイヤ`);
+    assert.ok(perDay < drinkCost,
+      `コインへ回しても ${perDay} ダイヤしか戻らないのに ${drinkCost} ダイヤ払う形でないと輪が閉じない`);
+
     assert.deepEqual(errors, []);
-    console.log('PASS: スタミナドリンクはオーブ建て、1日の上限あり、日付で戻る');
+    console.log('PASS: ドリンクはオーブ建てで1日3本、小袋は1日1個。コイン→ダイヤの蛇口は上限で止まる');
   } finally { await browser.close(); server.close(); }
 })().catch(e => { console.error(e); server.close(); process.exitCode = 1; });

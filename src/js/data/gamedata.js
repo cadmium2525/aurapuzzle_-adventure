@@ -381,14 +381,37 @@ export const STAMINA_DRINK = {
   dailyLimit: 3    // 1日 +150 まで。自然回復(1日480)の3割程度に収まる
 };
 
+/**
+ * オーブ小袋。コインをダイヤに替える唯一の道なので、**1日1個まで**。
+ *
+ * 上限を置く理由は、レートを合わせるだけでは足りないから。
+ * 上限が無いと、ダイヤの供給がコイン収入にそのまま比例してしまう:
+ *   金曜「黄金の坑道 上級」は 600コイン/スタミナ、
+ *   平日の最良(9-2 ハード)でも 121コイン/スタミナ。
+ *   1日480スタミナぶん回すと、週728,124コイン = 旧レートで437ダイヤ。
+ *   意図した供給(初クリア約120 + ログボ月12前後)と桁が違う。
+ * 金曜は週1日しか開かないので全体の55%でしかなく、金曜を消しても
+ * 週244ダイヤ残る。つまり原因は金曜ではなく小袋のレートそのもの。
+ *
+ * 値上げだけで抑えるとダンジョンを足すたびにレートを取り合うことになる。
+ * 上限なら、コイン収入がいくつでもダイヤの蛇口が 3個/日 で止まる。
+ *
+ * 値段の 20000 は ★4→★5 の進化1回ぶんと同額。
+ * 「進化を1段進めるか、ダイヤ3個を取るか」という選択にしたい。
+ * これでスタミナドリンク(💎2×3本=6ダイヤ)で稼いでも1日3ダイヤしか
+ * 戻らないので、ダイヤ→スタミナ→コイン→ダイヤの輪も赤字で閉じる。
+ */
+export const ORB_POUCH = { amount: 3, price: 20000, dailyLimit: 1 };
+
 export const SHOP_ITEMS = [
   { id: 'sh_c1', type: 'character', charId: 'fl_gald',   emoji: '🔥', price: 800  },
   { id: 'sh_c2', type: 'character', charId: 'aq_reina',  emoji: '💧', price: 2200 },
   { id: 'sh_c3', type: 'character', charId: 'lm_lily',   emoji: '💗', price: 2200 },
   { id: 'sh_c4', type: 'character', charId: 'wd_zeek',   emoji: '🌿', price: 2200 },
-  { id: 'sh_orb',   type: 'orb',   amount: 3,    emoji: '💎', price: 5000 },
+  { id: 'sh_orb', type: 'orb', amount: ORB_POUCH.amount, emoji: '💎',
+    price: ORB_POUCH.price, dailyLimit: ORB_POUCH.dailyLimit, unit: '個' },
   { id: 'sh_stamina', type: 'stamina', amount: STAMINA_DRINK.amount, emoji: '⚡',
-    currency: 'orb', price: STAMINA_DRINK.price, dailyLimit: STAMINA_DRINK.dailyLimit }
+    currency: 'orb', price: STAMINA_DRINK.price, dailyLimit: STAMINA_DRINK.dailyLimit, unit: '本' }
 ];
 
 /* ===================== ガチャ ===================== */

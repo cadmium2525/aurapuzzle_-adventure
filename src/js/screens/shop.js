@@ -21,6 +21,7 @@ function present(item) {
     };
   }
   if (item.type === 'orb') {
+    // コインをダイヤに替える唯一の道。1日1個までで蛇口を止めている
     return { visual: itemIcon('orb', 'shop'), name: 'オーブ小袋', desc: `オーブ +${item.amount}` };
   }
   if (item.type === 'frepo') {
@@ -58,7 +59,7 @@ export function renderShop() {
       <div class="sinfo2">
         <div class="sname2">${name}</div>
         <div class="sprice">${desc}</div>
-        ${item.dailyLimit ? `<div class="shop-limit">本日あと <b>${left}</b> / ${item.dailyLimit} 本</div>` : ''}
+        ${item.dailyLimit ? `<div class="shop-limit">本日あと <b>${left}</b> / ${item.dailyLimit} ${item.unit || '個'}</div>` : ''}
       </div>
       <button class="btn buybtn"${soldOut ? ' disabled' : ''}>${
         soldOut ? '本日分は完売' : `${itemIcon(currency)}${item.price.toLocaleString()}`}</button>`;
