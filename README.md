@@ -33,7 +33,9 @@
         │   ├── characters.js オーラ / キャラクター / レベル・進化 / NPCサポート
         │   ├── char-atlas.js アイコンアトラスの索引(scripts/build-char-atlas.py が生成)
         │   ├── skills.js     リーダースキル / スキル / 進化時の強化規則
-        │   └── gamedata.js   ステージ・素材・ショップ・ガチャ・各種定数
+        │   ├── gamedata.js   ステージ・素材・ショップ・ガチャ・各種定数
+        │   ├── enemy-master.js モンスターの基礎ステータスと行動パターン
+        │   └── custom.js     管理ツールが書き出すデータ(手で編集しない)
         ├── battle/
         │   ├── board.js    盤面データ操作(生成 / 連結判定 / 落下 / 補充 / 変換)
         │   ├── party.js    出撃パーティ組み立てとリーダースキル合成
@@ -432,9 +434,9 @@ python3 -m http.server 8000
 
 | 場所 | 例 |
 |---|---|
-| `index.html` の `<meta name="app-version">` | `48` |
-| `src/js/core/version.js` の `APP_VERSION` | `'48'` |
-| `sw.js` の `CACHE_NAME` | `aura-connect-v48` |
+| `index.html` の `<meta name="app-version">` | `49` |
+| `src/js/core/version.js` の `APP_VERSION` | `'49'` |
+| `sw.js` の `CACHE_NAME` | `aura-connect-v49` |
 
 いま動いている版は**マイページの「バージョン」**で確認できる。
 不具合の切り分けでは、まずここが最新かを見ること。
@@ -456,6 +458,7 @@ node scripts/check-training.cjs
 node scripts/check-character.cjs       # キャラクター5ページと出撃3段
 node scripts/check-technical.cjs       # テクニカル(全フロア特殊行動・初クリア報酬)
 node scripts/check-shop.cjs            # ショップ(ダイヤ建て・1日の購入上限・日付で戻る)
+node scripts/check-admin.cjs           # 管理ツール(7画面・編集が下書きに入る)
 node scripts/check-gifts.cjs           # 配布が既存プレイヤーへ1回だけ届くこと
 node scripts/check-boot-recovery.cjs   # 版ずれからの復帰(0%で固まらないこと)
 node scripts/check-save-migration.cjs  # 旧セーブの移行(バージョンを上げたら形を足す)
@@ -480,6 +483,79 @@ Android の端末側の戻るは `popstate` で拾う(`nav.js` の端末の戻�
 4. ホームなら、続けてもう一度でアプリを閉じる(1回目はトーストで知らせる)
 
 モーダルを足したら、閉じる/キャンセルのボタンに `data-back-close` を付ける。
+
+## 管理ツール (admin/)
+
+ゲーム本体とは別の PWA。`admin/index.html` を開くと使える。
+モンスター・降臨ダンジョン・キャラクターを編集し、GitHub へ直接 push する。
+
+### 仕組み
+
+編集した内容はすぐには送らず、**端末の中の「下書き」に溜める**
+(`admin/js/draft.js` → localStorage)。リリース画面でまとめて確認してから
+**1コミットで push** する。途中で失敗しても中途半端な状態が残らないよう、
+GitHub の Git Data API (blob → tree → commit → ref) を使っている。
+
+書き出し先は `src/js/data/custom.js` の1ファイルだけ。
+これは**機械生成なので手で編集しない**。中身は JSON リテラルだけで処理は
+書かない方針にしてあり、`tests/admin-release.test.mjs` が
+「本当に import できる JS になるか」を毎回確かめている
+(引用符・山括弧・改行が名前や台詞に入っても壊れないこと)。
+
+```
+admin/js/custom-source.js   ← ここが吐いた文字列がそのままソースになる
+        ↓ push
+src/js/data/custom.js       ← 機械生成。手で触らない
+        ↓ import
+data/enemy-master.js / raids.js / characters.js で本体と合流
+```
+
+### 画面
+
+| タブ | できること |
+| --- | --- |
+| ホーム | いまの中身の要約と下書きの状態 |
+| モンスター | アイコン一覧 → タップで編集。ステータス・行動パターン・**変身(forms)** |
+| 降臨 | フロアごとの配置。マスターの基礎値に**倍率**をかける |
+| キャラ | 一覧 → 詳細。新規はロール選択でステータスを自動生成 |
+| スキル | リーダースキル / スキル / 敵の特殊行動を検索して参照 |
+| 点検 | 整合性チェック・ガチャ排出率・コイン効率・経済の安全弁 |
+| リリース | 版を+1して push |
+
+### アクセストークン
+
+GitHub の **Fine-grained personal access token** を使う。
+権限はこのリポジトリの **Contents: Read and write** だけで足りる。
+
+⚠️ トークンは**その端末の localStorage** に入る。つまり
+**端末を触れる人には読める**。共用端末では使わないこと。
+リポジトリには入らない(`admin/js/github.js` が localStorage としか
+やりとりしない)。消すときは ⚙ → 「トークンを消す」。
+
+### 版上げ
+
+`index.html` / `src/js/core/version.js` / `sw.js` の3か所は、
+ずれるとゲームが起動しなくなる(→ 「アプリの版」の節)。
+リリース画面は3か所を読んで**必ず一緒に +1** する。
+数字として読めなかったときは 0 扱いにせず止める
+(読み取り失敗で版が1に巻き戻ると、版ずれループに入るため)。
+
+### 画像
+
+PNG/JPEG を選ぶとツール内で webp にしてから push する
+(`admin/js/image.js`、`canvas.toBlob('image/webp')`)。
+1枚絵は長辺1024px、アイコンは中央で正方形に切って128px角、
+バナーは1080×608。
+
+⚠️ **画像はメモリにしか置いていない**(localStorage に Blob は入らない)。
+選んだセッションのうちに push すること。再読み込みすると画像だけ外れる。
+リリース画面がその旨を出す。
+
+新しいキャラのアイコンは**アトラスに焼かなくても動く**。
+`core/ui.js` の `charIcon()` がアトラスに無いものは `<img>` へ
+フォールバックするため。まとめて焼き直したくなったら
+`python3 scripts/build-char-atlas.py` を流す。
+
 
 ## フレンド機能 / クラウド保存(Firebase)
 

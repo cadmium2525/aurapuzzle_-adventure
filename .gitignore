@@ -9,3 +9,7 @@ desktop.ini
 
 # check-training.cjs が吐く確認用スクリーンショット
 .codex-training.png
+
+# 管理ツールの持ち出しファイル(トークンや下書きが入りうる)
+acb-draft.json
+admin/**/*.local.js

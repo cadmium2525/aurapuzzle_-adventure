@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>オーラコネクト 管理ツール</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#12101c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ACB管理">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- admin/sw.js の CACHE_NAME に必ずそろえる -->
+<meta name="admin-version" content="1">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="stylesheet" href="./css/admin.css">
+</head>
+<body>
+
+<header class="appbar">
+  <button class="icon-btn" id="backBtn" hidden aria-label="戻る">‹</button>
+  <div class="appbar-title">
+    <strong id="screenTitle">管理ツール</strong>
+    <span class="repo-chip" id="repoChip">未接続</span>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="設定">⚙</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-go="home" class="tab on">ホーム</button>
+  <button data-go="enemies" class="tab">モンスター</button>
+  <button data-go="raids" class="tab">降臨</button>
+  <button data-go="characters" class="tab">キャラ</button>
+  <button data-go="skills" class="tab">スキル</button>
+  <button data-go="tools" class="tab">点検</button>
+  <button data-go="release" class="tab">リリース<span class="badge" id="draftBadge" hidden>0</span></button>
+</nav>
+
+<main id="view" class="view"></main>
+
+<div id="modalHost" hidden></div>
+<div id="toast" class="toast"></div>
+
+<noscript>このツールは JavaScript が必要です。</noscript>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
