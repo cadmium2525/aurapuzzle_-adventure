@@ -67,7 +67,7 @@ export function applyGravityNoRefill(bd) {
 }
 
 /** そのマスを起点にした同オーラの連結数 */
-function connectedSize(bd, r0, c0) {
+export function connectedSize(bd, r0, c0) {
   const color = bd[r0][c0];
   if (color === -1) return 0;
   const seen = new Set([r0 + ',' + c0]);
