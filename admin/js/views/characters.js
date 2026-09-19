@@ -10,6 +10,7 @@ import * as G from '../gamedata.js';
 import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
 import { allSkills, describe } from './skill-edit.js';
 import { toWebp, toIconWebp, toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
+import { acquisitionOf, acquisitionFlags } from '../character-acquisition.js';
 
 /** ホームでの寄せ具合。小数を保つので clampInt は使えない(1.15 が 1 に丸まる) */
 function clampScale(value, fallback) {
@@ -197,6 +198,9 @@ function renderEditor(view) {
       </div>
       ${field('ロール', 'role', c.role, {
         type: 'select', options: Object.keys(ROLE_WEIGHT).map(r => [r, G.ROLE_LABEL[r] || r]) })}
+      ${field('入手方法', 'acquisition', c.acquisition || acquisitionOf(c), {
+        type: 'select', options: [['gacha', 'ガチャ'], ['gift', '配布限定（ガチャ対象外）'], ['raid', '降臨ドロップ限定（ガチャ対象外・開眼10段階）']] })}
+      <p class="lead small">降臨ドロップ限定は開眼でドロップ率が上がります。ドロップ先と基本確率は降臨タブで設定してください。</p>
 
       <h3 style="margin-top:12px">ステータス (Lv1)</h3>
       <p class="lead small">ロールとレアリティから自動で出します。標準値は
@@ -340,6 +344,7 @@ function renderEditor(view) {
 function toEditing(saved) {
   return {
     ...saved,
+    acquisition: acquisitionOf(saved),
     artName: saved._artName || '',
     evolve: (saved.artStages || []).length > 1,
     artScale1: (saved.artStages || [])[0]?.scale || 1,
@@ -354,7 +359,8 @@ function build(c) {
     id: c.id, name: c.name, job: c.job, portrait: c.portrait || '🙂',
     aura: c.aura, rarity: c.rarity, role: c.role,
     leaderSkillId: c.leaderSkillId, skillId: c.skillId,
-    atk: c.atk, hp: c.hp, rcv: c.rcv
+    atk: c.atk, hp: c.hp, rcv: c.rcv,
+    ...acquisitionFlags(c.acquisition || acquisitionOf(c))
   };
   if (c.flavor) out.flavor = c.flavor;
   out.artStages = c.evolve
@@ -387,6 +393,7 @@ function collect(view) {
   c.aura = clampInt(v.aura, 0, 4, c.aura);
   c.rarity = clampInt(v.rarity, 1, G.MAX_GACHA_RARITY, c.rarity);
   c.role = v.role || c.role;
+  c.acquisition = v.acquisition || c.acquisition || acquisitionOf(c);
   c.atk = clampInt(v.atk, 1, 999, c.atk);
   c.hp = clampInt(v.hp, 1, 9999, c.hp);
   c.rcv = clampInt(v.rcv, 0, 999, c.rcv);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acb-admin-v5';
+const CACHE_NAME = 'acb-admin-v9';
 
 /* 管理ツールの本体。オフラインでも一覧の確認くらいはできるようにする
    (push は当然ネットが要る)。 */
@@ -13,6 +13,8 @@ const ASSETS = [
   './js/github.js',
   './js/draft.js',
   './js/image.js',
+  './js/character-acquisition.js',
+  './js/draft-catalog.js',
   './js/custom-source.js',
   './js/atlas.js',
   './js/skill-parts.js',

@@ -6,8 +6,15 @@ import { $, esc, card, toast, field, readForm, clampInt, modal, confirmAsk } fro
 import * as G from '../gamedata.js';
 import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
 import { toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
+import { mergeCatalog } from '../draft-catalog.js';
 
 let editing = null;
+const enemyIds = () => [...new Set([...G.ENEMY_MASTER_IDS, ...draft().enemies.map(e => e.id)])];
+const enemyMaster = id => find('enemies', id) || G.enemyMasterById(id);
+function enemyShape(id, form = 0) {
+  const pending = find('enemies', id);
+  return pending ? (pending.forms ? pending.forms[form] : pending) : G.enemyFormOf(id, form);
+}
 
 /* ===================== 一覧 ===================== */
 
@@ -101,15 +108,15 @@ function multValue(mult) {
 }
 
 function slotRow(spec, fi, si) {
-  const master = G.enemyMasterById(spec.id);
-  const forms = master ? G.formCountOf(spec.id) : 1;
-  const shape = master ? G.enemyFormOf(spec.id, spec.form || 0) : null;
+  const master = enemyMaster(spec.id);
+  const forms = master?.forms?.length || 1;
+  const shape = master ? enemyShape(spec.id, spec.form || 0) : null;
   const m = multValue(spec.mult);
   const hp = shape ? Math.round(shape.hp * m.hp) : 0;
   const atk = shape ? Math.round(shape.atk * m.atk) : 0;
 
-  const opts = G.ENEMY_MASTER_IDS.map(id => {
-    const s = G.enemyFormOf(id, 0);
+  const opts = enemyIds().map(id => {
+    const s = enemyShape(id, 0);
     return `<option value="${esc(id)}"${id === spec.id ? ' selected' : ''}>${esc(s.name)}</option>`;
   }).join('');
 
@@ -160,7 +167,7 @@ function floorBox(floor, fi, total) {
 
 function renderEditor(view) {
   const r = editing;
-  const charOpts = [['', '（なし）']].concat(G.CHARACTERS.map(c => [c.id, `${c.name}(★${c.rarity})`]));
+  const charOpts = [['', '（なし）']].concat(mergeCatalog(G.CHARACTERS, draft().characters).map(c => [c.id, `${c.name}(★${c.rarity})`]));
 
   view.innerHTML = `
     ${card(r._new ? '降臨を新規作成' : `${r.name} を編集`, `

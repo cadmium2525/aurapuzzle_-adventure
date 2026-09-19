@@ -64,12 +64,13 @@ export function readEffects(root) {
  * 効果リストを編集できるようにする。
  * 型を変えたら引数欄も作り直す(型ごとに必要な引数が違うため)。
  */
-export function bindEffects(container, getList, setList, rerender) {
+export function bindEffects(container, getList, setList, rerender, collect = () => {}) {
   container.addEventListener('change', e => {
     const sel = e.target.closest('[data-type]');
     if (!sel) return;
     const box = sel.closest('[data-effect]');
     const i = Number(box.dataset.effect);
+    collect();
     const list = getList();
     const def = G.ENEMY_EFFECT_BY_TYPE[sel.value];
     // 型が変わったら、その型の既定値で作り直す
@@ -82,6 +83,7 @@ export function bindEffects(container, getList, setList, rerender) {
   container.addEventListener('click', e => {
     const drop = e.target.closest('[data-drop-effect]');
     if (!drop) return;
+    collect();
     const list = getList();
     list.splice(Number(drop.dataset.dropEffect), 1);
     setList(list);

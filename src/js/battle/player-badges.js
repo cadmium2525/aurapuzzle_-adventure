@@ -7,6 +7,8 @@ const COLORS=['#ff795b','#58d7ff','#66eca2','#ff94d2','#b28aff'];
 export function playerStatuses(run) {
   const global=[], units=run.party.members.map(()=>[]);
   const time=run.enemyEffects.time;
+  const recovery=run.enemyEffects.recovery;
+  if(recovery)global.push({type:'recoveryReduce',turns:recovery.turns,label:`味方全体の回復力${recovery.percent}%減少（癒オーラによる回復が対象。最大HP割合の回復スキルは影響なし）`});
   if(time)global.push({type:time.type,turns:time.turns,label:`操作時間${time.type==='timeFixed'?`${time.seconds}秒固定`:`${time.seconds}秒減少`}`});
   if(run.turnTimeBonusMs>0)global.push({type:'timeExtend',turns:1,label:`操作時間${run.turnTimeBonusMs/1000}秒延長${time?.type==='timeFixed'?'（固定中は延長無効）':''}`});
   for(const [aura,turns] of Object.entries(run.enemyEffects.auraBinds))global.push({type:'auraBind',aura:Number(aura),turns,label:`${AURAS[aura]}オーラ消去不可`});

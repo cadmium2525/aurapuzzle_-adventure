@@ -50,9 +50,14 @@ export { homeBanners, BANNER_INTERVAL } from '../../src/js/data/banners.js';
  * ここにも書き足すこと(管理ツールの入力候補になる)。
  * ===========================================================*/
 export const ENEMY_EFFECTS = [
+  { type: 'recoveryReduce', label: '回復力減少',
+    desc: '味方全体の回復力を指定%減らす。最大HP割合の回復スキルには影響しない', args: [
+      { key: 'percent', label: '減らす割合(%)', min: 1, max: 100, def: 50 },
+      { key: 'turns', label: '続くターン', min: 1, max: 999, def: 3 }
+    ] },
   { type: 'comboGuard', label: 'コンボガード',
-    desc: '規定チェイン未満の攻撃を通さない', args: [
-      { key: 'chains', label: '必要チェイン', min: 2, max: 12, def: 5 },
+    desc: '指定チェイン以下の攻撃を通さない（6なら7チェイン以上で突破）', args: [
+      { key: 'chains', label: 'このチェイン以下を無効', min: 2, max: 12, def: 5 },
       { key: 'turns', label: '続くターン(空でずっと)', min: 1, max: 20, def: null }
     ] },
   { type: 'shapeGuard', label: '形ガード',
@@ -114,6 +119,7 @@ export function describeEffect(effect) {
   if (effect.count != null) parts.push(`${effect.count}体`);
   if (effect.seconds != null) parts.push(`${effect.seconds}秒`);
   if (effect.threshold != null) parts.push(`${effect.threshold}%`);
+  if (effect.percent != null) parts.push(`${effect.percent}%減少`);
   if (effect.turns != null) parts.push(`${effect.turns}ターン`);
   return parts.length ? `${label}(${parts.join(' / ')})` : label;
 }

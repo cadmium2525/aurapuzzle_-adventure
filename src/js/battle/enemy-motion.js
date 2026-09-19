@@ -28,7 +28,7 @@ export function playEnemyMotion(events, board = []) {
      その回に出すもののうち いちばん長いものへ合わせる。
        時計  操作時間をいじられたことは盤面を見ても分からないので長めに置く
        モヤ  飛んでいく様子を目で追えるだけの時間が要る */
-  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250 };
+  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250, recoveryReduce: 1400 };
   const duration = reduced ? 180 : Math.max(720, ...events.map(e => HOLD[e.type] || 0));
   const ring = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,Math.max(1,r),0,Math.PI*2); ctx.stroke(); };
   const text = (value,x,y,size=22) => { ctx.font = `bold ${size}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(value,x,y); };
@@ -49,6 +49,20 @@ export function playEnemyMotion(events, board = []) {
         ctx.lineWidth=3;
         const ex=enemy.x, ey=enemy.y;
         switch(e.type) {
+          case 'recoveryReduce': {
+            ctx.fillStyle=ctx.strokeStyle='#ed83c5';
+            for(const u of units.filter(Boolean)){
+              const travel=Math.min(1,p*2), x=ex+(u.x-ex)*travel, y=ey+(u.y-ey)*travel;
+              text('♥',x,y,30);
+              if(travel===1){
+                const yy=u.y-12+p*20;
+                line(u.x+22,yy-14,u.x+22,yy+5);
+                line(u.x+16,yy-1,u.x+22,yy+5);line(u.x+28,yy-1,u.x+22,yy+5);
+              }
+            }
+            text(`回復力 −${e.percent}%`,field.x,field.y-field.h/2+30,23);
+            break;
+          }
           case 'bind': case 'skillDelay':
             for(const i of e.targets || []) {
               const u=units[i]; if(!u)continue;

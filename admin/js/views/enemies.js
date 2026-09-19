@@ -260,9 +260,9 @@ function renderEditor(view) {
   /* --- 効果の編集 --- */
   const cur = () => (w.forms ? w.forms[w._form || 0] : w);
   bindEffects($('preEffects'), () => cur().effects || [],
-    v => { cur().effects = v; }, () => { collect(view); renderEditor(view); });
+    v => { cur().effects = v; }, () => renderEditor(view), () => collect(view));
   bindEffects($('passiveEffects'), () => cur().passives || [],
-    v => { cur().passives = v; }, () => { collect(view); renderEditor(view); });
+    v => { cur().passives = v; }, () => renderEditor(view), () => collect(view));
 
   $('addPre').addEventListener('click', () => {
     collect(view);

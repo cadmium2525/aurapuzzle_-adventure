@@ -1,4 +1,5 @@
 import { COLORS, HEAL_COLOR, ATTACK_SCALE, HEAL_SCALE, ORB_BONUS, COMBO_BONUS, SIMUL_BONUS } from '../data/gamedata.js';
+import { recoveryMultiplier } from './enemy-skills.js';
 
 // Accumulate unrounded contributions; apply the final chain multiplier once.
 export function baseActions(groups, run) {
@@ -11,7 +12,7 @@ export function baseActions(groups, run) {
     const orbs=1+Math.max(0,n-run.matchMin)*ORB_BONUS;
     const heal=m.aura===HEAL_COLOR;
     const value=heal
-      ? m.rcv*HEAL_SCALE*orbs*run.mods.rcv
+      ? m.rcv*HEAL_SCALE*orbs*run.mods.rcv*recoveryMultiplier(run.enemyEffects)
       : m.atk*ATTACK_SCALE*orbs*(1+(groups.length-1)*SIMUL_BONUS)
         *run.mods.allAtk*(run.mods.auraAtk[COLORS[m.aura]] || 1)*(run.buffs.atk?.mult || 1);
     actions.push({index,aura:m.aura,kind:heal?'heal':'dmg',value});

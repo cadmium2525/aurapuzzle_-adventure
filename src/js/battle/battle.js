@@ -214,7 +214,8 @@ function persistRun() {
     targetIndex: run.targetIndex,
     // 味方にかかっている妨害。enemyEffects のうち敵側の値は敵ごとに持っている
     playerEffects: {
-      binds: run.enemyEffects.binds, auraBinds: run.enemyEffects.auraBinds, time: run.enemyEffects.time
+      binds: run.enemyEffects.binds, auraBinds: run.enemyEffects.auraBinds, time: run.enemyEffects.time,
+      recovery: run.enemyEffects.recovery
     },
     stats: run.stats,
     board
@@ -273,6 +274,7 @@ export function resumeDungeonRun() {
   const pe = snap.playerEffects || {};
   run.enemyEffects.auraBinds = pe.auraBinds || {};
   run.enemyEffects.time = pe.time ?? null;
+  run.enemyEffects.recovery = pe.recovery ?? null;
   for (let i = 0; i < party.members.length; i++) run.enemyEffects.binds[i] = pe.binds?.[i] || 0;
   attachEncounter(run);
   resetFoeCards();
@@ -899,7 +901,7 @@ async function executeEnemyAction(action, preemptive = false) {
       targets.forEach(i=>{run.skillDelayDebt[i]+=effect.turns;});
     }
     motions.push({ ...effect, targets });
-    labels.push(({ bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
+    labels.push(({ recoveryReduce: '回復力減少', bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
   }
   if (action.attack) {
     let dmg = Math.max(1, Math.round((run.enemyAtk + randInt(-2, 4)) * run.enemyEffects.attackMult));
