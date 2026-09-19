@@ -250,6 +250,34 @@ function drawSelectionCell(r, c, t) {
   ctx.restore();
 }
 
+/* チャンス盤面で、入れ替える2マスを光らせる。
+   盤面を隙間なく埋めたぶん梯子が絵に紛れるので、仕込みの場所だけ示す。
+   オーラを掴んだ時点で消える(battle.js が渡すのをやめる)。
+
+   オーラの手前ではなく後ろに描くこと。上から重ねると光の膜でオーラの色が
+   にごり、「どの色を動かすのか」が読めなくなる。マスはオーラより一回り
+   大きいので、後ろに描いても縁はきちんと見える。
+
+   保存データから来ることがあるので、形が壊れていても描かずに済ませる。 */
+function drawSwapHint(hint, t) {
+  if (!Array.isArray(hint)) return;
+  const pulse = 0.5 + 0.5 * Math.sin(t / 260);
+  ctx.save();
+  for (const cell of hint) {
+    if (!Array.isArray(cell)) continue;
+    const [r, c] = cell;
+    if (!(r >= 0 && r < ROWS && c >= 0 && c < COLS)) continue;
+    ctx.beginPath();
+    ctx.roundRect(c * CELL + 2, r * CELL + 2, CELL - 4, CELL - 4, CELL * 0.22);
+    ctx.fillStyle = `rgba(255,225,139,${0.12 + 0.14 * pulse})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,225,139,${0.5 + 0.5 * pulse})`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /** 消えた位置に「N Chain」を浮かべる(連鎖の進み方を見えるようにする) */
 function drawChainLabels(labels, now) {
   if (!labels || !labels.length) return;
@@ -369,7 +397,7 @@ function drawBoardFuse(remainMs, totalMs) {
  */
 export function drawBoard(v) {
   const { board, t, selected, floatPos, dragging, clearingCells, clearT = 0,
-          chainLabels, remainMs = null, totalMs = 0 } = v;
+          chainLabels, remainMs = null, totalMs = 0, swapHint = null } = v;
   ctx.clearRect(0, 0, CELL * COLS, CELL * ROWS);
 
   // 背景の市松模様
@@ -379,6 +407,8 @@ export function drawBoard(v) {
     ctx.roundRect(c * CELL + 1.5, r * CELL + 1.5, CELL - 3, CELL - 3, CELL * 0.18);
     ctx.fill();
   }
+
+  drawSwapHint(swapHint, t);
 
   if (dragging && selected) drawSelectionCell(selected.r, selected.c, t);
 

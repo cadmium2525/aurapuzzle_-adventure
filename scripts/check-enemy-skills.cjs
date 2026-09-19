@@ -238,6 +238,16 @@ const server = http.createServer(async (req, res) => {
     assert.ok(await page.evaluate(()=>battleTest.snapshot().run.enemyHP)<100000);
     assert.equal(await page.evaluate(()=>battleTest.snapshot().run.chanceActive),true);
     assert.equal(await page.locator('#chanceNotice').isVisible(),true);
+    /* チャンス盤面の光。隙間なく埋めたぶん梯子が絵に紛れるので、
+       入れ替える2マスだけ示す。指す先が正解であることは
+       tests/chance.test.mjs が見ているので、ここは出ていることだけ。 */
+    const chanceHint = await page.evaluate(()=>battleTest.snapshot().run.chanceHint);
+    assert.ok(Array.isArray(chanceHint)&&chanceHint.length===2,'チャンス盤面の光が用意されていない');
+    assert.equal(Math.abs(chanceHint[0][0]-chanceHint[1][0])+Math.abs(chanceHint[0][1]-chanceHint[1][1]),1,
+      '光った2マスが隣り合っていない');
+    // 空きがあると5連鎖止まりになり、消えたあと全消しループにもなる
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().board.flat().filter(v=>v===-1).length),0,
+      'チャンス盤面に空きマスが残っている');
     assert.equal(await page.locator('#partyRow .ready').count(),3);
     assert.equal(await page.locator('.unit-ready-burst:not([hidden])').count(),3);
     await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-chance-ready.png')});
@@ -268,6 +278,17 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate(()=>window.skillShot);
     assert.equal(await page.locator('.party-projectile').count(),0,'スキルの弾が残っている');
     assert.equal(await page.evaluate(()=>battleTest.snapshot().bstate),'idle','スキルのあと操作に戻っていない');
+
+    // 光は「見つける」ためのものなので、操作に入ったら消す
+    assert.notEqual(await page.evaluate(()=>battleTest.snapshot().run.chanceHint),null,
+      'まだ手番に入っていないのに光が消えている');
+    const boardBox = await page.locator('#board').boundingBox();
+    await page.mouse.move(boardBox.x+boardBox.width/2, boardBox.y+boardBox.height/2);
+    await page.mouse.down();
+    await page.waitForFunction(()=>battleTest.snapshot().bstate==='dragging');
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().run.chanceHint),null,
+      'オーラを掴んでも光が消えていない');
+    await page.mouse.up();
 
     await page.evaluate(async () => {
       const { STAGES } = await import('/src/js/data/gamedata.js');

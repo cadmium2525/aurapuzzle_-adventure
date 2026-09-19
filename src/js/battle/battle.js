@@ -107,7 +107,8 @@ function loop(t) {
     const remain = dragging ? Math.max(0, total - (t - dragStart)) : 0;
     drawBoard({
       board, t, selected, floatPos, dragging: bstate === 'dragging',
-      clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total
+      clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total,
+      swapHint: run.chanceActive ? run.chanceHint : null
     });
     // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
     if (dragging && remain <= 0) endTurnNow();
@@ -155,6 +156,7 @@ export function startDungeonRun(stage, hard, support) {
     enemyEffects: createEnemyEffects(party.members.length),
     chancePending: false,
     chanceActive: false,
+    chanceHint: null,
     enemies: createEncounter(stage.floors[0], hard ? HARD_HP_MULT : 1), targetIndex: 0,
     turnTimeBonusMs: 0,
     stats: { maxChain: 0, totalDamage: 0, totalHeal: 0, turns: 0, skillUses: 0 }
@@ -204,6 +206,7 @@ function persistRun() {
     buffs: run.buffs,
     chancePending: run.chancePending,
     chanceActive: run.chanceActive,
+    chanceHint: run.chanceHint,
     enemies: run.enemies,
     targetIndex: run.targetIndex,
     // 味方にかかっている妨害。enemyEffects のうち敵側の値は敵ごとに持っている
@@ -257,6 +260,8 @@ export function resumeDungeonRun() {
     enemyEffects: createEnemyEffects(party.members.length),
     chancePending: !!snap.chancePending,
     chanceActive: !!snap.chanceActive,
+    // 中断から戻ったときも光は残す。形が壊れていても renderer 側で弾く
+    chanceHint: snap.chanceHint || null,
     enemies: snap.enemies,
     targetIndex: Math.max(0, Math.min(snap.enemies.length - 1, snap.targetIndex || 0)),
     turnTimeBonusMs: 0,
@@ -794,6 +799,7 @@ async function resolveTurn() {
   await sleep(220);
 
   run.chanceActive = false;
+  run.chanceHint = null;
   updateChanceUI();
   tickEncounter(run);
 
@@ -864,6 +870,9 @@ function activateChanceBoard() {
   board = chance.board;
   run.chancePending = false;
   run.chanceActive = true;
+  // 入れ替える2マスの光。盤面を隙間なく埋めたぶん梯子が絵に紛れるので、
+  // 仕込みの場所だけ示す。掴んだ時点で消す(onPointerDown)
+  run.chanceHint = chance.swap;
   updateChanceUI();
 }
 
@@ -1103,6 +1112,9 @@ function onPointerDown(e) {
     bstate = 'dragging';
     dragStart = performance.now();
     autoReleased = false;
+    // 操作に入ったら光は消す。役目は「見つける」ところまでで、
+    // 点けたままだと動かしているオーラの色が読みにくくなる
+    run.chanceHint = null;
   } else if (!(bstate === 'dragging' && !autoReleased && !grabbed)) {
     return;
   }
