@@ -447,7 +447,12 @@ body[data-screen="home"] #app::before{
    消えて見える(敵のHPバーが iOS でだけ出なかったのはこれ)。
    このアプリのボタンは見た目をすべて自前で作っているので、
    ネイティブの見た目は最初から切っておく。 */
-button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;}
+button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;
+  /* ボタンを flex コンテナにしたときの中身の伸び方。
+     iOS は既定が stretch ではないので、中の要素が中身の幅まで縮んで
+     左端に寄る(敵の絵と名前がまとめて左へずれていた原因)。
+     flex でないボタンでは align-items は無視されるので、まとめて指定してよい。 */
+  align-items:stretch;}
 .btn{
   font-size:13px;font-weight:800;color:#2A1A05;letter-spacing:.02em;
   background:linear-gradient(180deg,var(--gold-1),var(--gold-2));
@@ -1600,18 +1605,20 @@ input[type=range]{accent-color:var(--accent);}
 /* 敵が複数のときは1体あたりの絵が小さいので、少し詰める */
 #enemyStage.multi-enemy { height:24vh; min-height:152px; }
 #enemyRoster { display:flex; justify-content:center; align-items:stretch; width:100%; gap:4px; flex:1 1 auto; min-height:0; }
-/* 端の auto マージンで中央に寄せる。
-   iOS では max-width で頭打ちになった flex 要素に justify-content が効かず、
-   敵がまとめて左へずれる(Chromium では中央になるので再現しない)。
-   auto マージンは flex の伸縮が終わったあとに余白を吸うので、
-   頭打ちで余った空間も確実に左右へ分けられる。 */
+/* 念のための保険。auto マージンは flex の伸縮が終わったあとに余白を吸うので、
+   max-width で頭打ちになっても左右へ均等に分けられる。
+   ※「敵が左にずれる」の原因はこちらではなく .foe-target(ボタン)側だった。
+     実機のスクリーンショットを実測したところ、.foe の枠(HPバーの幅)は
+     画面の中央に来ていて、ずれていたのはボタンの中身だけだった。 */
 #enemyRoster > .foe:first-child { margin-left:auto; }
 #enemyRoster > .foe:last-child  { margin-right:auto; }
 /* 名前・HP・バッジは必ず出したいので、縮むのは敵の絵だけにする */
 .foe { position:relative; flex:1 1 0; min-width:0; max-width:160px; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
   border:1px solid transparent; border-radius:10px;
-  /* 名前と絵の中央寄せをボタンの既定値に頼らない。iOS ではボタンの中で
-     効かず、名前も絵も左に寄ってしまう */
+  /* 名前と絵の中央寄せをボタンの既定値に頼らない。
+     ただし iOS で左に寄る本当の原因は text-align ではなく、
+     ボタンの align-items が stretch にならないこと(基本スタイルの button を見ること)。
+     箱が中身の幅に縮んでしまうと text-align:center は効きようがない。 */
   text-align:center;
   transition:opacity .3s ease; }
 .foe.target { border-color:#ffd980; background:#ffda7b12; }

@@ -117,18 +117,31 @@ const server=http.createServer(async(req,res)=>{
       return {xs:all.map(el=>Math.round(el.getBoundingClientRect().x)),
         ws:all.map(el=>Math.round(el.getBoundingClientRect().width))};
     });
-    // 名前と絵の中央寄せはボタンの既定値に頼らない(iOSで左に寄っていた)
+    /* 名前と絵の中央寄せ。
+       iOS の <button> は flex コンテナにしても align-items が stretch にならず、
+       .foe-art と .foe-name が中身の幅まで縮んで左端に寄っていた。
+       絵が「.foe-art の中で中央か」だけを見ると、箱ごと縮んだ場合に
+       すり抜けてしまう(実際にすり抜けた)。**枠(.foe)を基準に測ること。** */
     const centred=await page.evaluate(()=>{
       const foe=document.querySelector('#enemyRoster .foe');
+      const btn=foe.querySelector('.foe-target');
       const img=foe.querySelector('.enemy-img'),art=foe.querySelector('.foe-art');
-      const c=el=>{const b=el.getBoundingClientRect();return b.x+b.width/2;};
-      return {align:getComputedStyle(foe.querySelector('.foe-target')).textAlign,
+      const name=foe.querySelector('.foe-name');
+      const r=el=>el.getBoundingClientRect(), c=el=>{const b=r(el);return b.x+b.width/2;};
+      return {align:getComputedStyle(btn).textAlign,
         artAlign:getComputedStyle(art).textAlign,
-        off:img?+(c(img)-c(art)).toFixed(1):0};
+        items:getComputedStyle(btn).alignItems,
+        artFill:+(r(art).width-r(btn).width).toFixed(1),
+        nameFill:+(r(name).width-r(btn).width).toFixed(1),
+        off:img?+(c(img)-c(foe)).toFixed(1):0};
     });
     assert.equal(centred.align,'center','敵の名前の中央寄せが指定されていない');
     assert.equal(centred.artAlign,'center','敵の絵の中央寄せが指定されていない');
-    assert.ok(Math.abs(centred.off)<=1,`敵の絵が中央からずれている(${centred.off}px)`);
+    assert.equal(centred.items,'stretch',
+      'ボタンの align-items が明示されていない(iOSでは既定が stretch にならず中身が左へ寄る)');
+    assert.equal(centred.artFill,0,`敵の絵の箱が枠いっぱいに伸びていない(${centred.artFill}px)`);
+    assert.equal(centred.nameFill,0,`敵の名前の箱が枠いっぱいに伸びていない(${centred.nameFill}px)`);
+    assert.ok(Math.abs(centred.off)<=1,`敵の絵が枠の中央からずれている(${centred.off}px)`);
     const blocked=await page.evaluate(()=>raidTest.strike(100000,5));assert.equal(blocked.blocked,true);
     await page.locator('.foe-target').nth(1).click();
     await page.evaluate(()=>raidTest.strike(100000));

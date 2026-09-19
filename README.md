@@ -568,17 +568,35 @@ data/enemy-master.js / raids.js / characters.js で本体と合流
 
 ### 敵フィールドの中央寄せ
 
-`#enemyRoster` は `justify-content:center` だが、それだけでは足りない。
-**iOS では `max-width` で頭打ちになった flex 要素に justify-content が効かず、
-敵がまとめて左へずれる**(Chromium では中央になるので、この環境では再現しない)。
+**iOS の `<button>` は flex コンテナにしても `align-items` が `stretch` にならない。**
+中の要素が中身の幅まで縮んで cross-start(左端)に置かれるため、
+`.foe-target` の中にある敵の絵と名前がまとめて左へ寄る。
+Chromium では既定が stretch なので、この環境では再現しない。
 
-端の `.foe` に auto マージンを置いて逃げている。auto マージンは flex の
-伸縮が終わったあとに余白を吸うので、頭打ちで余った空間も確実に左右へ分かれる。
+```css
+button{ ... align-items:stretch; }
+```
+
+flex でないボタンは `align-items` を無視するので、基本スタイルでまとめて指定している。
+
+`text-align:center` では直らない。箱が中身の幅に張り付いてしまうと、
+その中での文字揃えをいくら指定しても位置は変わらないため。
+最初これで直そうとして効かなかった。
+
+一度 `#enemyRoster` 側を疑って端の `.foe` に auto マージンを入れたが、
+**あれは誤診だった**。実機のスクリーンショットを実測したところ、
+`.foe` の枠(HPバーの幅)は画面の中央に来ていて、ずれていたのは枠の中身だけだった。
+マージンは保険として残してある(正しいブラウザでは `justify-content:center` と同じ結果になる)。
 
 ```css
 #enemyRoster > .foe:first-child { margin-left:auto; }
 #enemyRoster > .foe:last-child  { margin-right:auto; }
 ```
+
+検査は **枠(`.foe`)を基準に測ること**。絵が「`.foe-art` の中で中央か」だけを見ていると、
+箱ごと縮んだこの不具合をすり抜ける(実際にすり抜けた)。
+`scripts/check-raids.cjs` で箱が枠いっぱいに伸びているかを、
+`scripts/check-technical.cjs` で絵が枠の中央に来ているかを見ている。
 
 ### 敵の特殊行動の演出
 

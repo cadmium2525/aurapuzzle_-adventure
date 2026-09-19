@@ -98,6 +98,21 @@ const server = http.createServer(async (req, res) => {
     const marks = await page.evaluate(() => document.querySelectorAll('#enemyRoster .foe-badges .enemy-badge').length
       + document.querySelectorAll('#playerEffects .player-badge').length);
     assert.ok(marks > 0, '1フロア目に特殊行動の表示が出ていない');
+
+    /* 敵の絵が枠の中央に来ていること。
+       iOS の <button> は align-items が stretch にならず、中の .foe-art が
+       絵の幅まで縮んで左端に寄っていた。敵が1体のとき(枠300px・絵は半分ほど)に
+       いちばん目立つので、実際に戦闘に入っているここで測る。 */
+    const artOff = await page.evaluate(() => [...document.querySelectorAll('#enemyRoster .foe')]
+      .map(foe => {
+        const img = foe.querySelector('.enemy-img');
+        if (!img) return null;
+        const c = el => { const b = el.getBoundingClientRect(); return b.x + b.width / 2; };
+        return { only: !!foe.parentElement && foe.parentElement.children.length === 1,
+                 off: +(c(img) - c(foe)).toFixed(1) };
+      }).filter(Boolean));
+    artOff.forEach(a => assert.ok(Math.abs(a.off) <= 1,
+      `敵の絵が枠の中央からずれている(${a.off}px${a.only ? '・1体のとき' : ''})`));
     assert.equal(await page.evaluate(() => techTest.stage()), 3001);
 
     /* --- 初クリアでダイヤ1個。2回目は配らない --- */
