@@ -8,8 +8,9 @@
  *   enemies      → data/enemies.js  と data/enemy-master.js
  *   raids        → data/raids.js    の RAID_STAGES
  *   characters   → data/characters.js の CHARACTERS(=ガチャの母集団)
+ *   gifts        → core/gifts.js のプレゼントボックス
  *
- * 空でも読み込まれるので、この3つのキーは必ず配列で置いておくこと。
+ * 空でも読み込まれるので、各キーは必ず配列で置いておくこと。
  * =======================================================*/
 
 /**
@@ -95,12 +96,6 @@ export const CUSTOM_LEADER_SKILLS = [
 ];
 
 /**
- * 1つしか無い設定。空なら既定値が使われる。
- *   pickupId     ガチャのピックアップにするキャラID
- *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)
- *   gachaBanner  ホームに出すガチャのバナー画像
- */
-/**
  * プレゼントボックスへ配るもの。key ごとに一度だけ届く。
  *   key       配布の目印。**配り直すときは新しい key にする**
  *   from / to 配布期間(YYYY-MM-DD。省略すると期間なし)
@@ -117,6 +112,12 @@ export const CUSTOM_GIFTS = [
   }
 ];
 
+/**
+ * 1つしか無い設定。空なら既定値が使われる。
+ *   pickupId     ガチャのピックアップにするキャラID
+ *   pickupRate   ★4帯のうちピックアップが占める割合(0〜1)
+ *   gachaBanner  ホームに出すガチャのバナー画像
+ */
 export const CUSTOM_SETTINGS = {
   "pickupId": "lm_emiri",
   "pickupRate": 0.3,
