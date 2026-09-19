@@ -14,6 +14,7 @@
  *   src/js/data/char-atlas.js     … 元のパス → [列, 行] の索引
  * =======================================================*/
 import { CHAR_ATLAS, CHAR_ATLAS_COLUMNS } from '../../src/js/data/char-atlas.js';
+import { CHARACTERS } from './gamedata.js';
 
 /** build-char-atlas.py と同じ値。ここを変えるなら向こうも変えること */
 export const CELL = 128;
@@ -48,12 +49,20 @@ function loadFromBlob(blob) {
 
 /**
  * 焼き直しに使うアイコンの一覧を作る。
- * いまアトラスに入っているものに、下書きで足したぶんを重ねる。
+ *
+ * **いまいるキャラクター全員のアイコン**が元。ここを「いまアトラスに
+ * 入っているもの」から作ると、push 済みのキャラ(下書きから消えたぶん)が
+ * いつまでもアトラスに入らない。
+ * 併せて、いまアトラスにあるパスも残す(誰かが参照したままでも欠けないように)。
+ *
  * @param {Array<string>} extraPaths 下書きで足したアイコンのパス
  */
 export function atlasSources(extraPaths) {
-  const paths = Object.keys(CHAR_ATLAS);
-  (extraPaths || []).forEach(p => { if (p && !paths.includes(p)) paths.push(p); });
+  const paths = [];
+  const add = p => { if (p && !paths.includes(p)) paths.push(p); };
+  CHARACTERS.forEach(c => (c.artStages || []).forEach(stage => add(stage.icon)));
+  Object.keys(CHAR_ATLAS).forEach(add);
+  (extraPaths || []).forEach(add);
   return paths.sort();   // py 版と同じく名前順。差分が読みやすい
 }
 
