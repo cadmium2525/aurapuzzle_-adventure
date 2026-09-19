@@ -4,6 +4,7 @@
 import { $, formatMMSS, charIcon, toast } from './ui.js';
 import { state, tickStamina, maxStamina, staminaNextInMs, resolveOwned } from './state.js';
 import { setBgmScene } from './audio.js';
+import { expToNextRank } from '../data/gamedata.js';
 
 const TITLES = {
   home: 'ホーム', dungeon: 'ダンジョン', training: 'トレーニング', battle: 'バトル', event: 'イベント',
@@ -151,6 +152,10 @@ export function updateStatusBar() {
     fill.classList.toggle('over', over);
   }
   $('curRank').textContent = state.rank;
+  // 次のランクまで。state.exp はいまのランクの中での蓄積(上がるたび引かれる)
+  const need = expToNextRank(state.rank);
+  $('curRankExp').textContent = state.exp.toLocaleString();
+  $('rankExpNeed').textContent = need.toLocaleString();
   $('curCoin').textContent = state.coin.toLocaleString();
   $('curFrepo').textContent = state.frepo.toLocaleString();
   $('curOrb').textContent = state.orb.toLocaleString();

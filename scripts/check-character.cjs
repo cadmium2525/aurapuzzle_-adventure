@@ -51,6 +51,36 @@ const server = http.createServer(async (req, res) => {
        ただし BASE_IMAGES には入れないこと。起動がそのぶん丸ごと長くなる。 */
     assert.ok(asked.length > 0,
       'キャラアトラスが起動中に読み込まれていない(画面を開いてから取りに行くと出遅れる)');
+    /* ランクの下に「いまのEXP / 次のランクまで」を出す。
+       ランクが上がるとスタミナの最大値と現在値が変わるので、
+       黙って上がられるとスタミナの使い道を計画できない。 */
+    const rankView = () => page.evaluate(async () => {
+      const { state } = await import('/src/js/core/state.js');
+      const { expToNextRank } = await import('/src/js/data/gamedata.js');
+      return { shownExp: document.getElementById('curRankExp').textContent,
+        shownNeed: document.getElementById('rankExpNeed').textContent,
+        shownRank: document.getElementById('curRank').textContent,
+        rank: state.rank, exp: state.exp, need: expToNextRank(state.rank) };
+    });
+    let rv = await rankView();
+    assert.equal(rv.shownRank, String(rv.rank), 'ランクの表示が state と違う');
+    assert.equal(rv.shownExp, rv.exp.toLocaleString(), 'いまのEXPの表示が state と違う');
+    assert.equal(rv.shownNeed, rv.need.toLocaleString(), '次のランクまでの表示が state と違う');
+    // ランクを跨いでも、繰り越したぶんと新しい必要量に追従すること
+    await page.evaluate(async () => {
+      const { gainExp } = await import('/src/js/core/state.js');
+      const { updateStatusBar } = await import('/src/js/core/nav.js');
+      const { expToNextRank } = await import('/src/js/data/gamedata.js');
+      const { state } = await import('/src/js/core/state.js');
+      gainExp(expToNextRank(state.rank) - state.exp + 7);   // 7だけ繰り越してランクアップ
+      updateStatusBar();
+    });
+    rv = await rankView();
+    assert.equal(rv.exp, 7, 'ランクアップの繰り越しが想定と違う(テスト側の前提ずれ)');
+    assert.equal(rv.shownExp, '7', 'ランクアップ後にEXPの表示が追従していない');
+    assert.equal(rv.shownNeed, rv.need.toLocaleString(), 'ランクアップ後に必要量が更新されていない');
+    console.log('ランク表示: %s %s/%s', rv.shownRank, rv.shownExp, rv.shownNeed);
+
     const toMenu = async () => { await page.locator('[data-charpage="menu"]:visible').first().click(); };
 
     /* --- 入口は5つ --- */

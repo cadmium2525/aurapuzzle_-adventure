@@ -210,8 +210,14 @@ body{
   background:linear-gradient(90deg,var(--stamina2),var(--stamina1));transition:width .4s ease;}
 #staminaFill.over{background:linear-gradient(90deg,var(--gold-2),var(--gold-1));
   box-shadow:0 0 14px rgba(255,198,92,.65);}
-.rank-block{display:flex;align-items:center;gap:2px;flex-shrink:0;font-size:11px;color:var(--ink-dim);}
-.rank-block b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;}
+.rank-block{display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  flex-shrink:0;font-size:11px;color:var(--ink-dim);}
+.rank-head{display:flex;align-items:center;gap:2px;}
+.rank-head b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;}
+/* 次のランクまでの経験値。数字だけなので幅を取らず、スタミナの行と高さが揃う */
+.rank-exp{font-size:9.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;white-space:nowrap;}
+.rank-exp b{font-weight:800;color:var(--ink-dim);}
 #currencyRow{display:flex;justify-content:flex-end;gap:6px;}
 .cpill{
   display:inline-flex;align-items:center;gap:3px;

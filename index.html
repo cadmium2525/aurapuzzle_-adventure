@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="63">
+<meta name="app-version" content="64">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -119,7 +119,12 @@
           </div>
           <div class="stamina-track"><div id="staminaFill"></div></div>
         </div>
-        <div class="rank-block">ランク:<b id="curRank">1</b></div>
+        <div class="rank-block">
+          <div class="rank-head">ランク:<b id="curRank">1</b></div>
+          <!-- 次のランクまでの経験値。ランクが急に上がるとスタミナの計画が
+               崩れるので、あとどれだけかを常に見えるところへ置く -->
+          <div class="rank-exp"><b id="curRankExp">0</b>/<span id="rankExpNeed">100</span></div>
+        </div>
       </div>
       <div id="currencyRow">
         <span class="cpill"><span class="item-icon i-coin"></span><b id="curCoin">0</b></span>
