@@ -36,7 +36,10 @@ export default {
       ? null
       : (s.pickupId ? allCharacters().find(c => c.id === s.pickupId) : G.PICKUP_CHARACTER);
     const rate = s.pickupRate == null ? G.PICKUP_RATE : s.pickupRate;
-    const bannerPath = s.gachaBanner || BANNER_PATH;
+    // 下書きに無ければ、いま custom.js に入っているものを見る
+    // (push 後は下書きが空になるため、設定済みでも「未設定」に見えていた)
+    const liveBanner = (G.CUSTOM_SETTINGS || {}).gachaBanner || '';
+    const bannerPath = s.gachaBanner || liveBanner || BANNER_PATH;
     const held = getBlob(bannerPath);
 
     // ★4帯の内訳。PUを1体抜いた残りを均等に割る
@@ -80,8 +83,10 @@ export default {
         <div class="shots">${held
           ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(held)}" alt="">
              <span class="cap">${esc(bannerPath)} / ${humanSize(held.size)}</span></div>`
-          : `<p class="empty">${s.gachaBanner ? `${esc(s.gachaBanner)} を使う設定です(画像は未アップロード)` : 'まだ選んでいません'}</p>`}</div>
-        ${s.gachaBanner ? '<button class="btn danger" id="clearBanner">バナーを外す</button>' : ''}`)}
+          : `<p class="empty">${s.gachaBanner || liveBanner
+              ? `${esc(s.gachaBanner || liveBanner)} を使う設定です(画像は差し替えていません)`
+              : 'まだ選んでいません'}</p>`}</div>
+        ${s.gachaBanner || liveBanner ? '<button class="btn danger" id="clearBanner">バナーを外す</button>' : ''}`)}
 
       ${card('アイコンのアトラス', `
         <p class="lead">一覧でアイコンを数十枚並べるので、1枚の格子絵に焼いて
@@ -140,6 +145,7 @@ export default {
     });
     const clearBanner = $('clearBanner');
     if (clearBanner) clearBanner.addEventListener('click', () => {
+      // custom.js 側に入っているものを消すので、空文字を明示して上書きする
       setSetting('gachaBanner', null);
       toast('バナーを外しました');
       this.render(view);

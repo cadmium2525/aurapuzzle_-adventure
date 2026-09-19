@@ -49,6 +49,13 @@ export const VERSION_FILES = [
   }
 ];
 
+/** 下書きの null は「消す」の印。書き出しでは落とす */
+function dropNulls(obj) {
+  const out = {};
+  Object.keys(obj || {}).forEach(k => { if (obj[k] != null) out[k] = obj[k]; });
+  return out;
+}
+
 /** id(またはkey)で重ねる。下書き側が勝つ */
 function merge(baseList, draftList, idKey = 'id') {
   const map = new Map();
@@ -76,7 +83,7 @@ export function buildCustomJs(draft, base = {}) {
     skills: merge(b.skills, (draft || {}).skills),
     leaderSkills: merge(b.leaderSkills, (draft || {}).leaderSkills),
     gifts: merge(b.gifts, (draft || {}).gifts, 'key'),
-    settings: Object.assign({}, b.settings, (draft || {}).settings)
+    settings: dropNulls(Object.assign({}, b.settings, (draft || {}).settings))
   };
   const d = src;
   const json = list => JSON.stringify((list || []).map(strip), null, 2);

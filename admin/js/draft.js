@@ -68,9 +68,15 @@ export function blobEntries() { return Array.from(blobs.entries()); }
 
 /** ガチャのピックアップなど、1つしか無い設定 */
 export function settings() { return data.settings || {}; }
+/**
+ * 設定を1つ置く。
+ * null は「消す」の印としてそのまま持つ(書き出し時に custom.js から落ちる)。
+ * 消したいのに何も残さないと、いま custom.js に入っている値が
+ * 重ね合わせで生き残ってしまう。
+ */
 export function setSetting(key, value) {
   if (!data.settings) data.settings = {};
-  if (value === '' || value == null) delete data.settings[key];
+  if (value === '') delete data.settings[key];
   else data.settings[key] = value;
   persist();
 }

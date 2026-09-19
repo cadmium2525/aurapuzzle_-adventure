@@ -121,6 +121,13 @@ test('同じ id と key は下書きで上書きし、違うものは足す', as
   assert.deepEqual(module.CUSTOM_SETTINGS, { pickupId: 'lm_new', pickupRate: 0.3 });
 });
 
+test('下書きの null は「消す」。custom.js の設定から落ちる', async () => {
+  const base = { settings: { pickupId: 'lm_keep', pickupRate: 0.3, gachaBanner: 'assets/promo/x.webp' } };
+  const draft = { settings: { gachaBanner: null } };
+  const { module } = await loadGenerated(draft, base);
+  assert.deepEqual(module.CUSTOM_SETTINGS, { pickupId: 'lm_keep', pickupRate: 0.3 });
+});
+
 test('版の3か所を、実際のファイルから読めて書き換えられる', async () => {
   for (const f of VERSION_FILES) {
     const text = await readFile(new URL(`../${f.path}`, import.meta.url), 'utf8');
