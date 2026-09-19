@@ -48,15 +48,26 @@ export function playEnemyMotion(events, board = []) {
               const u=units[i]; if(!u)continue;
               const travel=Math.min(1,p*1.7), x=ex+(u.x-ex)*travel, y=ey+(u.y-ey)*travel;
               if(e.type==='bind') {
+                // 紫のモヤが敵から対象へ飛び、着いた相手を包む
                 ctx.save();
-                for(let k=0;k<7;k++) {
-                  const px=x+Math.sin(k*2+p*8)*13,py=y+Math.cos(k*2+p*8)*11,radius=12+k;
+                for(let k=0;k<10;k++) {
+                  const px=x+Math.sin(k*1.7+p*7)*17,py=y+Math.cos(k*1.7+p*7)*15,radius=15+k*1.6;
                   const fog=ctx.createRadialGradient(px,py,0,px,py,radius);
-                  fog.addColorStop(0,'#d3a0f5');fog.addColorStop(.35,'#9460bda0');fog.addColorStop(1,'#66358d00');
+                  fog.addColorStop(0,'#e3c0ff');fog.addColorStop(.35,'#9460bdb8');fog.addColorStop(1,'#66358d00');
                   ctx.fillStyle=fog;ctx.beginPath();ctx.arc(px,py,radius,0,Math.PI*2);ctx.fill();
                 }
-                ctx.fillStyle='#deb1ff';
-                if(travel===1){ring(u.x,u.y,22+p*9);text('封',u.x,u.y);}
+                ctx.fillStyle=ctx.strokeStyle='#deb1ff';
+                if(travel===1){
+                  ring(u.x,u.y,24+p*10);
+                  // 巻き付く鎖のつもりの短い弧
+                  ctx.lineWidth=2;
+                  for(let k=0;k<4;k++){
+                    const a0=k*Math.PI/2+p*3;
+                    ctx.beginPath();ctx.arc(u.x,u.y,30,a0,a0+.7);ctx.stroke();
+                  }
+                  ctx.lineWidth=3;
+                  text('封',u.x,u.y);
+                }
                 ctx.restore();
               } else {
                 ctx.strokeStyle=ctx.fillStyle='#ffba74';
@@ -83,14 +94,50 @@ export function playEnemyMotion(events, board = []) {
               const size=8+8*(1-p);
               ring(x,y,size+5);line(x-size,y-size,x+size,y+size);line(x+size,y-size,x-size,y+size);
             }break;
+          /* 操作時間をいじられたことは盤面を見ても分からないので、
+             盤面いっぱいの時計を魔法陣のように重ねて見せる。
+             短縮は針が反時計回りに巻き戻り、固定は針が止まる。 */
           case 'timeReduce': case 'timeFixed': {
             const x=field.x,y=field.y;
-            ctx.strokeStyle=ctx.fillStyle=e.type==='timeFixed'?'#85d9ff':'#ffac69';
-            ring(x,y,42-(e.type==='timeReduce'?p*18:0));
-            const a=e.type==='timeFixed'?-.5*Math.PI:-p*Math.PI*5;
-            line(x,y,x+Math.cos(a)*27,y+Math.sin(a)*27);
-            if(e.type==='timeFixed')ctx.strokeRect(x-51,y-51,102,102);
-            text(`${e.type==='timeReduce'?'−':''}${e.seconds}s`,x,y+64);break;
+            const R=Math.max(60,Math.min(field.w,field.h)*.42);
+            const fixed=e.type==='timeFixed';
+            ctx.strokeStyle=ctx.fillStyle=fixed?'#85d9ff':'#ffac69';
+            // 外周と内周の二重円
+            ctx.lineWidth=3; ring(x,y,R);
+            ctx.lineWidth=1.5; ring(x,y,R*.86);
+            // 文字盤の目盛り(12本)。長針の付け根に向かって伸ばす
+            for(let k=0;k<12;k++){
+              const a=k*Math.PI/6, inner=k%3===0?R*.70:R*.79;
+              line(x+Math.cos(a)*inner,y+Math.sin(a)*inner,
+                   x+Math.cos(a)*R*.86,y+Math.sin(a)*R*.86);
+            }
+            // 短縮は反時計回りに巻き戻す。固定は12時で止める
+            const a=fixed?-.5*Math.PI:-Math.PI/2-p*Math.PI*4;
+            ctx.lineWidth=4;
+            line(x,y,x+Math.cos(a)*R*.62,y+Math.sin(a)*R*.62);
+            ctx.lineWidth=2.5;
+            const sub=a+Math.PI*.6;
+            line(x,y,x+Math.cos(sub)*R*.4,y+Math.sin(sub)*R*.4);
+            ring(x,y,4);
+            // 巻き戻した軌跡を扇で残す(どちら回りかが一目で分かる)
+            if(!fixed){
+              ctx.globalAlpha*=.22; ctx.beginPath(); ctx.moveTo(x,y);
+              ctx.arc(x,y,R*.62,a,-Math.PI/2); ctx.closePath(); ctx.fill();
+              ctx.globalAlpha/=.22;
+            }
+            if(fixed)ctx.strokeRect(x-R,y-R,R*2,R*2);
+            // 秒数はオーラの上に重なるので、暗い縁を付けて読めるようにする
+            {
+              const label=`${fixed?'':'−'}${e.seconds}s`;
+              const ly=Math.min(y+R+22, field.y+field.h/2-14);
+              ctx.save();
+              ctx.lineWidth=5; ctx.strokeStyle='#0b0616';
+              ctx.font='bold 26px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+              ctx.strokeText(label,x,ly);
+              ctx.restore();
+              text(label,x,ly,26);
+            }
+            break;
           }
           case 'auraAbsorb':
             for(let k=0;k<12;k++){

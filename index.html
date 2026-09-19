@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="54">
+<meta name="app-version" content="55">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -231,7 +231,12 @@
       </div>
 
       <div id="chanceNotice" hidden>チャンス盤面！ 隣り合うオーラを入れ替えて連鎖を狙おう</div>
-      <div id="boardWrap"><canvas id="board"></canvas></div>
+      <div id="boardWrap">
+        <!-- 操作時間が余っているときに、待たずに手番を終わらせる。
+             盤面の上に浮かせてあるので、セルの大きさには影響しない -->
+        <button id="fireNowBtn" hidden>▶ 発火</button>
+        <canvas id="board"></canvas>
+      </div>
     </section>
 
     <!-- ===================== イベント ===================== -->

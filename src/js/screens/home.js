@@ -132,18 +132,21 @@ function renderBanners() {
   if (host.dataset.key !== key) {
     host.dataset.key = key;
     const many = list.length > 1;
+    // 送りの△はバナーの外(左右)に置く。絵の上に重ねると
+    // バナー自体が見えにくく、飛び先を押すつもりで送ってしまう
     host.innerHTML = `
-      <div class="bframe">
-        ${list.map((b, i) => `
-          <button class="bslide${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${b.alt}">
-            <img src="./${b.image}" alt="${b.alt}">
-          </button>`).join('')}
-        ${many ? `
-          <button class="bnav left" data-step="-1" aria-label="前のバナー"></button>
-          <button class="bnav right" data-step="1" aria-label="次のバナー"></button>` : ''}
+      ${many ? '<button class="bnav left" data-step="-1" aria-label="前のバナー"></button>' : ''}
+      <div class="bcol">
+        <div class="bframe">
+          ${list.map((b, i) => `
+            <button class="bslide${i === 0 ? ' on' : ''}" data-go="${i}" aria-label="${b.alt}">
+              <img src="./${b.image}" alt="${b.alt}">
+            </button>`).join('')}
+        </div>
+        ${many ? `<div class="bpips" aria-hidden="true">${list.map((_, i) =>
+          `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
       </div>
-      ${many ? `<div class="bpips" aria-hidden="true">${list.map((_, i) =>
-        `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}`;
+      ${many ? '<button class="bnav right" data-step="1" aria-label="次のバナー"></button>' : ''}`;
     bannerIndex = 0;
     host.querySelectorAll('[data-go]').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -41,9 +41,16 @@ const server = http.createServer(async (req, res) => {
     await page.waitForTimeout(800);
 
     // 受け取り済みにしていない配布(=一番新しいもの)だけが入るはず
+    // 配布はコード(BUILTIN_GIFTS)と管理ツール(CUSTOM_GIFTS)の両方から来る。
+    // 期間の絞り込みも core/gifts.js と同じにする
     const expected = await page.evaluate(async () => {
       const { BUILTIN_GIFTS } = await import('/src/js/data/gamedata.js');
-      return BUILTIN_GIFTS.filter(g => !['gift_dark_debut', 'gift_x_launch'].includes(g.key));
+      const { CUSTOM_GIFTS } = await import('/src/js/data/custom.js');
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return BUILTIN_GIFTS.concat(CUSTOM_GIFTS || []).filter(g =>
+        !['gift_dark_debut', 'gift_x_launch'].includes(g.key)
+        && !(g.from && today < g.from) && !(g.to && today > g.to));
     });
     const box = await page.evaluate(() => JSON.parse(localStorage.getItem('acb_state')).gifts);
     console.log('箱の中身:', box.map(g => `${g.title} / 💎${g.orb || 0}`));

@@ -267,12 +267,17 @@ body[data-screen="home"] #app::before{
 /* 宣伝バナー。複数あるときは数秒ごとに入れ替わる。
    高さを揃えるため、重ねた中で1枚だけを不透明にして見せる */
 /* 枠(絵)と、その下の枚数表示を縦に並べる入れ物 */
+/* [◀] [バナー] [▶] の横並び。右のプレゼント箱(52px)は避ける */
 .home-banner{
-  position:absolute;left:2px;top:0;z-index:5;width:min(52%, 215px);
+  position:absolute;left:0;top:0;z-index:5;
+  display:flex;align-items:center;gap:1px;
+  max-width:calc(100% - 58px);
 }
+.home-banner .bcol{min-width:0;flex:1 1 auto;}
 /* 絵はこの中だけ。角丸で切り抜くので、枚数表示は外へ出している */
 .home-banner .bframe{
-  position:relative;border:1px solid rgba(255,214,140,.55);
+  position:relative;width:min(50vw, 205px);
+  border:1px solid rgba(255,214,140,.55);
   border-radius:8px;overflow:hidden;background:none;
   box-shadow:0 5px 14px rgba(0,0,0,.5);
 }
@@ -289,13 +294,13 @@ body[data-screen="home"] #app::before{
 .home-banner img{width:100%;height:auto;display:block;}
 .home-banner .bslide:active{filter:brightness(1.08);}
 /* 手で送る△。絵の端に重ねる(枠が細いので、外には置けない) */
+/* 絵の外に出したので、背景の暗幕は要らない。指で押せる幅は確保する */
 .home-banner .bnav{
-  position:absolute;top:0;bottom:0;width:24px;z-index:3;
+  flex:0 0 22px;width:22px;height:40px;z-index:3;
   display:flex;align-items:center;justify-content:center;
-  padding:0;border:none;opacity:.85;
+  padding:0;border:none;background:none;opacity:.8;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
 }
-.home-banner .bnav.left {left:0;  background:linear-gradient(to right, rgba(0,0,0,.5), transparent);}
-.home-banner .bnav.right{right:0; background:linear-gradient(to left,  rgba(0,0,0,.5), transparent);}
 .home-banner .bnav::before{
   content:'';display:block;border-style:solid;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));
 }
@@ -720,6 +725,24 @@ button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:non
   box-shadow:var(--shadow-2), inset 0 1px 0 rgba(255,255,255,.08);
 }
 canvas{display:block;border-radius:16px;touch-action:none;}
+
+/* 待たずに手番を終わらせるボタン。
+   盤面の外(真上)に浮かせる。流れに入れると盤面が下がり、
+   セルの大きさが変わって画面が揺れてしまう。 */
+#fireNowBtn{
+  /* #playerEffects が z-index:8 でタップを取るので、その上に出す。
+     下に潜ると、見えているのに押せないボタンになる */
+  position:absolute;right:4px;bottom:calc(100% + 5px);z-index:9;
+  padding:6px 14px;border-radius:999px;border:1px solid var(--accent);
+  background:linear-gradient(180deg,#ffdd94,#f0b23c);color:#3a2600;
+  font-size:12px;font-weight:800;letter-spacing:.03em;line-height:1;
+  box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  animation:fireNowIn .18s ease-out;
+}
+#fireNowBtn:active{transform:scale(.94);filter:brightness(1.1);}
+@keyframes fireNowIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){#fireNowBtn{animation:none;}}
 
 /* ===================== キャラクター画面 =====================
  * 入口(4枚) → 編成 / 強化・進化 / 開眼 / 送還 の各ページ。
@@ -1577,6 +1600,13 @@ input[type=range]{accent-color:var(--accent);}
 /* 敵が複数のときは1体あたりの絵が小さいので、少し詰める */
 #enemyStage.multi-enemy { height:24vh; min-height:152px; }
 #enemyRoster { display:flex; justify-content:center; align-items:stretch; width:100%; gap:4px; flex:1 1 auto; min-height:0; }
+/* 端の auto マージンで中央に寄せる。
+   iOS では max-width で頭打ちになった flex 要素に justify-content が効かず、
+   敵がまとめて左へずれる(Chromium では中央になるので再現しない)。
+   auto マージンは flex の伸縮が終わったあとに余白を吸うので、
+   頭打ちで余った空間も確実に左右へ分けられる。 */
+#enemyRoster > .foe:first-child { margin-left:auto; }
+#enemyRoster > .foe:last-child  { margin-right:auto; }
 /* 名前・HP・バッジは必ず出したいので、縮むのは敵の絵だけにする */
 .foe { position:relative; flex:1 1 0; min-width:0; max-width:160px; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
   border:1px solid transparent; border-radius:10px;
@@ -1653,6 +1683,9 @@ input[type=range]{accent-color:var(--accent);}
   flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
   scrollbar-width:none; z-index:8; pointer-events:auto;
 }
+/* 空のときは高さだけ確保していればよい。当たり判定まで残すと、
+   この上に重なるものが押せなくなる */
+#playerEffects:empty { pointer-events:none; }
 #playerEffects::-webkit-scrollbar { display:none; }
 .player-badge { position:relative; padding:0; border:0; border-radius:50%; width:28px; height:28px; flex:0 0 28px; background:#10091ae6; cursor:pointer; }
 .player-badge-art { display:block; width:100%; height:100%; background:url('../../assets/battle/player_badges.webp') no-repeat; background-size:800% 100%; background-position:calc(var(--status-index) * 100% / 7) 0; }

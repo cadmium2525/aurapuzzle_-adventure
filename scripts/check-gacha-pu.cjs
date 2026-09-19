@@ -24,9 +24,12 @@ const CASES = [
  process.on('exit', restore);
  process.on('uncaughtException', e => { restore(); console.error(e); process.exit(1); });
  for (const [label, settings] of CASES) {
-   const next = base.replace('export const CUSTOM_SETTINGS = {};',
-     `export const CUSTOM_SETTINGS = ${settings};`);
-   if (settings !== '{}' && next === base) throw new Error('custom.js の差し替えが効いていない');
+   // CUSTOM_SETTINGS には実データが入っていることがあるので、
+   // 中身を決め打ちせず宣言ごと差し替える
+   const re = /export const CUSTOM_SETTINGS = [\s\S]*?;\n/;
+   if (!re.test(base)) throw new Error('custom.js に CUSTOM_SETTINGS が見つからない');
+   const next = base.replace(re, `export const CUSTOM_SETTINGS = ${settings};\n`);
+   if (next === base) throw new Error('custom.js の差し替えが効いていない');
    fsSync.writeFileSync(CUSTOM, next);
    const page=await b.newPage({viewport:{width:390,height:844},serviceWorkers:'block'});
    const errs=[]; page.on('pageerror',e=>errs.push(e.message));

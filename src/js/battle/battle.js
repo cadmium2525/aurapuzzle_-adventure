@@ -58,6 +58,8 @@ export function initBattle() {
   canvas.addEventListener('pointerdown', onPointerDown);
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
+  // 操作時間が余っているときに待たされるのがつらいので、自分で締められるようにする
+  $('fireNowBtn').addEventListener('click', endTurnNow);
   window.addEventListener('resize', () => { if (currentScreen === 'battle') resizeBoard(); });
   setRetreatHandler(retreat);
   $('resultAddFriendBtn').addEventListener('click', async () => {
@@ -87,6 +89,9 @@ export function initBattle() {
   requestAnimationFrame(loop);
 }
 
+/** 発火ボタンをいま出しているか(毎フレームDOMを触らないための覚え) */
+let fireBtnShown = false;
+
 /** そのターンに使える操作時間(ms) */
 function dragTimeMs() {
   return effectiveTime(run.party.baseDragTime, run.turnTimeBonusMs, MAX_DRAG_TIME, run.enemyEffects);
@@ -104,12 +109,24 @@ function loop(t) {
       clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total
     });
     // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
-    if (dragging && remain <= 0) {
-      autoReleased = true; grabbed = false; selected = null; floatPos = null;
-      resolveTurn();
+    if (dragging && remain <= 0) endTurnNow();
+    // 発火ボタンは操作中だけ出す。毎フレーム触らないよう、変わったときだけ
+    if (dragging !== fireBtnShown) {
+      fireBtnShown = dragging;
+      const btn = $('fireNowBtn');
+      if (btn) btn.hidden = !dragging;
     }
   }
   requestAnimationFrame(loop);
+}
+
+/** 操作を打ち切って手番を解決する。時間切れと「発火」ボタンの共通の出口 */
+function endTurnNow() {
+  if (bstate !== 'dragging' || autoReleased) return;
+  autoReleased = true; grabbed = false; selected = null; floatPos = null;
+  const btn = $('fireNowBtn');
+  if (btn) { btn.hidden = true; fireBtnShown = false; }
+  resolveTurn();
 }
 
 /* ===================== ラン開始 ===================== */
@@ -833,9 +850,10 @@ function activateChanceBoard() {
 /**
  * 敵の行動を実行する。
  * 先制行動は文字も演出も出さず、効果だけを静かにかける。ノーマル以外の
- * ダンジョンではほぼ毎フロア先制で妨害してくるため、毎回演出を挟むと
- * テンポが悪い。かかった状態は敵・味方のバッジで分かる。
- * ただし被弾の揺れだけは残す。HPが減ったことは伝わらないと困る。
+ * ダンジョンではほぼ毎フロア先制で妨害してくるので、先制では
+ * 「敵の行動！」の帯は出さない(テンポが悪くなる)。
+ * 演出そのものは出す。何をされたのか分からないまま操作時間だけ
+ * 削られるのが一番つらいため。かかった状態はバッジでも分かる。
  */
 async function executeEnemyAction(action, preemptive = false) {
   if(action.dialogue){const spec=combatEnemy(run).spec;await bossDialogue(spec.name,action.dialogue,spec.sprite);}
@@ -860,7 +878,14 @@ async function executeEnemyAction(action, preemptive = false) {
     shake($('partyBox'));
   }
   updateSkillUI();
-  if (preemptive) { updateHPUI(false, false); return; }
+  if (preemptive) {
+    updateHPUI(false, false);
+    // 先制は毎フロア来るので、帯(750ms)は出さない。
+    // ただし演出そのものは出す。何をされたのか分からないまま
+    // 操作時間だけ削られる状態が一番つらいため。
+    await playEnemyMotion(motions, board);
+    return;
+  }
   showBanner(`敵の行動！ ${labels.join(' / ')}`);
   updateHPUI(false, !!action.attack);
   await Promise.all([playEnemyMotion(motions, board), sleep(750)]);
