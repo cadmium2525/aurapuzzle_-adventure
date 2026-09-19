@@ -517,6 +517,9 @@ async function checkBuildUps() {
 }
 
 function flash(el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+/* 敵を揺らすときは #enemyStage ではなく #enemyRoster を揺らすこと。
+   ステージは画面いっぱいに背景(danjon_bg)を敷いているので、動かすと
+   背景ごと横へずれて端に隙間ができる(「敵が左にずれる」と見える)。 */
 function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
 function showBanner(html) { $('banner').innerHTML = html; $('banner').classList.add('show'); }
 function hideBanner() { $('banner').classList.remove('show'); }
@@ -582,7 +585,7 @@ async function applySkill(i) {
     playDamageMotion(result);
     run.stats.totalDamage += result.damage;
     popUnit(i, result.blocked ? '無効' : result.absorbed ? '吸収' : String(result.damage), 'dmg');
-    shake($('enemyStage'));
+    shake($('enemyRoster'));
     logs.push(result.blocked ? 'ダメージ無効' : result.absorbed ? `${result.absorbed}吸収` : `${result.damage}ダメージ${result.survived ? '・根性' : ''}`);
   }
   if (sk.convert) {
@@ -734,7 +737,7 @@ async function resolveTurn() {
   updateHPUI(turnDamage > 0, turnHeal > 0);
   await playDamageMotion(outcome);
   if (turnDamage > 0) {
-    shake($('enemyStage'));
+    shake($('enemyRoster'));
   }
   if (turnDamage > 0 || turnHeal > 0 || outcome.blocked || outcome.absorbed) {
     let html = `<span class="chain">${chain} COMBO</span>`;
