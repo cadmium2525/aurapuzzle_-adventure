@@ -67,7 +67,10 @@ export function initBattle() {
     if (!pendingFriendUid) return;
     const btn = $('resultAddFriendBtn');
     btn.disabled = true; btn.textContent = '登録中…';
-    const res = await addFriendByUid(pendingFriendUid, pendingFriendName);
+    let res;
+    // 例外をそのまま落とすと、押したのに何も起きないように見える
+    try { res = await addFriendByUid(pendingFriendUid, pendingFriendName); }
+    catch (e) { res = { ok: false, message: 'フレンド登録に失敗しました。時間をおいてお試しください' }; }
     toast(res.message);
     if (res.ok) { $('resultFriendBox').hidden = true; pendingFriendUid = null; }
     else { btn.disabled = false; btn.textContent = 'フレンド登録する'; }

@@ -21,6 +21,31 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * クラウド側の失敗を、画面に出せる文に変える。
+ *
+ * **黙って失敗させないこと。** フレンド登録は「押したのに何も起きない」が
+ * いちばん困る。利用者からは「登録したのに居ない」「消えた」に見えるが、
+ * 実際には通信や権限で弾かれているだけ、ということがある。
+ */
+function cloudErrorMessage(e, what) {
+  const code = (e && e.code) || '';
+  if (code === 'permission-denied') return `${what}に失敗しました(権限がありません)`;
+  if (code === 'unavailable' || code === 'deadline-exceeded' || code === 'aborted') {
+    return `${what}に失敗しました(通信できていないようです。電波の良いところでもう一度お試しください)`;
+  }
+  if (code === 'resource-exhausted') return `${what}に失敗しました(しばらく待ってからお試しください)`;
+  return `${what}に失敗しました(${code || (e && e.message) || '原因不明'})`;
+}
+
+/** 相手の一覧へ「自分」を書き込む。登録時と、取りこぼしのやり直しで使う */
+function writeBackLink(targetUid, addedAt) {
+  return FB.setDoc(FB.doc(FB.db, 'users', targetUid, 'friends', myUid), {
+    name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
+    addedAt: addedAt || Date.now(), lastGreetDate: ''
+  });
+}
+
 /** Firebase未設定/オフラインでもゲーム自体は遊べるようにする */
 export function cloudEnabled() { return firebaseEnabled(); }
 
@@ -176,11 +201,29 @@ export async function refreshFriendsList() {
   if (!firebaseEnabled() || !myUid) return state.profile.friends;
   try {
     const snaps = await FB.getDocs(FB.collection(FB.db, 'users', myUid, 'friends'));
+    /* 読めたのに1件も無く、手元には居るときは、この一覧を信じない。
+       削除しても removed の印が残る作りなので、本当に0件になることはない。
+       0件で返ってくるのは別の uid を見ているとき(匿名ログインが作り直されたなど)で、
+       そのまま上書きするとフレンドが全員消えてしまう。 */
+    if (snaps.size === 0 && state.profile.friends.length) {
+      console.warn('[friends] cloud list empty but local cache is not; keeping cache');
+      return state.profile.friends;
+    }
     const list = [];
     snaps.forEach(d => {
       const data = d.data();
       if (!data.removed) list.push({ uid: d.id, ...data });
     });
+    /* 登録のとき相手側へ書けなかったぶんをやり直す。
+       印は自分の側の書類に残してあるので、追加の読み取りは要らない。 */
+    await Promise.all(list.filter(f => f.linkPending).map(async f => {
+      try {
+        await writeBackLink(f.uid, f.addedAt);
+        await FB.updateDoc(FB.doc(FB.db, 'users', myUid, 'friends', f.uid),
+          { linkPending: FB.deleteField() });
+        delete f.linkPending;
+      } catch (e) { /* 次の更新でまたやり直す */ }
+    }));
     // サブコレクションは登録時の情報なので、プロフィール本体から現在値を補う。
     await Promise.all(list.map(async f => {
       try {
@@ -220,27 +263,59 @@ export async function addFriendByCode(rawCode) {
   if (state.profile.friends.length >= MAX_FRIENDS) return { ok: false, message: `フレンドは最大${MAX_FRIENDS}人までです` };
   if (state.profile.friends.some(f => f.uid && f.code === code)) return { ok: false, message: 'すでにフレンドです' };
 
-  const codeSnap = await FB.getDoc(FB.doc(FB.db, 'friendCodes', code));
-  if (!codeSnap.exists()) return { ok: false, message: 'そのフレンドコードは見つかりませんでした' };
-  const targetUid = codeSnap.data().uid;
-  if (targetUid === myUid) return { ok: false, message: '自分のコードは登録できません' };
-  if (state.profile.friends.some(f => f.uid === targetUid)) return { ok: false, message: 'すでにフレンドです' };
+  let target, targetUid;
+  try {
+    const codeSnap = await FB.getDoc(FB.doc(FB.db, 'friendCodes', code));
+    if (!codeSnap.exists()) return { ok: false, message: 'そのフレンドコードは見つかりませんでした' };
+    targetUid = codeSnap.data().uid;
+    if (!targetUid) return { ok: false, message: 'そのフレンドコードは登録が壊れています' };
+    if (targetUid === myUid) return { ok: false, message: '自分のコードは登録できません' };
+    if (state.profile.friends.some(f => f.uid === targetUid)) return { ok: false, message: 'すでにフレンドです' };
 
-  const targetSnap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
-  if (!targetSnap.exists()) return { ok: false, message: 'フレンドの情報が見つかりませんでした' };
-  const target = targetSnap.data();
+    const targetSnap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
+    if (!targetSnap.exists()) return { ok: false, message: 'フレンドの情報が見つかりませんでした' };
+    target = targetSnap.data();
+  } catch (e) {
+    console.warn('[friends] lookup failed', e);
+    return { ok: false, message: cloudErrorMessage(e, 'フレンドの確認') };
+  }
+  return linkFriend(targetUid, {
+    name: target.name || 'プレイヤー', icon: target.icon || '🙂', code
+  });
+}
 
+/**
+ * 双方の一覧に印を付けて、フレンド関係を作る。
+ *
+ * **自分の一覧への書き込みだけが成否を決める。** 相手の一覧へ書けなかった
+ * ときは linkPending の印だけ残して成功として扱い、次の一覧更新でやり直す。
+ * ここで丸ごと失敗にすると、相手側が一時的に書けなかっただけで
+ * 「登録したのに居ない」状態になってしまう。
+ */
+async function linkFriend(targetUid, info) {
   const now = Date.now();
-  await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), {
-    name: target.name || 'プレイヤー', icon: target.icon || '🙂', code,
-    addedAt: now, lastGreetDate: ''
-  });
-  await FB.setDoc(FB.doc(FB.db, 'users', targetUid, 'friends', myUid), {
-    name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
-    addedAt: now, lastGreetDate: ''
-  });
-  await refreshFriendsList();
-  return { ok: true, message: `${target.name || 'プレイヤー'}をフレンドに登録しました` };
+  try {
+    await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), {
+      name: info.name, icon: info.icon, code: info.code, addedAt: now, lastGreetDate: ''
+    });
+  } catch (e) {
+    console.warn('[friends] add failed', e);
+    return { ok: false, message: cloudErrorMessage(e, 'フレンド登録') };
+  }
+  let pending = false;
+  try {
+    await writeBackLink(targetUid, now);
+  } catch (e) {
+    pending = true;
+    console.warn('[friends] back link failed; will retry', e);
+    try {
+      await FB.updateDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), { linkPending: true });
+    } catch (err) { /* 印が残せなくても、自分の一覧には入っている */ }
+  }
+  try { await refreshFriendsList(); } catch (e) { /* 一覧は次に開いたときで良い */ }
+  return { ok: true, message: pending
+    ? `${info.name}をフレンドに登録しました(相手側への反映は次回の更新でやり直します)`
+    : `${info.name}をフレンドに登録しました` };
 }
 
 /**
@@ -253,20 +328,19 @@ export async function addFriendByUid(targetUid, fallbackName) {
   if (state.profile.friends.length >= MAX_FRIENDS) return { ok: false, message: `フレンドは最大${MAX_FRIENDS}人までです` };
   if (state.profile.friends.some(f => f.uid === targetUid)) return { ok: false, message: 'すでにフレンドです' };
 
-  const snap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
-  if (!snap.exists()) return { ok: false, message: '相手の情報が見つかりませんでした' };
-  const target = snap.data();
-  const now = Date.now();
-  await FB.setDoc(FB.doc(FB.db, 'users', myUid, 'friends', targetUid), {
-    name: target.name || fallbackName || 'プレイヤー', icon: target.icon || '🙂',
-    code: target.friendCode || '', addedAt: now, lastGreetDate: ''
+  let target;
+  try {
+    const snap = await FB.getDoc(FB.doc(FB.db, 'users', targetUid));
+    if (!snap.exists()) return { ok: false, message: '相手の情報が見つかりませんでした' };
+    target = snap.data();
+  } catch (e) {
+    console.warn('[friends] lookup failed', e);
+    return { ok: false, message: cloudErrorMessage(e, 'フレンドの確認') };
+  }
+  return linkFriend(targetUid, {
+    name: target.name || fallbackName || 'プレイヤー',
+    icon: target.icon || '🙂', code: target.friendCode || ''
   });
-  await FB.setDoc(FB.doc(FB.db, 'users', targetUid, 'friends', myUid), {
-    name: state.profile.name, icon: state.profile.icon, code: state.settings.playerId,
-    addedAt: now, lastGreetDate: ''
-  });
-  await refreshFriendsList();
-  return { ok: true, message: `${target.name || 'プレイヤー'}をフレンドに登録しました` };
 }
 
 /**

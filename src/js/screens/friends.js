@@ -95,9 +95,18 @@ function renderList() {
 export function initFriends() {
   $('addFriendBtn').addEventListener('click', async () => {
     const input = $('friendCodeInput');
-    const res = await addFriendByCode(input.value);
-    toast(res.message);
-    if (res.ok) { input.value = ''; updateStatusBar(); renderFriends(); }
+    const btn = $('addFriendBtn');
+    btn.disabled = true;
+    try {
+      // addFriendByCode は自前で理由を返すが、そこを抜けた例外も必ず知らせる。
+      // 黙って落ちると「押したのに何も起きない=登録したのに居ない」に見える
+      const res = await addFriendByCode(input.value);
+      toast(res.message);
+      if (res.ok) { input.value = ''; updateStatusBar(); renderFriends(); }
+    } catch (e) {
+      console.warn('[friends] add threw', e);
+      toast('フレンド登録に失敗しました。時間をおいてお試しください');
+    } finally { btn.disabled = false; }
   });
   $('greetAllBtn').addEventListener('click', async () => {
     const n = await greetAllFriends();
