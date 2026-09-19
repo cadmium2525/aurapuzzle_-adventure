@@ -81,8 +81,26 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  await page.fill('[name=artName]','testnova');
  await page.locator('#evolveBox').check(); await page.waitForTimeout(350);
  console.log('進化欄:', await page.locator('[name=evoName]').count() ? 'あり' : 'なし');
+ /* ホームでの寄せ具合。絵の縦横比で見た目の大きさが変わるので、
+    進化前後それぞれに持たせる。build() が artStages を組み直すため、
+    ここを拾い忘れると、開いて保存し直すだけで等倍に戻る。 */
+ await page.fill('[name=artScale1]','1.15');
+ await page.fill('[name=artScale2]','1.35');
  if (SHOT) await page.screenshot({path:SHOT+'admin-char-edit.png'});
  await page.locator('#saveBtn').click(); await page.waitForTimeout(400);
+ const scales = () => page.evaluate(()=>{
+   const d=JSON.parse(localStorage.getItem('acb_admin_draft')||'{}');
+   const c=(d.characters||[]).find(x=>x.id==='fl_testnova');
+   return (c&&c.artStages||[]).map(a=>a.scale ?? null);
+ });
+ assert.deepEqual(await scales(), [1.15,1.35], 'ホームでの寄せ具合が下書きに入っていない');
+ // 開き直して保存し直しても落ちないこと(toEditing と build の往復)
+ await page.locator('[data-open="fl_testnova"]').click(); await page.waitForTimeout(350);
+ await page.locator('[data-ok]').click(); await page.waitForTimeout(400);
+ assert.equal(await v('[name=artScale1]'),'1.15','開き直したら寄せ具合が戻っていない');
+ await page.locator('#saveBtn').click(); await page.waitForTimeout(400);
+ assert.deepEqual(await scales(), [1.15,1.35], '開いて保存し直すと寄せ具合が落ちる');
+ console.log('ホームでの寄せ具合:', JSON.stringify(await scales()));
 
  // --- ガチャ: PU の差し替えとアトラスの焼き直し ---
  await page.locator('[data-go="gacha"]').click(); await page.waitForTimeout(400);

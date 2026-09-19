@@ -49,14 +49,16 @@ export const CUSTOM_CHARACTERS = [
         "minLevel": 1,
         "icon": "assets/chars/emiri_1_icon.webp",
         "full": "assets/chars/emiri_1.webp",
-        "label": "通常"
+        "label": "通常",
+        "scale": 1.15
       },
       {
         "star": 5,
         "minLevel": 1,
         "icon": "assets/chars/emiri_2_icon.webp",
         "full": "assets/chars/emiri_2.webp",
-        "label": "進化"
+        "label": "進化",
+        "scale": 1.35
       }
     ],
     "evoName": "エミリ",

@@ -11,6 +11,13 @@ import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
 import { allSkills, describe } from './skill-edit.js';
 import { toWebp, toIconWebp, toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 
+/** ホームでの寄せ具合。小数を保つので clampInt は使えない(1.15 が 1 に丸まる) */
+function clampScale(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback ?? 1;
+  return Math.min(2, Math.max(0.5, Math.round(n * 100) / 100));
+}
+
 let editing = null;
 
 /* --- characters.js と同じ基準値。あちらは非公開なので写している。
@@ -92,6 +99,7 @@ function renderList(view) {
     const stats = exactStats(3, 'balance');
     editing = {
       id: '', name: '', job: '', portrait: '🙂', aura: 0, rarity: 3, role: 'balance',
+      artScale1: 1, artScale2: 1,
       leaderSkillId: Object.keys(G.LEADER_SKILLS)[0],
       skillId: Object.keys(G.ACTIVE_SKILLS)[0],
       ...stats, flavor: '',
@@ -239,6 +247,16 @@ function renderEditor(view) {
         <input type="file" accept="image/*" data-pic="banner"></label>
       <div class="shots">${['full1', 'icon1', 'full2', 'icon2', 'banner'].map(k => shot(art[k])).join('')}</div>
 
+      <h3 style="margin-top:12px">ホームでの大きさ</h3>
+      <p class="lead small">ホームの1枚絵は、余白ごと枠に収めるので
+        <b>絵の縦横比で見た目の大きさが変わります</b>。横長の絵ほど小さく見えるので、
+        ここで引き伸ばして揃えます。1 のままなら等倍。
+        上げすぎると頭がバナーの裏に隠れるので、実際の画面で確かめること。</p>
+      <div class="grid2">
+        ${field('進化前', 'artScale1', c.artScale1 ?? 1, { type: 'number', min: 0.5, max: 2, step: 0.01 })}
+        ${c.evolve ? field('進化後', 'artScale2', c.artScale2 ?? 1, { type: 'number', min: 0.5, max: 2, step: 0.01 }) : ''}
+      </div>
+
       <div class="row-btns" style="margin-top:14px">
         <button class="btn primary" id="saveBtn">下書きに保存</button>
         <button class="btn" id="cancelBtn">やめる</button>
@@ -323,7 +341,9 @@ function toEditing(saved) {
   return {
     ...saved,
     artName: saved._artName || '',
-    evolve: (saved.artStages || []).length > 1
+    evolve: (saved.artStages || []).length > 1,
+    artScale1: (saved.artStages || [])[0]?.scale || 1,
+    artScale2: (saved.artStages || [])[1]?.scale || 1
   };
 }
 
@@ -343,6 +363,9 @@ function build(c) {
       { star: c.rarity + 1, minLevel: 1, icon: `assets/chars/${name}_2_icon.webp`, full: `assets/chars/${name}_2.webp`, label: '進化' }
     ]
     : [{ star: c.rarity, minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '通常' }];
+  // ホームでの寄せ具合。等倍なら書かない(既定値なので持たせる意味がない)
+  if (c.artScale1 && c.artScale1 !== 1) out.artStages[0].scale = c.artScale1;
+  if (c.evolve && c.artScale2 && c.artScale2 !== 1) out.artStages[1].scale = c.artScale2;
   if (c.evolve) {
     if (c.evoName) out.evoName = c.evoName;
     if (c.evoJob) out.evoJob = c.evoJob;
@@ -370,6 +393,9 @@ function collect(view) {
   c.leaderSkillId = v.leaderSkillId || c.leaderSkillId;
   c.skillId = v.skillId || c.skillId;
   c.flavor = String(v.flavor || '').trim();
+  // 倍率なので clampInt は使えない(丸めると 1.15 が 1 になる)
+  c.artScale1 = clampScale(v.artScale1, c.artScale1);
+  if (v.artScale2 != null) c.artScale2 = clampScale(v.artScale2, c.artScale2);
   if (v.evoName != null) c.evoName = String(v.evoName).trim();
   if (v.evoJob != null) c.evoJob = String(v.evoJob).trim();
   if (v.evoLeaderSkillId != null) c.evoLeaderSkillId = v.evoLeaderSkillId;
