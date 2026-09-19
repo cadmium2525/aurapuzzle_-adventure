@@ -215,6 +215,38 @@ const server = http.createServer(async (req, res) => {
       performance.getEntriesByType('resource').filter(r => /assets\/chars\/.*_icon\.webp/.test(r.name)).length),
       0, '個別のアイコン画像を読んでいる');
 
+    /* アイコンの大きさを「%の積み重ね」で決めないこと。
+       iOS では % で高さを決めた flex 要素の中でさらに 100% を使うと解けず、
+       アイコンが高さ0に潰れてアトラスの背景が描かれない。
+       同じ charIcon() でも、親が px 固定のバトルの .unit-portrait では出ていた。
+       Chromium は % でも解けてしまうので、**親の高さを auto にして**
+       「%に頼っていたら潰れる」状況を作って確かめる。 */
+    await page.evaluate(async () => {
+      document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+      (await import('/src/js/core/nav.js')).showScreen('character');
+    });
+    await page.waitForTimeout(400);
+    const iconBox = await page.evaluate(() => {
+      // 表示されているものを選ぶ(隠れている画面の要素は高さ0になる)
+      const img = [...document.querySelectorAll('.portrait .p-img.char-atlas')]
+        .find(el => el.getBoundingClientRect().height > 0);
+      if (!img) return null;
+      const face = img.parentElement;
+      const before = img.getBoundingClientRect().height;
+      const keep = face.style.height;
+      face.style.height = 'auto';           // iOS で解けなかったときと同じ形にする
+      const after = img.getBoundingClientRect().height;
+      face.style.height = keep;
+      return { before: Math.round(before), after: Math.round(after),
+        facePos: getComputedStyle(face).position, imgPos: getComputedStyle(img).position };
+    });
+    assert.ok(iconBox, 'ポートレートのアトラスアイコンが見つからない');
+    assert.ok(iconBox.before > 20, `アイコンが潰れている(${iconBox.before}px)`);
+    assert.ok(iconBox.after > 20,
+      `親の高さが解けないとアイコンが潰れる(${iconBox.after}px)。%の積み重ねで大きさを決めないこと`);
+    assert.equal(iconBox.facePos, 'absolute', 'ポートレートの中身が親から直接大きさを取っていない');
+    assert.equal(iconBox.imgPos, 'absolute', 'アイコンが親から直接大きさを取っていない');
+
     /* --- 5つとも未編成でも出撃モーダルが詰まらない --- */
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('acb_state'));
