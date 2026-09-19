@@ -163,7 +163,7 @@ function techSkills(kind, lv, seed) {
   const hit = effect => ({ preemptive: { effects: [effect] } });
   switch (kind) {
     case 0: return { passives: [{ type: 'comboGuard', chains: 2 + Math.ceil(lv / 3) }] };
-    case 1: return hit({ type: 'shapeGuard', aura, shape: TECH_SHAPES[seed % TECH_SHAPES.length],
+    case 1: return hit({ type: 'shapeGuard', shape: TECH_SHAPES[seed % TECH_SHAPES.length],
       turns: 2 + Math.floor(lv / 4) });
     case 2: return hit({ type: 'auraAbsorb', aura, turns: 2 + Math.floor(lv / 4) });
     case 3: return hit({ type: 'bind', count: 1 + Math.floor(lv / 6), turns: 1 + Math.floor(lv / 4) });

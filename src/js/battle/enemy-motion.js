@@ -1,4 +1,5 @@
 // One short-lived canvas per sequence. Coordinates share the viewport with DOM targets.
+import { SHAPES } from './enemy-skills.js';
 const COLORS = ['#ff795b', '#58d7ff', '#66eca2', '#ff94d2', '#b28aff'];
 const center = el => {
   const r = el?.getBoundingClientRect();
@@ -23,7 +24,12 @@ export function playEnemyMotion(events, board = []) {
   if (!ctx) { canvas.remove(); return Promise.resolve(); }
   ctx.scale(dpr, dpr);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const duration = reduced ? 180 : 720;
+  /* 効果ごとに見せたい長さが違う。1枚のキャンバスに同時に描くので、
+     その回に出すもののうち いちばん長いものへ合わせる。
+       時計  操作時間をいじられたことは盤面を見ても分からないので長めに置く
+       モヤ  飛んでいく様子を目で追えるだけの時間が要る */
+  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250 };
+  const duration = reduced ? 180 : Math.max(720, ...events.map(e => HOLD[e.type] || 0));
   const ring = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,Math.max(1,r),0,Math.PI*2); ctx.stroke(); };
   const text = (value,x,y,size=22) => { ctx.font = `bold ${size}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(value,x,y); };
   const line = (x,y,xx,yy) => { ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke(); };
@@ -46,7 +52,10 @@ export function playEnemyMotion(events, board = []) {
           case 'bind': case 'skillDelay':
             for(const i of e.targets || []) {
               const u=units[i]; if(!u)continue;
-              const travel=Math.min(1,p*1.7), x=ex+(u.x-ex)*travel, y=ey+(u.y-ey)*travel;
+              // バインドは「モヤが飛んでいく」ところを見せたいので、他より緩やかに寄せる。
+              // 着いたあとに包まれる様子を見せる時間も要るので、着地は 7 割あたり
+              const reach=e.type==='bind'?1.45:1.7;
+              const travel=Math.min(1,p*reach), x=ex+(u.x-ex)*travel, y=ey+(u.y-ey)*travel;
               if(e.type==='bind') {
                 // 紫のモヤが敵から対象へ飛び、着いた相手を包む
                 ctx.save();
@@ -81,8 +90,9 @@ export function playEnemyMotion(events, board = []) {
             for(let k=0;k<3;k++)ring(ex,ey,25+p*35+k*9);
             break;
           case 'shapeGuard': {
-            const shapes={L:[[0,0],[1,0],[2,0],[2,1],[2,2]],cross:[[0,1],[1,0],[1,1],[1,2],[2,1]],square:[[0,0],[0,1],[1,0],[1,1]],line:[[0,0],[0,1],[0,2],[0,3]]};
-            const cells=e.cells || shapes[e.shape] || shapes.square;
+            // 形ガードにオーラは無いので、敵に出しているシールドと同じ色で描く
+            ctx.strokeStyle=ctx.fillStyle='#c6f1ff';
+            const cells=e.cells || SHAPES[e.shape] || SHAPES.square;
             const rows=cells.map(c=>c[0]),cols=cells.map(c=>c[1]);
             const midR=(Math.min(...rows)+Math.max(...rows))/2,midC=(Math.min(...cols)+Math.max(...cols))/2;
             for(const [r,c] of cells)ctx.strokeRect(ex+(c-midC)*19-7,ey+(r-midR)*19-7,14,14);

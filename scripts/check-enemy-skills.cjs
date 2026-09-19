@@ -24,7 +24,7 @@ const server = http.createServer(async (req, res) => {
     // Test-only access to private controller state, never shipped in app source.
     await page.route('**/battle/battle.js', async route => {
       const response = await route.fetch();
-      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, setCooldowns: cds => {run.cooldowns=cds;updateSkillUI();}, useTestSkill: sk => {run.party.members[0].skill=sk;run.cooldowns[0]=0;applySkill(0);}, dragTimeMs };' });
+      await route.fulfill({ response, body: (await response.text()) + '\nwindow.battleTest = { snapshot: () => structuredClone({run,bstate,board}), resolveTurn, setBoard: b => {board=b;}, setCooldowns: cds => {run.cooldowns=cds;updateSkillUI();}, useTestSkill: sk => {run.party.members[0].skill=sk;run.cooldowns[0]=0;return applySkill(0);}, dragTimeMs };' });
     });
     await page.route('**/battle/renderer.js',async route=>{
       const response=await route.fetch();
@@ -39,7 +39,7 @@ const server = http.createServer(async (req, res) => {
       stage.floors[0].hp = 100000;
       stage.floors[0].interval = 1;
       stage.floors[0].enemySkills = {
-        passives: [{type:'buildUp'},{type:'resolve',threshold:30},{type:'auraAbsorb',aura:0,turns:2},{type:'comboGuard',chains:3},{type:'shapeGuard',aura:2,shape:'L'}],
+        passives: [{type:'buildUp'},{type:'resolve',threshold:30},{type:'auraAbsorb',aura:0,turns:2},{type:'comboGuard',chains:3},{type:'shapeGuard',shape:'L'}],
         preemptive: { effects: [{type:'bind',count:3,turns:1},{type:'timeFixed',seconds:2,turns:1},{type:'auraBind',aura:0,turns:1}] },
         actions: [{ effects: [{type:'skillDelay',count:3,turns:3}] }]
       };
@@ -121,7 +121,7 @@ const server = http.createServer(async (req, res) => {
     // Exercise every visual, including custom shapes and targeted projectiles.
     for (const effect of [
       {type:'bind',targets:[0,2]}, {type:'skillDelay',targets:[1],turns:3},
-      {type:'comboGuard',chains:4}, {type:'shapeGuard',aura:2,shape:'L'},
+      {type:'comboGuard',chains:4}, {type:'shapeGuard',shape:'L'},
       {type:'auraBind',aura:0}, {type:'timeReduce',seconds:3},
       {type:'timeFixed',seconds:5},
       // 先制行動は演出を出さない仕様(d003cea)なので、描画の検証対象から外す
@@ -143,6 +143,52 @@ const server = http.createServer(async (req, res) => {
       await page.evaluate(()=>window.motionDone);
       assert.equal(await page.locator('.enemy-motion').count(),0);
     }
+    /* 演出の長さ。操作時間をいじられたことは盤面を見ても分からないので、
+       時計は既定(720ms)よりはっきり長く置く。モヤも同じ理由でゆっくり飛ばす。
+       「出ている」だけを見ていると短くしても気付けないので、長さそのものを測る。 */
+    for (const [type, floor] of [['timeReduce',1200], ['bind',1000], ['comboGuard',0]]) {
+      const lived = await page.evaluate(async type => {
+        const {playEnemyMotion} = await import('/src/js/battle/enemy-motion.js');
+        const t0 = performance.now();
+        await playEnemyMotion([{type, seconds:3, turns:2, targets:[0], count:1, chains:3}],
+          Array.from({length:8},()=>Array(7).fill(0)));
+        return Math.round(performance.now() - t0);
+      }, type);
+      assert.ok(lived >= floor, `${type} の演出が短い(${lived}ms < ${floor}ms)`);
+      // 既定の 720ms 前後のものまで引きずられていないこと
+      if (floor === 0) assert.ok(lived < 1000, `関係ない演出まで伸びている(${lived}ms)`);
+    }
+
+    /* 形ガードのシールド。効いているあいだ、敵の前に必要な形を出す。
+       判定に使う形とずれると直しようのない理不尽になるので、
+       マス数と位置の両方を見る。 */
+    const shieldOf = () => page.evaluate(() => {
+      const el = document.querySelector('#enemyRoster .foe-shield');
+      const svg = el && el.querySelector('svg');
+      if (!svg) return { hidden: el ? el.hidden : true, cells: 0 };
+      const foe = el.closest('.foe').getBoundingClientRect(), b = svg.getBoundingClientRect();
+      return { hidden: el.hidden, cells: svg.querySelectorAll('rect').length,
+        offX: +((b.x + b.width/2) - (foe.x + foe.width/2)).toFixed(1) };
+    });
+    let shield = await shieldOf();
+    assert.equal(shield.hidden, false, '形ガード中なのにシールドが出ていない');
+    assert.equal(shield.cells, 5, 'L字のマス数が合わない');
+    assert.ok(Math.abs(shield.offX) <= 1, `シールドが敵の中央からずれている(${shield.offX}px)`);
+    // 形が変われば描き直し、効果が切れれば消える
+    await page.evaluate(async () => {
+      const {renderEnemyShield} = await import('/src/js/battle/enemy-shield.js');
+      renderEnemyShield({defenses:[{type:'shapeGuard',shape:'square'}]},
+        document.querySelector('#enemyRoster .foe-shield'));
+    });
+    assert.equal((await shieldOf()).cells, 4, '形を変えても描き直されていない');
+    await page.evaluate(async () => {
+      const {renderEnemyShield} = await import('/src/js/battle/enemy-shield.js');
+      renderEnemyShield({defenses:[]}, document.querySelector('#enemyRoster .foe-shield'));
+    });
+    shield = await shieldOf();
+    assert.equal(shield.hidden, true, '形ガードが切れてもシールドが残っている');
+    assert.equal(shield.cells, 0, 'シールドの中身が残っている');
+
     await page.emulateMedia({reducedMotion:'reduce'});
     await page.evaluate(async()=>{
       const {playEnemyMotion}=await import('/src/js/battle/enemy-motion.js');
@@ -211,6 +257,18 @@ const server = http.createServer(async (req, res) => {
     await page.screenshot({path:path.join(require('node:os').tmpdir(),'aura-conversion.png')});
     await page.waitForFunction(()=>conversionTest()===null);
     assert.equal(await page.evaluate(()=>battleTest.snapshot().board[7][1]),4);
+    /* スキルでダメージを出すときも、通常攻撃と同じ弾を敵へ飛ばす。
+       弾が飛んでいるあいだは resolving にして二重押しを止めているので、そこも見る。 */
+    await page.evaluate(()=>{
+      window.skillShot = battleTest.useTestSkill({name:'砲撃テスト',cooldown:5,fixedDamage:2});
+    });
+    await page.waitForFunction(()=>document.querySelector('.party-projectile'),null,{polling:'raf',timeout:10000});
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().bstate),'resolving',
+      'スキルの弾が飛んでいる間に入力を止めていない(同じスキルを二度押せる)');
+    await page.evaluate(()=>window.skillShot);
+    assert.equal(await page.locator('.party-projectile').count(),0,'スキルの弾が残っている');
+    assert.equal(await page.evaluate(()=>battleTest.snapshot().bstate),'idle','スキルのあと操作に戻っていない');
+
     await page.evaluate(async () => {
       const { STAGES } = await import('/src/js/data/gamedata.js');
       const { startDungeonRun } = await import('/src/js/battle/battle.js');

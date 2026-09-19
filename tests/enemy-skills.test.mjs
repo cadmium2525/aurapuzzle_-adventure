@@ -25,12 +25,15 @@ test('combo guard uses final chains with inclusive threshold, including direct s
   assert.equal(hit(s, { chain: 4 }).hp, 0);
   assert.equal(hit(s).blocked, true);
 });
-test('shape requires correct aura and exact group, permits rotation and translation', () => {
+test('shape guard ignores aura, requires the exact group, permits rotation and translation', () => {
   const s = createEnemyEffects(4);
   const cells = [[3,2],[3,3],[3,4],[4,2],[5,2]];
-  applyEnemyEffect(s, { type: 'shapeGuard', aura: 1, shape: 'L' }, []);
+  applyEnemyEffect(s, { type: 'shapeGuard', shape: 'L' }, []);
+  // 形さえ合っていればどのオーラでも通る(オーラ指定は外した)
   assert.equal(hit(s, { groups: [{ color: 1, cells }] }).hp, 0);
-  assert.equal(hit(s, { groups: [{ color: 0, cells }] }).hp, 100);
+  assert.equal(hit(s, { groups: [{ color: 0, cells }] }).hp, 0);
+  // 形が違えば通らない
+  assert.equal(hit(s, { groups: [{ color: 0, cells: [[0,0],[0,1],[1,0],[1,1]] }] }).blocked, true);
   assert.equal(matchesShape([...cells,[4,3]], { shape: 'L' }), false);
   assert.equal(matchesShape(cells, { shape: 'L', rotate: false }), false);
 });

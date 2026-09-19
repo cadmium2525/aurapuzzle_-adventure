@@ -49,7 +49,7 @@ export function effectiveTime(baseMs, bonusMs, maxMs, effects) {
   return Math.max(100, Math.min(maxMs, baseMs + bonusMs) - (time?.seconds || 0) * 1000);
 }
 
-const SHAPES = {
+export const SHAPES = {
   L: [[0,0],[1,0],[2,0],[2,1],[2,2]],
   cross: [[0,1],[1,0],[1,1],[1,2],[2,1]],
   square: [[0,0],[0,1],[1,0],[1,1]],
@@ -73,7 +73,8 @@ export function matchesShape(cells, rule) {
 export function damageEnemy({ hp, maxHP, effects, hits, chain = 0, groups = [] }) {
   const blocked = effects.defenses.some(d =>
     (d.type === 'comboGuard' && chain <= d.chains) ||
-    (d.type === 'shapeGuard' && !groups.some(g => g.color === d.aura && matchesShape(g.cells, d))));
+    // 形ガードは「形」だけを見る。どのオーラで作ったかは問わない
+    (d.type === 'shapeGuard' && !groups.some(g => matchesShape(g.cells, d))));
   if (blocked) return { hp, damage: 0, absorbed: 0, blocked: true, survived: false };
   let damage = 0, absorbed = 0;
   for (const hit of hits) {
@@ -100,7 +101,7 @@ export function effectLabels(s) {
   const labels = s.defenses.map(d => {
     if (d.type === 'comboGuard') return `${d.chains}チェイン以下無効${duration(d.turns)}`;
     if (d.type === 'auraAbsorb') return `${aura[d.aura]}吸収${duration(d.turns)}`;
-    return `${aura[d.aura]}・${d.label || d.shape || '指定形状'}消しが必要${duration(d.turns)}`;
+    return `${d.label || d.shape || '指定形状'}消しが必要${duration(d.turns)}`;
   });
   for (const [a,n] of Object.entries(s.auraBinds)) labels.push(`${aura[a]}消去不可${duration(n)}`);
   if (s.time) labels.push(`操作時間${s.time.type === 'timeFixed' ? '' : '−'}${s.time.seconds}秒${s.time.type === 'timeFixed' ? '固定' : ''}${duration(s.time.turns)}`);

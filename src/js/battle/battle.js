@@ -31,6 +31,7 @@ import { buildParty } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, animateConversion, clearConversion, CELL } from './renderer.js';
 import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
+import { renderEnemyShield } from './enemy-shield.js';
 import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
 import { createChanceBoard, isAllClear } from './chance.js';
@@ -478,11 +479,17 @@ function buildFoeCard(enemy, index) {
   const badges = document.createElement('div');
   badges.className = 'foe-badges';
   card.appendChild(badges);
+  // 形ガードの形。絵の前に重ねるので .foe 直下(position:relative の子)に置く
+  const shield = document.createElement('div');
+  shield.className = 'foe-shield';
+  shield.hidden = true;
+  shield.setAttribute('aria-hidden', 'true');
+  card.appendChild(shield);
   // 当たり判定はカード全体。中のボタンのクリックもここへ上がってくる
   card.addEventListener('click', () => {
     if (bstate === 'idle' || bstate === 'dragging') { run.targetIndex = index; updateHPUI(false, false); }
   });
-  return { card, target, health, numbers, badges };
+  return { card, target, health, numbers, badges, shield };
 }
 
 function renderEncounter() {
@@ -510,6 +517,7 @@ function renderEncounter() {
     const text = foeNumbersText(enemy);
     if (node.numbers.textContent !== text) node.numbers.textContent = text;
     renderEnemyBadges(enemy.effects, node.badges);
+    renderEnemyShield(enemy.effects, node.shield);
   });
 }
 
@@ -598,6 +606,18 @@ async function applySkill(i) {
   }
   if (sk.fixedDamage) {
     const dmg = Math.round(m.atk * sk.fixedDamage);
+    /* 通常攻撃と同じ弾を敵へ飛ばしてから当てる。
+       飛んでいるあいだは resolving にして、同じスキルを二度押せないようにする
+       (641行目あたりの checkBuildUps と同じ手)。
+       操作中なら dragStart をずらして、演出のぶん持ち時間が削られないようにする。 */
+    const previous = bstate;
+    bstate = 'resolving';
+    const flightStart = performance.now();
+    await playPartyAttacks([{ kind: 'dmg', index: i, aura: m.aura, value: dmg }]);
+    dragStart += performance.now() - flightStart;
+    bstate = previous;
+    // 待っているあいだに離脱・全滅で run が消えていることがある
+    if (!run) return;
     const result = dealDamage([{ aura: m.aura, value: dmg }]);
     playDamageMotion(result);
     run.stats.totalDamage += result.damage;

@@ -24,7 +24,7 @@ export function renderEnemyBadges(effects, root = targetBadgeBox()) {
     if (e.type === 'resolve') description = `根性：致死ダメージをHP1で耐える。HP${e.threshold}%以下で解除`;
     if (e.type === 'auraAbsorb') description = `オーラ吸収：${AURAS[e.aura]}のダメージを吸収して回復`;
     if (e.type === 'comboGuard') description = `コンボガード：${e.chains}チェイン以下のダメージを無効化`;
-    if (e.type === 'shapeGuard') description = `形状指定：${AURAS[e.aura]}を${e.label || e.shape || '指定の形'}で消さないとダメージ無効`;
+    if (e.type === 'shapeGuard') description = `形状指定：${e.label || e.shape || '指定の形'}で消さないとダメージ無効（オーラは問わない）`;
     if (Number.isFinite(e.turns)) description += `（残り${e.turns}ターン）`;
     const button = document.createElement('button');
     button.type = 'button';
@@ -37,7 +37,8 @@ export function renderEnemyBadges(effects, root = targetBadgeBox()) {
     art.className = 'enemy-badge-art';
     art.setAttribute('aria-hidden','true');
     button.appendChild(art);
-    if (e.aura !== undefined) {
+    // 形ガードはオーラを問わない。古いデータに aura が残っていても札は出さない
+    if (e.aura !== undefined && e.type !== 'shapeGuard') {
       const aura = document.createElement('span');
       aura.className = 'enemy-badge-aura';
       aura.style.background = COLORS[e.aura];

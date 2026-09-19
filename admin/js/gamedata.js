@@ -56,8 +56,7 @@ export const ENEMY_EFFECTS = [
       { key: 'turns', label: '続くターン(空でずっと)', min: 1, max: 20, def: null }
     ] },
   { type: 'shapeGuard', label: '形ガード',
-    desc: '指定の形で消さないとダメージが通らない', args: [
-      { key: 'aura', label: 'オーラ', aura: true, def: 0 },
+    desc: '指定の形で消さないとダメージが通らない(オーラは問わない)', args: [
       { key: 'shape', label: '形', options: ['L', 'cross', 'square', 'line'], def: 'L' },
       { key: 'turns', label: '続くターン', min: 1, max: 20, def: 3 }
     ] },
