@@ -52,7 +52,10 @@
    .〇〇-img 側が幅・高さ・角丸を決めるので、ここは背景だけを持つ。 */
 .char-atlas{
   background:url('../../assets/chars/char_atlas.webp')
-    var(--cp,0% 0%)/var(--char-atlas-size,800% 500%) no-repeat;
+    /* 格子の大きさは ui.js の ensureAtlasSize() が流し込む。
+       ここの既定値はそれが走る前の保険なので、アトラスを焼き直して
+       列や行が変わったら ui.js 側が正しい値を入れる。 */
+    var(--cp,0% 0%)/var(--char-atlas-size,800% 600%) no-repeat;
 }
 /* 起動に失敗したときの画面。ローディングより手前に出す。
    スタイルシートが読めていない可能性もあるので、色と配置は最小限で完結させる */

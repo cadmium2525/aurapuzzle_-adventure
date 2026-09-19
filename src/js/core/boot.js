@@ -17,6 +17,13 @@ const BASE_IMAGES = [
   './assets/battle/enemy_badges.webp'
 ];
 
+/* 起動を待たせずに裏で温めておくもの。
+   キャラアイコンのアトラスは素材のなかで一番大きい(1024x768・約540KB)。
+   ホームの1枚絵より後でよいが、キャラ一覧・ガチャ・サポート選択と
+   ほぼ全部の画面で使うので、待たせずに取りに行っておく。
+   BASE_IMAGES に入れると、そのぶん起動が丸ごと長くなる。 */
+const WARM_IMAGES = ['./assets/chars/char_atlas.webp'];
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function preloadImage(src) {
@@ -56,6 +63,10 @@ export async function runBoot(onStart) {
 
   // ここまで来れば起動は成功。index.html の見張り番を解く
   if (typeof window.__acbBootDone === 'function') window.__acbBootDone();
+
+  // タイトルを見ているあいだに、重い素材を裏で取っておく。
+  // 待たない(失敗しても起動には関係ない)
+  WARM_IMAGES.forEach(preloadImage);
 
   const loading = $('loadingScreen');
   const title = $('titleScreen');

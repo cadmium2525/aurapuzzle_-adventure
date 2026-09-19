@@ -39,8 +39,18 @@ const server = http.createServer(async (req, res) => {
       raw.teams[1] = [CHARACTERS[5].id, CHARACTERS[9].id, CHARACTERS[14].id];
       localStorage.setItem('acb_state', JSON.stringify(raw));
     });
+    const asked = [];
+    page.on('request', r => { if (r.url().includes('char_atlas.webp')) asked.push(r.url()); });
     await page.reload();
     await page.locator('#titleScreen.ready').click({ timeout: 30000 });
+    /* キャラアイコンのアトラスは起動中に取りに行っておくこと。
+       素材のなかで一番大きい(約540KB)うえに、キャラ一覧・ガチャ・
+       サポート選択とほぼ全部の画面で使う。必要になってから取りに行くと、
+       最初に開いた画面でアイコンだけ遅れて出てくる(実測で「開くまで
+       リクエストすらされない」状態だった)。
+       ただし BASE_IMAGES には入れないこと。起動がそのぶん丸ごと長くなる。 */
+    assert.ok(asked.length > 0,
+      'キャラアトラスが起動中に読み込まれていない(画面を開いてから取りに行くと出遅れる)');
     const toMenu = async () => { await page.locator('[data-charpage="menu"]:visible').first().click(); };
 
     /* --- 入口は5つ --- */
