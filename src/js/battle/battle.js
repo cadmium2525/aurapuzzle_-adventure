@@ -40,6 +40,7 @@ import { createEncounter, attachEncounter, combatEnemy, encounterCleared, retarg
 import { bossTransition, bossDialogue } from './raid-presentation.js';
 import { renderPlayerBadges } from './player-badges.js';
 import { raidDropRate, rollRaidCharacter } from '../data/raids.js';
+import { raidDropResultHTML } from '../data/raid-rewards.js';
 
 let canvas;
 let board = null;
@@ -1051,7 +1052,7 @@ function finishRun() {
     ${firstOrb ? `<div class="rrow first-clear">🏅 初クリア報酬 ${itemIcon('orb')} <b>${firstOrb}</b></div>` : ''}
     <div class="rrow">⭐ <b>EXP ${exp}</b></div>
     <div class="rrow">🧬 <b>キャラEXP ${charExp}</b></div>
-    ${dropHTML}${stage.raid ? `<div class="rrow">${characterDropped?'🦊 キュウコ ★3 ×1 獲得！':'キュウコのドロップなし'}（確率${Math.round(dropRate*100)}%）</div>` : ''}`;
+    ${dropHTML}${stage.raid && stage.characterDrop?.id ? `<div class="rrow">${raidDropResultHTML(stage, characterDropped, dropRate)}</div>` : ''}`;
 
   // フレンド以外から借りていたら、ここで登録できるようにする
   const sup = run.party.support;

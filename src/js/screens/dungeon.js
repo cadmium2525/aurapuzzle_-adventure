@@ -28,6 +28,7 @@ import { startDungeonRun, resumeDungeonRun, pausedRun, discardPausedRun } from '
 import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
 import { RAID_STAGES } from '../data/raids.js';
+import { raidDropSummaryHTML } from '../data/raid-rewards.js';
 
 let dungeonHard = false;
 // 'story' = 章ごとの通常 / 'technical' = 全フロア特殊行動 / 'daily' = 曜日 / 'raid' = 降臨
@@ -553,7 +554,7 @@ function auraChips(stage) {
 
 /** そのステージで何が手に入るかの1行表示 */
 function dropLabel(stage) {
-  if(stage.raid)return '全10フロア ・ キュウコ★3 基本50%ドロップ';
+  if(stage.raid)return raidDropSummaryHTML(stage);
   if (stage.technical) {
     const mat = materialById(crystalIdFor(stage.dropAura));
     return `全フロア特殊行動 ・ ${itemIcon(mat.id)}${mat.name}`;
