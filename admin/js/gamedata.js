@@ -22,7 +22,8 @@ export {
 export { ENEMIES, enemyById } from '../../src/js/data/enemies.js';
 
 export {
-  ENEMY_MASTER, ENEMY_MASTER_IDS, enemyMasterById, enemyFormOf, formCountOf, spawnEnemy
+  ENEMY_MASTER, ENEMY_MASTER_IDS, enemyMasterById, enemyFormOf, formCountOf, spawnEnemy,
+  isBossEnemy
 } from '../../src/js/data/enemy-master.js';
 
 export { RAID_STAGES, KYUKO_RAID } from '../../src/js/data/raids.js';

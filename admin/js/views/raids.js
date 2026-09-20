@@ -11,6 +11,7 @@ import { mergeCatalog } from '../draft-catalog.js';
 let editing = null;
 const enemyIds = () => [...new Set([...G.ENEMY_MASTER_IDS, ...draft().enemies.map(e => e.id)])];
 const enemyMaster = id => find('enemies', id) || G.enemyMasterById(id);
+const isBossMaster = master => !!(master && (master.boss || master.forms));
 function enemyShape(id, form = 0) {
   const pending = find('enemies', id);
   return pending ? (pending.forms ? pending.forms[form] : pending) : G.enemyFormOf(id, form);
@@ -117,7 +118,8 @@ function slotRow(spec, fi, si) {
 
   const opts = enemyIds().map(id => {
     const s = enemyShape(id, 0);
-    return `<option value="${esc(id)}"${id === spec.id ? ' selected' : ''}>${esc(s.name)}</option>`;
+    const mark = isBossMaster(enemyMaster(id)) ? '【ボス】' : '';
+    return `<option value="${esc(id)}"${id === spec.id ? ' selected' : ''}>${mark}${esc(s.name)}</option>`;
   }).join('');
 
   const formSel = forms > 1
@@ -171,6 +173,7 @@ function renderEditor(view) {
 
   view.innerHTML = `
     ${card(r._new ? '降臨を新規作成' : `${r.name} を編集`, `
+      <p class="lead small">ボスを含むすべてのモンスターを明示配置できます。ボスは選択肢に「【ボス】」と表示され、通常ダンジョンの自動抽選には入りません。</p>
       <div class="grid2">
         ${field('ID', 'id', r.id, { type: 'number', hint: '2001〜。他とかぶらない番号' })}
         ${field('名前', 'name', r.name)}

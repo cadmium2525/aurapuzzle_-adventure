@@ -12,11 +12,12 @@ const BUILTIN = [
   { id: 'worm', name: 'ワーム', sprite: 'assets/enemy/worm.webp' }
 ];
 
-/* 管理者ツールで足したモンスターも、絵のあるものは同じ並びに載せる。
-   ボスのように forms だけを持つものは通常の抽選に混ぜたくないので、
-   sprite を持つものだけを ENEMIES に入れる。 */
+/* 管理者ツールで足した通常モンスターも、絵のあるものは同じ並びに載せる。
+   ENEMIES はノーマル・テクニカル・曜日ダンジョンの自動抽選に使われるため、
+   ボスは必ず除外する。forms は boss 属性導入前のデータを守る互換判定。 */
 const ADDED = (CUSTOM_ENEMIES || [])
-  .filter(e => e && e.id && e.sprite && !BUILTIN.some(b => b.id === e.id))
+  .filter(e => e && e.id && e.sprite && !e.boss && !e.forms
+    && !BUILTIN.some(b => b.id === e.id))
   .map(e => ({ id: e.id, name: e.name || e.id, sprite: e.sprite }));
 
 export const ENEMIES = BUILTIN.concat(ADDED);

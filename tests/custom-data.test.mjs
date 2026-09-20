@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ENEMY_MASTER, enemyMasterById, enemyFormOf, formCountOf, spawnEnemy
+  ENEMY_MASTER, enemyMasterById, enemyFormOf, formCountOf, spawnEnemy, isBossEnemy
 } from '../src/js/data/enemy-master.js';
 import { ENEMIES } from '../src/js/data/enemies.js';
 import { KYUKO_RAID, RAID_STAGES } from '../src/js/data/raids.js';
@@ -49,6 +49,27 @@ test('変身するボスは姿ごとに別のステータスと台詞を持つ',
   assert.equal(after.id, 'kyuko_evolved', 'バトル側が別IDで見分けている');
   // 範囲外の form を渡しても落ちない(管理者ツールの入力ミス対策)
   assert.equal(enemyFormOf('kyuko', 99).name, before.name);
+});
+
+test('ボスは通常系ダンジョンの自動抽選から除外され、明示配置はできる', () => {
+  const bosses = Object.keys(ENEMY_MASTER).filter(isBossEnemy);
+  assert.ok(bosses.includes('kyuko'));
+  assert.ok(bosses.includes('lilim_noctia'));
+  bosses.forEach(id => {
+    assert.ok(!ENEMIES.some(enemy => enemy.id === id), `${id} が通常抽選に混ざっている`);
+    assert.ok(spawnEnemy({ id }), `${id} を降臨・ボスラッシュへ明示配置できない`);
+  });
+  assert.equal(enemyFormOf('kyuko', 0).boss, true);
+  assert.equal(spawnEnemy({ id: 'kyuko' }).boss, true);
+});
+
+test('ノーマル・テクニカル・曜日の生成済みフロアにもボスがいない', async () => {
+  const { STAGES, TECHNICAL_STAGES, dailyStagesFor } = await import('../src/js/data/gamedata.js');
+  const groups = [STAGES, TECHNICAL_STAGES, ...Array.from({ length: 7 }, (_, day) => dailyStagesFor(day))];
+  groups.flat().forEach(stage => (stage.floors || []).forEach(floor => {
+    assert.equal(isBossEnemy(floor.enemyId), false,
+      `${stage.name} にボス ${floor.enemyId} が自動配置されている`);
+  }));
 });
 
 test('九狐降臨は10フロアで、ボスの2フロアが変身前後になっている', () => {

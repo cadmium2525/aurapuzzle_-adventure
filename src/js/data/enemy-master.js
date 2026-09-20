@@ -50,6 +50,7 @@ const BUILTIN = {
 
   /* --- 九狐。変身するボスなので forms を持つ --- */
   kyuko: {
+    boss: true,
     name: 'キュウコ', emoji: '🦊', sprite: 'assets/chars/kyuko_1.webp',
     forms: [
       {
@@ -105,6 +106,12 @@ export const ENEMY_MASTER_IDS = Object.keys(ENEMY_MASTER);
 
 export function enemyMasterById(id) { return ENEMY_MASTER[id] || null; }
 
+/** 通常抽選から隔離するボスか。forms は属性導入前データの互換判定。 */
+export function isBossEnemy(id) {
+  const master = ENEMY_MASTER[id];
+  return !!(master && (master.boss || master.forms));
+}
+
 /** そのモンスターの姿の数(変身しないなら1) */
 export function formCountOf(id) {
   const m = ENEMY_MASTER[id];
@@ -131,7 +138,8 @@ export function enemyFormOf(id, form = 0) {
     interval: shape.interval == null ? 2 : shape.interval,
     enemySkills: shape.enemySkills,
     intro: shape.intro,
-    dialogue: shape.dialogue
+    dialogue: shape.dialogue,
+    boss: isBossEnemy(id)
   };
 }
 
@@ -150,7 +158,8 @@ export function spawnEnemy(spec) {
     id: shape.id, name: shape.name, sprite: shape.sprite, emoji: shape.emoji,
     hp: Math.round(shape.hp * hpMult),
     atk: Math.round(shape.atk * atkMult),
-    interval: at.interval == null ? shape.interval : at.interval
+    interval: at.interval == null ? shape.interval : at.interval,
+    boss: shape.boss
   };
   // 行動パターンは共有すると戦闘中の書き換えが他所へ漏れるので複製する
   if (shape.enemySkills) out.enemySkills = structuredClone(shape.enemySkills);

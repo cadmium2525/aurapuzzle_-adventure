@@ -36,14 +36,15 @@ function thumbOf(enemy) {
 
 function cell(enemy) {
   const forms = enemy.forms ? enemy.forms.length : 1;
-  const tag = enemy._source === 'draft'
-    ? '<span class="tagline new">下書き</span>'
-    : (forms > 1 ? `<span class="tagline">変身${forms}</span>` : '');
+  const tags = [];
+  if (enemy._source === 'draft') tags.push('<span class="tagline new">下書き</span>');
+  if (enemy.boss || enemy.forms) tags.push('<span class="tagline">ボス</span>');
+  if (forms > 1) tags.push(`<span class="tagline">変身${forms}</span>`);
   const shape = enemy._source === 'draft'
     ? (enemy.forms ? enemy.forms[0] : enemy)
     : (G.enemyFormOf(enemy.id, 0) || enemy);
   return `<button class="icon-cell" data-open="${esc(enemy.id)}">
-    ${tag}${thumbOf(enemy)}
+    ${tags.join('')}${thumbOf(enemy)}
     <span class="cap">${esc(shape.name || enemy.name || enemy.id)}</span>
   </button>`;
 }
@@ -71,7 +72,7 @@ function loadForEdit(id) {
     return {
       id: '', name: '', sprite: '', emoji: '👹',
       hp: 3000, atk: 80, interval: 2,
-      effects: [], actions: [], random: false, forms: null, _new: true
+      effects: [], actions: [], random: false, forms: null, boss: false, _new: true
     };
   }
   const draftHit = find('enemies', id);
@@ -82,6 +83,8 @@ function loadForEdit(id) {
     return { ...master, ...G.enemyFormOf(id, 0) };
   })();
   const copy = structuredClone(src);
+  // boss 導入前の変身モンスターは、事故防止のためボスとして読み込む
+  copy.boss = copy.boss == null ? !!copy.forms : !!copy.boss;
   if (copy.forms) {
     copy.forms = copy.forms.map(f => unpack(f));
   } else {
@@ -127,7 +130,7 @@ function pack(shape) {
 
 /** 保存できる形にまとめる */
 function finalize(work) {
-  const base = { id: work.id, name: work.name, emoji: work.emoji || '👹' };
+  const base = { id: work.id, name: work.name, emoji: work.emoji || '👹', boss: !!work.boss };
   if (work.forms) {
     return { ...base, sprite: work.sprite || undefined, forms: work.forms.map(pack) };
   }
@@ -174,10 +177,17 @@ function renderEditor(view) {
         { hint: 'assets/enemy/xxx.webp', placeholder: 'assets/enemy/xxx.webp' })}
       <div id="spriteDrop"></div>
 
+      <h3 style="margin-top:14px">分類</h3>
+      <label class="field"><span>
+        <input type="checkbox" id="bossFlag"${w.boss ? ' checked' : ''} style="width:auto;margin-right:6px">
+        ボスとして扱う</span>
+        <small>ノーマル・テクニカル・曜日の自動抽選から除外します。降臨やボスラッシュには明示して配置できます。</small>
+      </label>
+
       <h3 style="margin-top:14px">変身</h3>
       <label class="field"><span>
         <input type="checkbox" id="isBoss"${isBoss ? ' checked' : ''} style="width:auto;margin-right:6px">
-        姿が変わるボスにする</span></label>
+        複数の姿（変身）を持つ</span></label>
       ${formTabs}
 
       <h3 style="margin-top:10px">${isBoss ? `${(w._form || 0) === 0 ? '変身前' : '変身後'}のステータス` : 'ステータス'}</h3>
@@ -246,6 +256,7 @@ function renderEditor(view) {
   $('isBoss').addEventListener('change', e => {
     collect(view);
     if (e.target.checked && !w.forms) {
+      w.boss = true;
       const first = { ...w, name: w.name };
       w.forms = [first, { ...structuredClone(first), name: `${w.name}(変身後)`, intro: 'evolution',
         hp: Math.round((first.hp || 3000) * 1.5), atk: Math.round((first.atk || 80) * 1.2) }];
@@ -375,6 +386,7 @@ function collect(view) {
   w.id = String(v.id || '').trim();
   w.name = String(v.name || '').trim();
   w.emoji = String(v.emoji || '👹').trim();
+  w.boss = !!$('bossFlag')?.checked;
 
   const target = w.forms ? w.forms[w._form || 0] : w;
   if (w.forms) {
