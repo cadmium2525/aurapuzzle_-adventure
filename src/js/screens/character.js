@@ -19,10 +19,10 @@ import {
 import { updateStatusBar, registerBackHandler } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, CHARACTERS, characterById, resolveCharacter, TEAM_SIZE,
-  BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE, RARITY_HEX,
+  BASE_PARTY_HP, BASE_DRAG_TIME, MATERIALS, materialById, RARITY_TITLE, RARITY_HEX, ROLE_LABEL,
   awakenStepsFor, awakenMaxFor, EXP_ITEMS, maxLevelFor, finalStarOf
 } from '../data/gamedata.js';
-import { charDetailHTML, portraitHTML, awakenPipsHTML, stars } from './parts.js';
+import { charDetailHTML, portraitHTML, awakenPipsHTML, stars, levelBarHTML } from './parts.js';
 
 /** いま開いているページ。'menu' | 'team' | 'enhance' | 'awaken' | 'dismiss' | 'catalog' */
 let page = 'menu';
@@ -583,6 +583,53 @@ function renderAwakenBox(id) {
     ? `開眼の証×${check.tokenCost}で開眼` : `開眼の証が足りません(${check.tokenCost}個)`;
 }
 
+/* ===================== 詳細モーダルの書き換え =====================
+ * レベルや開眼の段階が変わっただけで innerHTML を丸ごと入れ替えると、
+ * 立ち絵の <img> まで作り直されて読み込み直しが走り、画面がガタつく。
+ * 変わったところだけ書き換え、絵が差し替わるときだけ作り直す。
+ * ================================================================ */
+
+/** いま表示している立ち絵のパス(作り直しの要否を見るため) */
+function shownArtSrc() {
+  const img = $('charDetailBody').querySelector('.cd-art img');
+  return img ? img.getAttribute('src') : null;
+}
+
+/**
+ * 詳細モーダルを、いまの所持データに合わせて更新する。
+ * 立ち絵が変わる(進化・段階の切り替わり)ときだけ作り直す。
+ */
+function refreshDetail(id) {
+  const body = $('charDetailBody');
+  const ch = resolveOwned(id);
+  const artNow = (ch && ch.art && ch.art.full) || null;
+  const artShown = shownArtSrc();
+  // 絵そのものが変わるなら、素直に作り直して見せる
+  if (!ch || !body.querySelector('.cd-head') || artNow !== artShown) {
+    openDetail(id, detailMode, false);
+    return;
+  }
+  const lv = body.querySelector('.lvbar');
+  if (lv) lv.outerHTML = levelBarHTML(ch);
+  const stats = body.querySelector('.cd-stats');
+  if (stats) {
+    stats.innerHTML = `
+      <div><span>ATK</span><b>${ch.atk}</b></div>
+      <div><span>HP</span><b>${ch.hp}</b></div>
+      <div><span>RCV</span><b>${ch.rcv}</b></div>`;
+  }
+  const tags = body.querySelector('.cd-tags');
+  if (tags) {
+    const aura = AURAS[ch.aura];
+    tags.innerHTML = `<span class="chip aura">${aura.emoji} ${aura.name}オーラ</span>
+      <span class="chip">${ROLE_LABEL[ch.role] || ch.role}</span>
+      ${ch.evolved ? '<span class="chip evo">進化済</span>' : ''}
+      ${ch.awaken ? `<span class="chip awa">開眼 ${ch.awaken}</span>` : ''}`;
+  }
+  if (detailMode === 'enhance') { renderExpBox(id); renderEvolveBox(id); }
+  if (detailMode === 'awaken') renderAwakenBox(id);
+}
+
 /* ===================== 育成(経験値アイテム) ===================== */
 function renderExpBox(id) {
   const box = $('charExpBox');
@@ -621,8 +668,8 @@ function renderExpBox(id) {
       if (!res.ok) { toast(res.message); return; }
       toast(res.to > res.from ? `Lv${res.from} → Lv${res.to}` : `経験値+${res.exp}`);
       updateStatusBar();
-      openDetail(detailId, detailMode, false);
-      renderCharacterScreen();
+      // 一覧は閉じるときに作り直す(開いている間に触ると裏で絵が読み直される)
+      refreshDetail(id);
     });
   });
 }
@@ -633,8 +680,7 @@ function doAwaken(useToken) {
   if (!res.ok) { toast(res.message); return; }
   toast(`開眼 ${res.to} 段階目: ${res.step ? res.step.label : ''}`);
   updateStatusBar();
-  openDetail(detailId, detailMode, false);
-  renderCharacterScreen();
+  refreshDetail(detailId);
 }
 
 function doEvolve() {
