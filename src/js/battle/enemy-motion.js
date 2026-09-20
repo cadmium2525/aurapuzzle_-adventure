@@ -28,7 +28,7 @@ export function playEnemyMotion(events, board = []) {
      その回に出すもののうち いちばん長いものへ合わせる。
        時計  操作時間をいじられたことは盤面を見ても分からないので長めに置く
        モヤ  飛んでいく様子を目で追えるだけの時間が要る */
-  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250, recoveryReduce: 1400 };
+  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250, recoveryReduce: 1400, poison: 1450 };
   const duration = reduced ? 180 : Math.max(720, ...events.map(e => HOLD[e.type] || 0));
   const ring = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,Math.max(1,r),0,Math.PI*2); ctx.stroke(); };
   const text = (value,x,y,size=22) => { ctx.font = `bold ${size}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(value,x,y); };
@@ -49,6 +49,20 @@ export function playEnemyMotion(events, board = []) {
         ctx.lineWidth=3;
         const ex=enemy.x, ey=enemy.y;
         switch(e.type) {
+          case 'poison': {
+            ctx.fillStyle=ctx.strokeStyle='#a8ff68';
+            for(const u of units.filter(Boolean)){
+              const travel=Math.min(1,p*1.6), x=ex+(u.x-ex)*travel, y=ey+(u.y-ey)*travel;
+              for(let k=0;k<9;k++){
+                const a=k*Math.PI*2/9+p*5,r=7+(k%3)*6;
+                const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;
+                ctx.globalAlpha*=.65;ring(px,py,3+(k%2)*2);ctx.globalAlpha/=.65;
+              }
+              if(travel===1){ctx.strokeStyle='#c073ff';ring(u.x,u.y,25+p*8);text('毒',u.x,u.y,20);}
+            }
+            ctx.fillStyle='#b7ff75';text(`毒：最大HP ${e.percent}%`,field.x,field.y-field.h/2+30,22);
+            break;
+          }
           case 'recoveryReduce': {
             ctx.fillStyle=ctx.strokeStyle='#ed83c5';
             for(const u of units.filter(Boolean)){

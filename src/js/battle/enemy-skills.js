@@ -1,6 +1,7 @@
 // Enemy effects count completed player turns. Apply new enemy effects after ticking.
 export function createEnemyEffects(size) {
-  return { binds: Array(size).fill(0), auraBinds: {}, time: null, recovery: null, defenses: [], attackMult: 1, resolve: null };
+  return { binds: Array(size).fill(0), auraBinds: {}, time: null, recovery: null, poison: null,
+    defenses: [], attackMult: 1, resolve: null };
 }
 
 export function enterEnemy(effects, skills = {}) {
@@ -31,6 +32,11 @@ export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
       s.recovery = turns > 0 && percent > 0 ? { type: effect.type, percent, turns } : null;
       break;
     }
+    case 'poison': {
+      const percent = Math.min(100, Math.max(0, Number(effect.percent) || 0));
+      s.poison = turns > 0 && percent > 0 ? { type: effect.type, percent, turns } : null;
+      break;
+    }
     case 'comboGuard': case 'shapeGuard': case 'auraAbsorb':
       s.defenses = s.defenses.filter(d => d.type !== effect.type || d.aura !== effect.aura);
       s.defenses.push({ ...effect, turns }); break;
@@ -46,7 +52,14 @@ export function tickEnemyEffects(s) {
   for (const aura of Object.keys(s.auraBinds)) if (--s.auraBinds[aura] <= 0) delete s.auraBinds[aura];
   if (s.time && --s.time.turns <= 0) s.time = null;
   if (s.recovery && --s.recovery.turns <= 0) s.recovery = null;
+  if (s.poison && --s.poison.turns <= 0) s.poison = null;
   s.defenses = s.defenses.filter(d => --d.turns > 0);
+}
+
+/** 毒は軽減を受けず、プレイヤーの最大HPを基準に毎ターン発生する。 */
+export function poisonDamage(effects, maxHP) {
+  if (!effects?.poison || effects.poison.turns <= 0 || !(maxHP > 0)) return 0;
+  return Math.max(1, Math.round(maxHP * effects.poison.percent / 100));
 }
 
 export function effectiveTime(baseMs, bonusMs, maxMs, effects) {
@@ -115,6 +128,7 @@ export function effectLabels(s) {
     return `${d.label || d.shape || '指定形状'}消しが必要${duration(d.turns)}`;
   });
   if (s.recovery) labels.push(`回復力${s.recovery.percent}%減少${duration(s.recovery.turns)}`);
+  if (s.poison) labels.push(`毒：最大HPの${s.poison.percent}%ダメージ${duration(s.poison.turns)}`);
   for (const [a,n] of Object.entries(s.auraBinds)) labels.push(`${aura[a]}消去不可${duration(n)}`);
   if (s.time) labels.push(`操作時間${s.time.type === 'timeFixed' ? '' : '−'}${s.time.seconds}秒${s.time.type === 'timeFixed' ? '固定' : ''}${duration(s.time.turns)}`);
   if (s.attackMult > 1) labels.push('敵攻撃力2倍');

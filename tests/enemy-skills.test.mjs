@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, matchesShape, enemyAction } from '../src/js/battle/enemy-skills.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, matchesShape, enemyAction, poisonDamage, effectLabels } from '../src/js/battle/enemy-skills.js';
 
 const hit = (effects, options = {}) => damageEnemy({ hp: 100, maxHP: 100, effects, hits: [{ aura: 0, value: 150 }], ...options });
 test('bind selects distinct members, lasts full turns and persists across floors', () => {
@@ -52,6 +52,24 @@ test('time reduction allows bonus, fixed time ignores bonus and expiry restores 
   assert.equal(effectiveTime(10000, 5000, 20000, s), 4000);
   tickEnemyEffects(s);
   assert.equal(effectiveTime(10000, 5000, 20000, s), 15000);
+});
+test('poison deals max-HP damage for exactly the configured number of turns', () => {
+  const s = createEnemyEffects(4);
+  applyEnemyEffect(s, { type: 'poison', percent: 8, turns: 3 }, []);
+  assert.equal(poisonDamage(s, 1250), 100);
+  assert.match(effectLabels(s).join(''), /最大HPの8%/);
+  for (let turn = 0; turn < 3; turn++) {
+    assert.equal(poisonDamage(s, 1250), 100);
+    tickEnemyEffects(s);
+  }
+  assert.equal(poisonDamage(s, 1250), 0);
+  assert.equal(s.poison, null);
+});
+test('poison percentage is clamped and ignores ordinary damage reduction inputs', () => {
+  const s = createEnemyEffects(4);
+  applyEnemyEffect(s, { type: 'poison', percent: 999, turns: 1 }, []);
+  s.attackMult = 2;
+  assert.equal(poisonDamage(s, 777), 777);
 });
 test('absorption combines all aura damage before HP update and respects maximum HP', () => {
   const s = createEnemyEffects(4);

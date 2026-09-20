@@ -29,7 +29,7 @@ import {
 } from './board.js';
 import { buildParty } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, animateConversion, clearConversion, CELL } from './renderer.js';
-import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction } from './enemy-skills.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, poisonDamage } from './enemy-skills.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyShield } from './enemy-shield.js';
 import { renderEnemyBadges } from './enemy-badges.js';
@@ -216,7 +216,7 @@ function persistRun() {
     // 味方にかかっている妨害。enemyEffects のうち敵側の値は敵ごとに持っている
     playerEffects: {
       binds: run.enemyEffects.binds, auraBinds: run.enemyEffects.auraBinds, time: run.enemyEffects.time,
-      recovery: run.enemyEffects.recovery
+      recovery: run.enemyEffects.recovery, poison: run.enemyEffects.poison
     },
     stats: run.stats,
     board
@@ -276,6 +276,7 @@ export function resumeDungeonRun() {
   run.enemyEffects.auraBinds = pe.auraBinds || {};
   run.enemyEffects.time = pe.time ?? null;
   run.enemyEffects.recovery = pe.recovery ?? null;
+  run.enemyEffects.poison = pe.poison ?? null;
   for (let i = 0; i < party.members.length; i++) run.enemyEffects.binds[i] = pe.binds?.[i] || 0;
   attachEncounter(run);
   resetFoeCards();
@@ -807,7 +808,19 @@ async function resolveTurn() {
   run.chanceActive = false;
   run.chanceHint = null;
   updateChanceUI();
+  // 継続毒はプレイヤーの手番終了時に発生する。敵を倒した手番でも、
+  // すでに受けている毒からは逃れられない。
+  const poisonDmg = poisonDamage(run.enemyEffects, run.maxHP);
+  if (poisonDmg > 0) {
+    run.playerHP = Math.max(0, run.playerHP - poisonDmg);
+    showBanner(`<span class="dmg">毒 ${poisonDmg} ダメージ</span>`);
+    updateHPUI(false, true);
+    shake($('partyBox'));
+    await sleep(420);
+  }
   tickEncounter(run);
+
+  if (run.playerHP <= 0) { battleDefeat(); return; }
 
   if (encounterCleared(run)) { hideBanner(); await floorClear(); return; }
   await checkBuildUps();retarget(run);
@@ -902,7 +915,7 @@ async function executeEnemyAction(action, preemptive = false) {
       targets.forEach(i=>{run.skillDelayDebt[i]+=effect.turns;});
     }
     motions.push({ ...effect, targets });
-    labels.push(({ recoveryReduce: '回復力減少', bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
+    labels.push(({ recoveryReduce: '回復力減少', poison: '毒', bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
   }
   if (action.attack) {
     let dmg = Math.max(1, Math.round((run.enemyAtk + randInt(-2, 4)) * run.enemyEffects.attackMult));

@@ -51,6 +51,11 @@ export { homeBanners, BANNER_INTERVAL } from '../../src/js/data/banners.js';
  * ここにも書き足すこと(管理ツールの入力候補になる)。
  * ===========================================================*/
 export const ENEMY_EFFECTS = [
+  { type: 'poison', label: '毒',
+    desc: '指定ターンの間、味方の手番終了時に最大HP基準の固定ダメージを与える', args: [
+      { key: 'percent', label: '最大HPへのダメージ(%)', min: 1, max: 100, def: 8 },
+      { key: 'turns', label: '続くターン', min: 1, max: 99, def: 3 }
+    ] },
   { type: 'recoveryReduce', label: '回復力減少',
     desc: '味方全体の回復力を指定%減らす。最大HP割合の回復スキルには影響しない', args: [
       { key: 'percent', label: '減らす割合(%)', min: 1, max: 100, def: 50 },
@@ -120,7 +125,7 @@ export function describeEffect(effect) {
   if (effect.count != null) parts.push(`${effect.count}体`);
   if (effect.seconds != null) parts.push(`${effect.seconds}秒`);
   if (effect.threshold != null) parts.push(`${effect.threshold}%`);
-  if (effect.percent != null) parts.push(`${effect.percent}%減少`);
+  if (effect.percent != null) parts.push(effect.type === 'poison' ? `最大HPの${effect.percent}%` : `${effect.percent}%減少`);
   if (effect.turns != null) parts.push(`${effect.turns}ターン`);
   return parts.length ? `${label}(${parts.join(' / ')})` : label;
 }
