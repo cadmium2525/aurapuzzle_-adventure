@@ -22,6 +22,7 @@ export const CUSTOM_ENEMIES = [
     "id": "lilim_noctia",
     "name": "リリム=ノクティア",
     "emoji": "👹",
+    "boss": true,
     "sprite": "assets/chars/lilim_noctia_1.webp",
     "forms": [
       {
@@ -422,7 +423,7 @@ export const CUSTOM_LEADER_SKILLS = [
  * プレゼントボックスへ配るもの。key ごとに一度だけ届く。
  *   key       配布の目印。**配り直すときは新しい key にする**
  *   from / to 配布期間(YYYY-MM-DD。省略すると期間なし)
- *   coin / orb / frepo / stamina / char  中身
+ *   coin / orb / frepo / stamina / char / materials  中身
  */
 export const CUSTOM_GIFTS = [
   {
