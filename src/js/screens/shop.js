@@ -12,6 +12,8 @@ import {
   AURAS, SHOP_ITEMS, RARITY_TITLE, resolveCharacter, materialById, shopCrystalToday
 } from '../data/gamedata.js';
 import { portraitHTML } from './parts.js';
+import { eventShopItems, activeEvents, isAvailable } from '../data/availability.js';
+const balance = currency => currency === 'coin' ? state.coin : currency === 'orb' ? state.orb : (state.materials[currency] || 0);
 
 /**
  * その商品が今日の棚に並ぶか。
@@ -19,7 +21,7 @@ import { portraitHTML } from './parts.js';
  * 金曜(ゴールド)と日曜(経験値)には出さない。
  */
 function inStock(item) {
-  return item.type !== 'crystalToday' || !!shopCrystalToday();
+  return isAvailable(item) && (item.type !== 'crystalToday' || !!shopCrystalToday());
 }
 
 /** その商品が渡す素材のID(素材でなければ null) */
@@ -81,14 +83,19 @@ function grant(item) {
 export function renderShop() {
   const list = $('shopList');
   list.innerHTML = '';
-  SHOP_ITEMS.filter(inStock).forEach(item => {
+  activeEvents().forEach(e=>{
+    const info=document.createElement('p');
+    info.textContent=`${e.name} 交換所 ・ ${e.currency.name} 所持 ${balance(e.currency.id)}個`;
+    list.appendChild(info);
+  });
+  [...eventShopItems(),...SHOP_ITEMS].filter(inStock).forEach(item => {
     const { visual, name, plain, desc } = present(item);
     const currency = item.currency || 'coin';
     const left = shopRemaining(item);
     const soldOut = left <= 0;
     // 買い切りを取り切ったのか、今日ぶんが尽きただけなのかで言い方を変える
     const bought = shopRemainingTotal(item) <= 0;
-    const poor = (currency === 'orb' ? state.orb : state.coin) < item.price;
+    const poor = balance(currency) < item.price;
 
     const row = document.createElement('div');
     row.className = 'shop-row' + (soldOut ? ' sold-out' : '');
@@ -104,13 +111,16 @@ export function renderShop() {
                 : `${itemIcon(currency)}${item.price.toLocaleString()}`}</button>`;
 
     row.querySelector('button').addEventListener('click', () => {
+      if (!inStock(item)) { toast('交換期間が終了しました'); renderShop(); return; }
       // 押した時点で改めて見る。日付が変わっていれば日ぶんの上限は戻る
       if (shopRemainingTotal(item) <= 0) { toast('すでに購入済みです'); renderShop(); return; }
       if (shopRemainingToday(item) <= 0) { toast('本日分は売り切れです'); renderShop(); return; }
-      if (currency === 'orb' ? state.orb < item.price : state.coin < item.price) {
-        toast(currency === 'orb' ? 'オーブが足りません' : 'コインが足りません'); return;
+      if (balance(currency) < item.price) {
+        toast(`${materialById(currency)?.name || (currency === 'orb' ? 'オーブ' : 'コイン')}が足りません`); return;
       }
-      if (currency === 'orb') state.orb -= item.price; else state.coin -= item.price;
+      if (currency === 'orb') state.orb -= item.price;
+      else if (currency === 'coin') state.coin -= item.price;
+      else state.materials[currency] -= item.price;
       grant(item);
       saveState();
       recordShopPurchase(item);

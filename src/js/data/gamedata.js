@@ -10,6 +10,7 @@ import { ENEMIES } from './enemies.js';
 
 import { CHARACTERS, MAX_GACHA_RARITY, FEATURED_CHARACTER } from './characters.js';
 import { CUSTOM_SETTINGS } from './custom.js';
+import { eventMaterials, isAvailable } from './availability.js';
 
 /* --- 編成は自分3人 + サポート1人(フレンド or NPC)の計4人 --- */
 export const TEAM_SIZE = 3;
@@ -323,6 +324,7 @@ export const MATERIALS = [
   { id: 'mt_exp1',   name: '経験の雫',   emoji: '🔹', aura: null, color: '#8FD8FF' },
   { id: 'mt_exp2',   name: '経験の書',   emoji: '📗', aura: null, color: '#5BE08C' }
 ];
+MATERIALS.push(...eventMaterials());
 const MATERIAL_BY_ID = new Map(MATERIALS.map(m => [m.id, m]));
 export function materialById(id) { return MATERIAL_BY_ID.get(id) || null; }
 /** そのオーラの結晶ID */
@@ -450,7 +452,10 @@ export const SHOP_ITEMS = [
 
 /* ===================== ガチャ ===================== */
 /** ★5はガチャから出ない(進化専用)。giftOnly の配布キャラも対象外 */
-export const GACHA_POOL = CHARACTERS.filter(c => c.rarity <= MAX_GACHA_RARITY && !c.giftOnly);
+export function gachaPoolAt(now = Date.now()) {
+  return CHARACTERS.filter(c => c.rarity <= MAX_GACHA_RARITY && !c.giftOnly && isAvailable(c,now));
+}
+export const GACHA_POOL = gachaPoolAt();
 export const FREPO_POOL = GACHA_POOL.filter(c => c.rarity <= 3);
 
 export const FREPO_WEIGHTS = { 1: 58, 2: 30, 3: 12 };

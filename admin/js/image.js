@@ -82,6 +82,17 @@ export async function toIconWebp(file, size = ICON_SIZE, quality = 0.92, focusY 
   return toBlob(canvas, quality);
 }
 
+/** Face-focused crop for full-body art. Preview and adjust the crop in the character editor. */
+export async function toPortraitIcon(file, {x=.5,y=.22,zoom=2.5} = {}) {
+  const img=await loadImage(file);
+  const side=Math.min(img.width,img.height)/zoom;
+  const sx=Math.max(0,Math.min(img.width-side,img.width*x-side/2));
+  const sy=Math.max(0,Math.min(img.height-side,img.height*y-side/2));
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=ICON_SIZE;
+  canvas.getContext('2d').drawImage(img,sx,sy,side,side,0,0,ICON_SIZE,ICON_SIZE);
+  return toBlob(canvas,.92);
+}
+
 /** 横長のバナーに整える(はみ出しは中央で切る) */
 export async function toBannerWebp(file, width = BANNER_WIDTH, ratio = BANNER_RATIO, quality = 0.88) {
   const img = await loadImage(file);

@@ -2,6 +2,7 @@
  * ui.js — 汎用UIユーティリティ
  * =======================================================*/
 import { CHAR_ATLAS, CHAR_ATLAS_COLUMNS, CHAR_ATLAS_ROWS } from '../data/char-atlas.js';
+import { eventMaterials } from '../data/availability.js';
 
 export const $ = id => document.getElementById(id);
 
@@ -61,6 +62,10 @@ export function charIcon(src, emoji, cls) {
 
 /** 共有アイテムアトラス内のアイコン。id は game data 側の固定値を渡す。 */
 export function itemIcon(id, cls = '') {
+  const material = eventMaterials().find(m=>m.id===id);
+  if (material) return material.icon
+    ? `<img class="item-icon ${cls}" src="${material.icon}" alt="${material.name}" style="object-fit:contain;background:none">`
+    : `<span class="item-icon ${cls}" style="background:none">${material.emoji}</span>`;
   return `<span class="item-icon i-${id}${cls ? ` ${cls}` : ''}" aria-hidden="true"></span>`;
 }
 

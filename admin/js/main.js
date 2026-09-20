@@ -14,12 +14,13 @@ import skills from './views/skills.js';
 import gifts from './views/gifts.js';
 import tools from './views/tools.js';
 import release from './views/release.js';
+import events from './views/events.js';
 
-const SCREENS = { home, enemies, raids, characters, gacha, skills, gifts, tools, release };
+const SCREENS = { home, enemies, raids, characters, gacha, skills, gifts, tools, release, events };
 const TITLES = {
   home: '管理ツール', enemies: 'モンスター', raids: '降臨ダンジョン',
   characters: 'キャラクター', gacha: 'ガチャ', skills: 'スキル一覧',
-  gifts: 'プレゼント', tools: '点検', release: 'リリース'
+  gifts: 'プレゼント', tools: '点検', release: 'リリース', events:'期間限定イベント'
 };
 
 /** 画面の中の階層(一覧→詳細)から戻るための積み場所 */

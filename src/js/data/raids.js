@@ -62,7 +62,7 @@ function buildCustomRaid(raw) {
     stamina: 30, coinReward: 9000, orbReward: 0, expReward: 180, charExpReward: 600,
     auras: [0, 1, 2, 3, 4], dropAura: 4, shardRate: .35, crystalBase: 8,
     ...raw,
-    raid: true, dropType: 'raid', floors
+    raid: raw.category !== 'event', event: raw.category === 'event', dropType: raw.category === 'event' ? 'event' : 'raid', floors
   };
 }
 

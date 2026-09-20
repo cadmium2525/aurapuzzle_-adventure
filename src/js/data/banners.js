@@ -11,6 +11,7 @@
 import { RAID_STAGES } from './raids.js';
 import { PICKUP_CHARACTER } from './gamedata.js';
 import { CUSTOM_SETTINGS } from './custom.js';
+import { activeEvents, isAvailable } from './availability.js';
 
 /** 切り替えの間隔(ms) */
 export const BANNER_INTERVAL = 5200;
@@ -23,7 +24,7 @@ export function homeBanners() {
   const list = [];
 
   // 降臨は最後に足したものを「いま開催中」と見なす
-  const raid = RAID_STAGES[RAID_STAGES.length - 1];
+  const raid = RAID_STAGES.filter(s=>s.raid && isAvailable(s)).at(-1);
   if (raid && raid.banner) {
     list.push({
       key: `raid-${raid.id}`,
@@ -45,5 +46,6 @@ export function homeBanners() {
     });
   }
 
+  activeEvents().filter(e=>e.banner).forEach(e=>list.push({key:`event-${e.id}`,image:e.banner,alt:e.name,screen:'event',params:{}}));
   return list;
 }

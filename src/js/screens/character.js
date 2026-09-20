@@ -10,6 +10,7 @@
  * 詳細モーダルもページごとに必要な箱だけを出す(全部出すと迷うため)。
  * =======================================================*/
 import { $, toast, itemIcon, charIcon } from '../core/ui.js';
+import { isAvailable } from '../data/availability.js';
 import {
   state, saveState, ownedCharacters, resolveOwned, entryOf,
   evolveCheck, evolveCharacter, materialCount,
@@ -781,7 +782,7 @@ function closeDetail() {
 function renderCatalog() {
   const el = $('allCharacterList');
   el.innerHTML = '';
-  CHARACTERS.slice()
+  CHARACTERS.filter(c=>isAvailable(c) || entryOf(c.id))
     .sort((a, b) => a.aura - b.aura || a.rarity - b.rarity)
     .forEach(base => {
       const e = entryOf(base.id);

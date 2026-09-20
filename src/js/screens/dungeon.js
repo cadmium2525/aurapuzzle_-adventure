@@ -29,6 +29,7 @@ import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
 import { RAID_STAGES } from '../data/raids.js';
 import { raidDropSummaryHTML } from '../data/raid-rewards.js';
+import { isAvailable } from '../data/availability.js';
 
 let dungeonHard = false;
 // 'story' = 章ごとの通常 / 'technical' = 全フロア特殊行動 / 'daily' = 曜日 / 'raid' = 降臨
@@ -125,7 +126,8 @@ function closeSortie() {
 }
 
 /** ステージを選んだところから始める */
-function openSortie(stage, hard) {
+export function openSortie(stage, hard = false) {
+  if (!isAvailable(stage)) { toast('このダンジョンの開催期間外です'); return; }
   pendingStage = stage;
   pendingHard = hard;
   pendingSupport = null;
@@ -366,6 +368,7 @@ function lineupCard(ch, role, owner) {
 function startPendingRun() {
   const stage = pendingStage, hard = pendingHard, support = pendingSupport;
   if (!stage) return;
+  if (!isAvailable(stage)) { toast('開催期間が終了しました'); closeSortie(); return; }
   const members = charactersOfTeam(state.teamIndex);
   if (!members.length) { toast('先にキャラクターを編成してください'); goStep('team'); return; }
   const cost = staminaCost(stage, hard);
@@ -440,7 +443,7 @@ export function renderDungeon(options = {}) {
 
   if (dungeonMode === 'daily') { renderDailyList(); return; }
   if (dungeonMode === 'raid') {
-    const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES);return;
+    const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES.filter(s=>s.raid && isAvailable(s)));return;
   }
 
   const series = SERIES[dungeonMode];

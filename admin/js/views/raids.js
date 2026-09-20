@@ -7,6 +7,7 @@ import * as G from '../gamedata.js';
 import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
 import { toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 import { mergeCatalog } from '../draft-catalog.js';
+import { publicationFields, readPublication, validPublication } from '../publication.js';
 
 let editing = null;
 const enemyIds = () => [...new Set([...G.ENEMY_MASTER_IDS, ...draft().enemies.map(e => e.id)])];
@@ -200,6 +201,10 @@ function renderEditor(view) {
           { type: 'number', min: 0, max: 1, step: 0.05 })}
       </div>
 
+      ${field('掲載場所', 'category', r.category || 'raid', {type:'select',options:[['raid','降臨ダンジョン'],['event','イベント']]})}
+      ${publicationFields(r)}
+      ${field('交換素材ID（空で通常ドロップ）', 'currencyId', r.currencyDrop?.id || '')}
+      ${field('クリア時の確定ドロップ数', 'currencyAmount', r.currencyDrop?.amount || 0, {type:'number',min:0,max:9999})}
       <h3 style="margin-top:12px">ホームのバナー</h3>
       <p class="lead small">ホームに出す宣伝バナーです。
         <b>降臨のバナーは常に1枚</b>で、新しい降臨を足すと今までのものと入れ替わります
@@ -293,10 +298,13 @@ function renderEditor(view) {
   $('saveBtn').addEventListener('click', () => {
     collect(view);
     if (!r.name) { toast('名前を入れてください', 'ng'); return; }
+    if (!validPublication(r)) { toast('公開期間を確認してください', 'ng'); return; }
     const empty = r.floors.findIndex(f => !f.enemies.length);
     if (empty >= 0) { toast(`${empty + 1}フロアにモンスターがいません`, 'ng'); return; }
     const out = {
       id: Number(r.id), name: r.name, bgm: r.bgm, stamina: r.stamina,
+      category:r.category, eventId:r.eventId, enabled:r.enabled,
+      availableFrom:r.availableFrom, availableUntil:r.availableUntil, currencyDrop:r.currencyDrop,
       ...(r.banner ? { banner: r.banner } : {}),
       coinReward: r.coinReward, orbReward: 0, expReward: r.expReward,
       charExpReward: r.charExpReward, auras: [0, 1, 2, 3, 4],
@@ -327,6 +335,9 @@ function collect(view) {
   const r = editing;
   const head = view.querySelector('.card');
   const v = readForm(head);
+  Object.assign(r, readPublication(v));
+  r.category = v.category || 'raid';
+  r.currencyDrop = v.currencyId ? {id:String(v.currencyId).trim(),amount:clampInt(v.currencyAmount,1,9999,1)} : null;
   r.id = clampInt(v.id, 1, 999999, r.id);
   r.name = String(v.name || '').trim();
   r.bgm = String(v.bgm || '').trim();

@@ -19,6 +19,7 @@ import {
   resolveCharacter
 } from '../data/gamedata.js';
 import { stars, portraitHTML } from './parts.js';
+import { gachaPoolAt } from '../data/gamedata.js';
 
 /* ===================== 抽選 ===================== */
 function pickRarity(weights) {
@@ -189,7 +190,8 @@ function renderSummary(results) {
 async function doPull(kind, count) {
   if (animating) return;
   const useOrb = kind === 'orb';
-  const pool = useOrb ? GACHA_POOL : FREPO_POOL;
+  const pool = gachaPoolAt().filter(c => useOrb || c.rarity <= 3);
+  if (!pool.length) { toast('開催中のガチャがありません'); return; }
   const weights = useOrb ? ORB_WEIGHTS : FREPO_WEIGHTS;
   const guarantee = useOrb ? ORB_GUARANTEE_WEIGHTS : FREPO_GUARANTEE_WEIGHTS;
   const cost = count > 1
@@ -236,6 +238,7 @@ async function doPull(kind, count) {
 
 /* ===================== 画面 ===================== */
 export function renderGacha() {
+  const seasonal = gachaPoolAt().filter(c => c.eventId);
   // ピックアップ表示。開催していないときは枠ごと隠す
   // (空の枠が残ると、開催中に見えるうえに場所も食う)
   const box = $('pickupBox');
@@ -282,6 +285,7 @@ export function renderGacha() {
     ).join('');
     return `<div class="rate-row"><div class="rate-label">${r.label}</div><div class="rate-items">${items}</div></div>`;
   }).join('')
+    + (seasonal.length ? `<div class="rate-note">期間限定衣装：${seasonal.map(c=>c.name).join(' / ')}<br>イベント期間中のみオーブガチャから登場。</div>` : '')
     + `<div class="rate-note">★5(UR)はガチャからは出ません。★4まで育てて「進化」で到達します。<br>
        ${MULTI_PULL}連は1回ぶんお得＆★3以上が1体確定です。</div>`;
 }

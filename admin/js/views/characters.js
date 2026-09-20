@@ -11,6 +11,8 @@ import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
 import { allSkills, describe } from './skill-edit.js';
 import { toWebp, toIconWebp, toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 import { acquisitionOf, acquisitionFlags } from '../character-acquisition.js';
+import { publicationFields, readPublication, validPublication } from '../publication.js';
+import { toPortraitIcon } from '../image.js';
 
 /** ホームでの寄せ具合。小数を保つので clampInt は使えない(1.15 が 1 に丸まる) */
 function clampScale(value, fallback) {
@@ -147,10 +149,10 @@ function openDetail(view, id) {
     </dl>
     ${c.flavor ? `<p class="small" style="color:var(--ink-dim)">${esc(c.flavor)}</p>` : ''}
   `, {
-    okLabel: inDraft ? 'この下書きを編集' : null,
+    okLabel: '編集する',
     cancelLabel: '閉じる'
   }).then(ok => {
-    if (ok && inDraft) { editing = { ...toEditing(find('characters', id)), _new: false }; renderEditor(view); }
+    if (ok) { editing = { ...toEditing(find('characters', id) || c), _new: false }; renderEditor(view); }
   });
 }
 
@@ -202,6 +204,7 @@ function renderEditor(view) {
         type: 'select', options: [['gacha', 'ガチャ'], ['gift', '配布限定（ガチャ対象外）'], ['raid', '降臨ドロップ限定（ガチャ対象外・開眼10段階）']] })}
       <p class="lead small">降臨ドロップ限定は開眼でドロップ率が上がります。ドロップ先と基本確率は降臨タブで設定してください。</p>
 
+      ${publicationFields(c)}
       <h3 style="margin-top:12px">ステータス (Lv1)</h3>
       <p class="lead small">ロールとレアリティから自動で出します。標準値は
         ATK ${exact.atk} / HP ${exact.hp} / 回復 ${exact.rcv}。</p>
@@ -237,6 +240,8 @@ function renderEditor(view) {
       ` : '<p class="lead small">オフなら、進化しても同じ名前・同じ絵のままです。</p>'}
 
       <h3 style="margin-top:12px">画像</h3>
+      <label class="field"><span><input type="checkbox" id="autoPortrait" ${c.autoPortrait ? 'checked' : ''}>立ち絵から顔アイコンも作成</span></label>
+      <div class="grid3">${field('顔の中心X (0〜1)','portraitX',c.portraitX ?? .5,{type:'number',min:0,max:1,step:.01})}${field('顔の中心Y (0〜1)','portraitY',c.portraitY ?? .22,{type:'number',min:0,max:1,step:.01})}${field('顔の拡大率','portraitZoom',c.portraitZoom ?? 2.5,{type:'number',min:1,max:8,step:.1})}</div>
       <p class="lead small">選ぶとツール内で webp にします。
         1枚絵は長辺1024px、アイコンは128px角、バナーは1080×400。</p>
       <div class="grid2">
@@ -306,6 +311,7 @@ function renderEditor(view) {
         else if (kind.startsWith('icon')) blob = await toIconWebp(file);
         else blob = await toWebp(file);
         putBlob(paths[kind], blob);
+        if (c.autoPortrait && kind.startsWith('full')) putBlob(paths[kind.replace('full','icon')], await toPortraitIcon(file,{x:c.portraitX,y:c.portraitY,zoom:c.portraitZoom}));
         toast(`webp にしました (${humanSize(blob.size)})`, 'ok');
         renderEditor(view);
       } catch (err) { toast(String(err.message || err), 'ng'); }
@@ -316,6 +322,7 @@ function renderEditor(view) {
     collect(view);
     if (!/^[a-z0-9_]+$/i.test(c.id)) { toast('IDは英数字とアンダースコアだけにしてください', 'ng'); return; }
     if (!c.name) { toast('名前を入れてください', 'ng'); return; }
+    if (!validPublication(c)) { toast('公開期間を確認してください', 'ng'); return; }
     if (G.CHARACTERS.some(x => x.id === c.id) && c._new) {
       toast('そのIDは既にあります', 'ng'); return;
     }
@@ -345,7 +352,7 @@ function toEditing(saved) {
   return {
     ...saved,
     acquisition: acquisitionOf(saved),
-    artName: saved._artName || '',
+    artName: saved._artName || saved.artStages?.[0]?.full?.split('/').pop()?.replace(/_1\.webp$/, '') || '',
     evolve: (saved.artStages || []).length > 1,
     artScale1: (saved.artStages || [])[0]?.scale || 1,
     artScale2: (saved.artStages || [])[1]?.scale || 1
@@ -360,7 +367,8 @@ function build(c) {
     aura: c.aura, rarity: c.rarity, role: c.role,
     leaderSkillId: c.leaderSkillId, skillId: c.skillId,
     atk: c.atk, hp: c.hp, rcv: c.rcv,
-    ...acquisitionFlags(c.acquisition || acquisitionOf(c))
+    ...acquisitionFlags(c.acquisition || acquisitionOf(c)),
+    enabled:c.enabled, eventId:c.eventId, availableFrom:c.availableFrom, availableUntil:c.availableUntil
   };
   if (c.flavor) out.flavor = c.flavor;
   out.artStages = c.evolve
@@ -385,6 +393,11 @@ function build(c) {
 function collect(view) {
   const c = editing;
   const v = readForm(view.querySelector('.card'));
+  c.autoPortrait=!!view.querySelector('#autoPortrait')?.checked;
+  c.portraitX=Math.max(0,Math.min(1,Number(v.portraitX ?? .5)));
+  c.portraitY=Math.max(0,Math.min(1,Number(v.portraitY ?? .22)));
+  c.portraitZoom=Math.max(1,Math.min(8,Number(v.portraitZoom || 2.5)));
+  Object.assign(c, readPublication(v));
   c.id = String(v.id || '').trim();
   c.artName = String(v.artName || '').trim();
   c.name = String(v.name || '').trim();

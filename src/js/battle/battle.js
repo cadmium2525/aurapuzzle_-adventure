@@ -978,6 +978,9 @@ async function floorClear() {
  * @returns {object} {materialId: 個数}
  */
 function rollDrops(stage, hard) {
+  if (stage.currencyDrop && materialById(stage.currencyDrop.id)) {
+    return { [stage.currencyDrop.id]: Math.max(0, Math.floor(stage.currencyDrop.amount || 0)) };
+  }
   const drops = {};
   const add = (id, n) => { if (n > 0) drops[id] = (drops[id] || 0) + n; };
   const mult = hard ? 2 : 1;

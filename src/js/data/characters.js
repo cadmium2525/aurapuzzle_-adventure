@@ -255,7 +255,9 @@ CHARACTERS.push(mk('dk_kyuko','キュウコ','化け狐','🦊',4,3,'attacker','
    ステータスは省略できる。省いたぶんは既存キャラと同じく
    レアリティ×ロールの基準値から組み立てる(mk の既定値がそのまま効く)。 */
 (CUSTOM_CHARACTERS || []).forEach(c => {
-  if (!c || !c.id || CHARACTERS.some(x => x.id === c.id)) return;
+  if (!c || !c.id) return;
+  const existing = CHARACTERS.findIndex(x => x.id === c.id);
+  if (existing >= 0) { CHARACTERS[existing] = {...CHARACTERS[existing],...c}; return; }
   const { id, name, job, portrait, aura, rarity, role, leaderSkillId, skillId, ...extra } = c;
   CHARACTERS.push(mk(
     id, name, job, portrait || '🙂', aura, rarity, role || 'balance',
