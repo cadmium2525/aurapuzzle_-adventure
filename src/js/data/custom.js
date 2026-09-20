@@ -22,7 +22,6 @@ export const CUSTOM_ENEMIES = [
     "id": "lilim_noctia",
     "name": "リリム=ノクティア",
     "emoji": "👹",
-    "boss": true,
     "sprite": "assets/chars/lilim_noctia_1.webp",
     "forms": [
       {
@@ -101,6 +100,76 @@ export const CUSTOM_ENEMIES = [
         }
       }
     ]
+  },
+  {
+    "id": "valgas",
+    "name": "炎爪竜ヴァルガス",
+    "emoji": "🐉",
+    "boss": false,
+    "sprite": "assets/enemy/valgas.webp",
+    "hp": 5600,
+    "atk": 115,
+    "interval": 2
+  },
+  {
+    "id": "nereia",
+    "name": "蒼潮姫ネレイア",
+    "emoji": "🧜‍♀️",
+    "boss": false,
+    "sprite": "assets/enemy/nereia.webp",
+    "hp": 4400,
+    "atk": 90,
+    "interval": 2
+  },
+  {
+    "id": "magdoll",
+    "name": "灼岩巨兵マグドール",
+    "emoji": "🌋",
+    "boss": false,
+    "sprite": "assets/enemy/magdoll.webp",
+    "hp": 6500,
+    "atk": 125,
+    "interval": 3
+  },
+  {
+    "id": "mycol",
+    "name": "幻毒菌獣マイコル",
+    "emoji": "🍄",
+    "boss": false,
+    "sprite": "assets/enemy/mycol.webp",
+    "hp": 5200,
+    "atk": 80,
+    "interval": 2,
+    "enemySkills": {
+      "actions": [
+        {},
+        {
+          "attack": true
+        }
+      ],
+      "random": false
+    }
+  },
+  {
+    "id": "vespar",
+    "name": "金翅毒蜂ヴェスパ",
+    "emoji": "🐝",
+    "boss": false,
+    "sprite": "assets/enemy/vespar.webp",
+    "hp": 4300,
+    "atk": 95,
+    "interval": 1,
+    "enemySkills": {
+      "actions": [
+        {
+          "attack": true
+        },
+        {
+          "attack": true
+        }
+      ],
+      "random": false
+    }
   }
 ];
 
