@@ -1,10 +1,15 @@
 const pause = ms => new Promise(resolve=>setTimeout(resolve,ms));
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export async function bossTransition(kind) {
+export function bossWarningText(floor) {
+  const names = [...new Set((floor?.enemies || []).map(enemy => enemy.name).filter(Boolean))];
+  return names.length ? `強大な気配が迫る…… ${names.join('・')}、出現！` : '強大な気配が迫る……';
+}
+
+export async function bossTransition(kind, floor) {
   const layer=document.createElement('div');layer.className=`boss-transition ${kind}`;
   layer.setAttribute('role','status');
-  layer.textContent=kind==='warning'?'強大な妖気が迫る…… 九狐、出現！':'';
+  layer.textContent=kind==='warning'?bossWarningText(floor):'';
   document.body.appendChild(layer);
   await pause(1000);
   return async()=>{layer.classList.add('leaving');await pause(650);layer.remove();};
@@ -33,7 +38,7 @@ function buildFace(sprite) {
 
 /**
  * 敵のセリフ。画面全体を覆わず、盤面の手前に出るセリフ帯だけのモーダルにする。
- * キュウコと戦況を見せたままセリフを読ませたいので、背景は軽く落とすだけ。
+ * 敵と戦況を見せたままセリフを読ませたいので、背景は軽く落とすだけ。
  *
  * 文字は1文字ずつ出るが、未表示ぶんも `visibility:hidden` で場所を取らせているので
  * 行数は最初から確定していて箱がガタつかない。全文は最初からDOMにあるため、

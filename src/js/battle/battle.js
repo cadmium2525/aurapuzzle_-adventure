@@ -381,7 +381,7 @@ async function loadFloor() {
   bstate = 'resolving';
   clearConversion();
   const floor = run.stage.floors[run.floorIndex];
-  const reveal = floor.intro ? await bossTransition(floor.intro) : null;
+  const reveal = floor.intro ? await bossTransition(floor.intro, floor) : null;
   run.enemies = createEncounter(floor, run.hard ? HARD_HP_MULT : 1);
   resetFoeCards();
   run.targetIndex = 0; run.actingEnemy = null;
