@@ -7,7 +7,7 @@
  *   3. 配布(コードの BUILTIN_GIFTS と、管理ツールが書き出す CUSTOM_GIFTS)
  *   4. 運営からのプレゼント(Firestore の gifts コレクション)
  *
- * 中身はゴールド/フレポ/オーブ/スタミナに加えて、キャラクターも配れる。
+ * 中身はゴールド/フレポ/オーブ/スタミナに加えて、キャラクターと育成素材も配れる。
  * 受け取るとそのまま所持キャラへ加わるので、すぐに編成して使える。
  *
  * 「配る」と「受け取る」を分けているのが要点で、起動時に所持数を直接
@@ -18,13 +18,14 @@
  * 全員が読めるコレクションを置き、受け取り済みかどうかは端末側の
  * giftLog(クラウドのセーブにも乗る)で管理している。
  * =======================================================*/
-import { state, saveState, addCharacter } from './state.js';
+import { state, saveState, addCharacter, addMaterials } from './state.js';
 import { FB, firebaseEnabled } from './firebase.js';
 import { itemIcon } from './ui.js';
 import { loginBonusFor, BUILTIN_GIFTS, characterById } from '../data/gamedata.js';
 /* 管理ツールが書き出すぶん。名前空間で読むのは、まだ CUSTOM_GIFTS を
    持たない custom.js(ツールが古い)でも起動を止めないため */
 import * as CUSTOM from '../data/custom.js';
+import { giftMaterials, materialRewardText, addGiftMaterialTotals } from './gift-materials.js';
 
 /** 運営プレゼントの取得件数の上限(無料枠の読み取り数を抑える) */
 const NOTICE_LIMIT = 20;
@@ -54,7 +55,7 @@ export function giftCount() { return giftList().length; }
 
 /**
  * プレゼントを1つ入れる。
- * @param {{title:string, note?:string, coin?:number, orb?:number, frepo?:number, stamina?:number, char?:string, key?:string}} gift
+ * @param {{title:string, note?:string, coin?:number, orb?:number, frepo?:number, stamina?:number, char?:string, materials?:object, key?:string}} gift
  *        key を渡すと、同じ key のものが既に入っているときは重ねない。
  */
 export function addGift(gift) {
@@ -72,6 +73,8 @@ function applyGift(g) {
   if (g.orb) state.orb += g.orb;
   if (g.frepo) state.frepo += g.frepo;
   if (g.stamina) state.stamina += g.stamina;   // 上限超過はそのまま保持される
+  const materials = giftMaterials(g);
+  if (Object.keys(materials).length) addMaterials(materials);
   // キャラクターはそのまま所持に加わるので、受け取ればすぐ編成できる
   if (g.char) addCharacter(g.char);
 }
@@ -87,6 +90,8 @@ export function giftRewardText(g) {
   if (g.frepo) parts.push(`🎗️${g.frepo}`);
   if (g.orb) parts.push(`💎${g.orb}`);
   if (g.stamina) parts.push(`⚡${g.stamina}`);
+  const materials = materialRewardText(g);
+  if (materials) parts.push(materials);
   return parts.join(' ');
 }
 
@@ -101,6 +106,9 @@ export function giftRewardHTML(g) {
   if (g.frepo) parts.push(`${itemIcon('frepo')}${g.frepo}`);
   if (g.orb) parts.push(`${itemIcon('orb')}${g.orb}`);
   if (g.stamina) parts.push(`${itemIcon('stamina')}${g.stamina}`);
+  for (const [id, amount] of Object.entries(giftMaterials(g))) {
+    parts.push(`${itemIcon(id, 'material')}${amount}`);
+  }
   return parts.join(' ');
 }
 
@@ -119,11 +127,12 @@ export function claimGift(id) {
 export function claimAllGifts() {
   const list = giftList();
   if (!list.length) return null;
-  const total = { count: list.length, coin: 0, orb: 0, frepo: 0, stamina: 0, chars: [] };
+  const total = { count: list.length, coin: 0, orb: 0, frepo: 0, stamina: 0, chars: [], materials: {} };
   list.forEach(g => {
     applyGift(g);
     ['coin', 'orb', 'frepo', 'stamina'].forEach(k => { total[k] += g[k] || 0; });
     if (g.char) total.chars.push(g.char);
+    addGiftMaterialTotals(total, g);
   });
   state.gifts = [];
   saveState();
@@ -179,7 +188,8 @@ export function checkBuiltinGifts() {
       title: g.title, note: g.note || '',
       char: g.char || null,
       coin: g.coin || 0, orb: g.orb || 0,
-      frepo: g.frepo || 0, stamina: g.stamina || 0
+      frepo: g.frepo || 0, stamina: g.stamina || 0,
+      materials: giftMaterials(g)
     });
     added++;
   });
@@ -191,7 +201,7 @@ export function checkBuiltinGifts() {
 /**
  * Firestore の gifts コレクションを読み、まだ受け取っていないものを箱へ入れる。
  * ドキュメントは管理者が Firebase コンソールから直接作る想定で、形式は
- *   { title, note, coin, orb, frepo, stamina, from, to }  (from/to は YYYY-MM-DD)
+ *   { title, note, coin, orb, frepo, stamina, materials, from, to }  (from/to は YYYY-MM-DD)
  * 期限切れ(to が過去)のものは配らない。
  * @returns {Promise<number>} 新しく入れた件数
  */
@@ -213,7 +223,8 @@ export async function fetchOperatorGifts() {
         note: v.note || '',
         char: v.char || null,           // キャラクターIDを書けば配布できる
         coin: v.coin || 0, orb: v.orb || 0,
-        frepo: v.frepo || 0, stamina: v.stamina || 0
+        frepo: v.frepo || 0, stamina: v.stamina || 0,
+        materials: giftMaterials(v)
       });
       added++;
     });

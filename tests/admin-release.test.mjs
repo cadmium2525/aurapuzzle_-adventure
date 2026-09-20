@@ -29,7 +29,8 @@ const SAMPLE = {
   }],
   gifts: [{
     key: 'gift_test', title: '記念<プレゼント>', note: 'ありがとう"ございます"',
-    from: '2026-01-01', to: '2026-12-31', orb: 45, char: 'fl_testnova'
+    from: '2026-01-01', to: '2026-12-31', orb: 45, char: 'fl_testnova',
+    materials: { mt_star: 5, mt_exp2: 3 }
   }]
 };
 
@@ -84,6 +85,7 @@ test('プレゼントは key・期間・中身をそのまま運ぶ', async () =
   assert.equal(g.to, '2026-12-31');
   assert.equal(g.orb, 45);
   assert.equal(g.char, 'fl_testnova');
+  assert.deepEqual(g.materials, { mt_star: 5, mt_exp2: 3 });
 });
 
 test('下書きが空でも、いま入っているものは消えない', async () => {

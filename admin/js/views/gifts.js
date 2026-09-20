@@ -48,6 +48,10 @@ function rewardText(g) {
     parts.push(ch ? `${ch.portrait || '🙂'}${ch.name}` : g.char);
   }
   REWARDS.forEach(r => { if (g[r.key]) parts.push(`${r.icon}${g[r.key]}`); });
+  G.MATERIALS.forEach(m => {
+    const amount = Math.max(0, Math.floor(Number(g.materials?.[m.id]) || 0));
+    if (amount) parts.push(`${m.emoji}${m.name}×${amount}`);
+  });
   return parts.join(' ') || '(空)';
 }
 
@@ -111,11 +115,16 @@ function renderEditor(view) {
         ${field('開始', 'from', g.from, { type: 'date' })}
         ${field('終了', 'to', g.to, { type: 'date' })}
       </div>
-
       <h3 style="margin-top:12px">中身</h3>
       <div class="grid2">
         ${REWARDS.map(r => field(`${r.icon} ${r.label}`, r.key, g[r.key] || 0,
           { type: 'number', min: 0, max: r.max })).join('')}
+      </div>
+      <h3 style="margin-top:12px">進化・強化素材</h3>
+      <p class="lead small">複数種類を同時に配布できます。0個の素材はプレゼントに含まれません。</p>
+      <div class="grid2">
+        ${G.MATERIALS.map(m => field(`${m.emoji} ${m.name}`, `material_${m.id}`,
+          g.materials?.[m.id] || 0, { type: 'number', min: 0, max: 99999 })).join('')}
       </div>
       ${field('キャラクター', 'char', g.char, {
         type: 'select', hint: '受け取るとそのまま所持に加わる',
@@ -142,9 +151,15 @@ function renderEditor(view) {
     if (v.from) out.from = v.from;
     if (v.to) out.to = v.to;
     REWARDS.forEach(r => { const n = Number(v[r.key]) || 0; if (n > 0) out[r.key] = n; });
+    const materials = {};
+    G.MATERIALS.forEach(m => {
+      const amount = Math.max(0, Math.floor(Number(v[`material_${m.id}`]) || 0));
+      if (amount) materials[m.id] = amount;
+    });
+    if (Object.keys(materials).length) out.materials = materials;
     if (v.char) out.char = v.char;
 
-    if (!out.char && !REWARDS.some(r => out[r.key])) { toast('中身が空です', 'ng'); return; }
+    if (!out.char && !out.materials && !REWARDS.some(r => out[r.key])) { toast('中身が空です', 'ng'); return; }
     upsert('gifts', out);
     toast('下書きに保存しました', 'ok');
     editing = null;

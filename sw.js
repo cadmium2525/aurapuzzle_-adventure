@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v68';
+const CACHE_NAME = 'aura-connect-v69';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -29,6 +29,7 @@ const ASSETS = [
   './src/js/core/firebase.js',
   './src/js/core/friends.js',
   './src/js/core/gifts.js',
+  './src/js/core/gift-materials.js',
   './src/js/data/gamedata.js',
   './src/js/data/enemies.js',
   './src/js/data/enemy-master.js',

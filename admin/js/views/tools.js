@@ -129,6 +129,13 @@ function checkAll() {
     warn('ng', 'ガチャ', `ピックアップの割合 ${st.pickupRate} が 0〜1 に収まっていません`);
   }
 
+  /* --- プレゼント素材 --- */
+  const materialIds = new Set(G.MATERIALS.map(m => m.id));
+  (d.gifts || []).forEach(g => Object.entries(g.materials || {}).forEach(([id, amount]) => {
+    if (!materialIds.has(id)) warn('ng', `プレゼント ${g.key}`, `${id} という素材がありません`);
+    if (!(Number.isInteger(amount) && amount > 0)) warn('ng', `プレゼント ${g.key}`, `${id} の個数が正の整数ではありません`);
+  }));
+
   /* --- どこからも使われていない画像 --- */
   const referenced = new Set();
   d.characters.forEach(c => (c.artStages || []).forEach(s => {

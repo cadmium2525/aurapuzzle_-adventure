@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acb-admin-v9';
+const CACHE_NAME = 'acb-admin-v10';
 
 /* 管理ツールの本体。オフラインでも一覧の確認くらいはできるようにする
    (push は当然ネットが要る)。 */
