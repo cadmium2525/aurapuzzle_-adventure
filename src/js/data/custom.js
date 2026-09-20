@@ -142,7 +142,15 @@ export const CUSTOM_ENEMIES = [
     "interval": 2,
     "enemySkills": {
       "actions": [
-        {},
+        {
+          "effects": [
+            {
+              "type": "poison",
+              "percent": 8,
+              "turns": 3
+            }
+          ]
+        },
         {
           "attack": true
         }
@@ -162,7 +170,14 @@ export const CUSTOM_ENEMIES = [
     "enemySkills": {
       "actions": [
         {
-          "attack": true
+          "attack": true,
+          "effects": [
+            {
+              "type": "poison",
+              "percent": 5,
+              "turns": 2
+            }
+          ]
         },
         {
           "attack": true
