@@ -347,6 +347,247 @@ export const CUSTOM_RAIDS = [
       "id": "dk_lilim_noctia",
       "rate": 0.5
     }
+  },
+  {
+    "id": 3101,
+    "name": "ハロウィンパーティ 初級",
+    "bgm": "battle",
+    "stamina": 8,
+    "category": "event",
+    "eventId": "halloween_2026",
+    "enabled": true,
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "currencyDrop": {
+      "id": "mt_halloween_candy",
+      "amount": 10
+    },
+    "coinReward": 600,
+    "orbReward": 0,
+    "expReward": 25,
+    "charExpReward": 80,
+    "auras": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "dropAura": 4,
+    "shardRate": 0,
+    "crystalBase": 0,
+    "floors": [
+      {
+        "enemies": [
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": {
+              "hp": 0.12,
+              "atk": 0.35
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": {
+              "hp": 0.15,
+              "atk": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "valgas",
+            "form": 0,
+            "mult": {
+              "hp": 0.2,
+              "atk": 0.45
+            }
+          }
+        ],
+        "dialogue": "お菓子の門番を越えて、パーティ会場へ！"
+      }
+    ]
+  },
+  {
+    "id": 3102,
+    "name": "ハロウィンパーティ 中級",
+    "bgm": "battle",
+    "stamina": 15,
+    "category": "event",
+    "eventId": "halloween_2026",
+    "enabled": true,
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "currencyDrop": {
+      "id": "mt_halloween_candy",
+      "amount": 25
+    },
+    "coinReward": 1500,
+    "orbReward": 0,
+    "expReward": 50,
+    "charExpReward": 180,
+    "auras": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "dropAura": 4,
+    "shardRate": 0,
+    "crystalBase": 0,
+    "floors": [
+      {
+        "enemies": [
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": {
+              "hp": 0.3,
+              "atk": 0.65
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "mycol",
+            "form": 0,
+            "mult": {
+              "hp": 0.3,
+              "atk": 0.65
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "vespar",
+            "form": 0,
+            "mult": {
+              "hp": 0.3,
+              "atk": 0.65
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "valgas",
+            "form": 0,
+            "mult": {
+              "hp": 0.45,
+              "atk": 0.65
+            }
+          }
+        ],
+        "dialogue": "いたずら好きの門番が、キャンディの山を守っている！"
+      }
+    ]
+  },
+  {
+    "id": 3103,
+    "name": "ハロウィンパーティ 上級",
+    "bgm": "battle",
+    "stamina": 25,
+    "category": "event",
+    "eventId": "halloween_2026",
+    "enabled": true,
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "currencyDrop": {
+      "id": "mt_halloween_candy",
+      "amount": 50
+    },
+    "coinReward": 3000,
+    "orbReward": 0,
+    "expReward": 80,
+    "charExpReward": 360,
+    "auras": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "dropAura": 4,
+    "shardRate": 0,
+    "crystalBase": 0,
+    "floors": [
+      {
+        "enemies": [
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": {
+              "hp": 0.6,
+              "atk": 1
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "vespar",
+            "form": 0,
+            "mult": {
+              "hp": 0.6,
+              "atk": 1
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "mycol",
+            "form": 0,
+            "mult": {
+              "hp": 0.6,
+              "atk": 1
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "magdoll",
+            "form": 0,
+            "mult": {
+              "hp": 0.6,
+              "atk": 1
+            }
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "valgas",
+            "form": 0,
+            "mult": {
+              "hp": 0.9,
+              "atk": 1.2
+            }
+          }
+        ],
+        "intro": "warning",
+        "dialogue": "最後のいたずらを越えれば、今宵のキャンディはあなたのもの！"
+      }
+    ]
   }
 ];
 
@@ -426,6 +667,203 @@ export const CUSTOM_CHARACTERS = [
     "evoJob": "常夜の夢魔皇",
     "evoLeaderSkillId": "ls_lilim_noctia_evo",
     "evoSkillId": "sk_lilim_noctia_evo"
+  },
+  {
+    "id": "hw_kai",
+    "name": "宵宴の吸血剣士・カイ",
+    "job": "宵宴の吸血剣士",
+    "portrait": "🙂",
+    "aura": 1,
+    "rarity": 4,
+    "role": "attacker",
+    "leaderSkillId": "ls_kai4",
+    "skillId": "sk_kai4",
+    "atk": 43,
+    "hp": 48,
+    "rcv": 13,
+    "raidDrop": false,
+    "giftOnly": false,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "仮装は苦手だと言いながら、誰より律儀に招待状を配っている。",
+    "artStages": [
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_kai_1_icon.webp",
+        "full": "assets/chars/hw_kai_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 5,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_kai_2_icon.webp",
+        "full": "assets/chars/hw_kai_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "夜宴を統べる吸血王・カイ",
+    "evoJob": "夜宴の吸血王",
+    "evoLeaderSkillId": "ls_kai5",
+    "evoSkillId": "sk_kai5"
+  },
+  {
+    "id": "hw_mio",
+    "name": "月夜の幽霊姫・ミオ",
+    "job": "月夜の幽霊姫",
+    "portrait": "🙂",
+    "aura": 1,
+    "rarity": 4,
+    "role": "balance",
+    "leaderSkillId": "ls_mio_x",
+    "skillId": "sk_mio_x",
+    "atk": 34,
+    "hp": 56,
+    "rcv": 18,
+    "raidDrop": false,
+    "giftOnly": false,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "冷たい手で灯すランタンは、不思議と心を温めてくれる。",
+    "artStages": [
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_mio_1_icon.webp",
+        "full": "assets/chars/hw_mio_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 5,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_mio_2_icon.webp",
+        "full": "assets/chars/hw_mio_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "氷月の幽霊女王・ミオ",
+    "evoJob": "氷月の幽霊女王"
+  },
+  {
+    "id": "hw_noa",
+    "name": "収穫祭の魔女・ノア",
+    "job": "収穫祭の魔女",
+    "portrait": "🙂",
+    "aura": 2,
+    "rarity": 4,
+    "role": "healer",
+    "leaderSkillId": "ls_noa_x",
+    "skillId": "sk_noa_x",
+    "atk": 24,
+    "hp": 53,
+    "rcv": 31,
+    "raidDrop": false,
+    "giftOnly": false,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "魔法書の今日の頁は、お菓子のレシピ。森の仲間にも甘い贈り物を。",
+    "artStages": [
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_noa_1_icon.webp",
+        "full": "assets/chars/hw_noa_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 5,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_noa_2_icon.webp",
+        "full": "assets/chars/hw_noa_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "豊穣の大魔女・ノア",
+    "evoJob": "豊穣の大魔女"
+  },
+  {
+    "id": "hw_rune",
+    "name": "南瓜の女王・ルネ",
+    "job": "南瓜の女王",
+    "portrait": "🙂",
+    "aura": 0,
+    "rarity": 4,
+    "role": "attacker",
+    "leaderSkillId": "ls_inferno",
+    "skillId": "sk_ignition",
+    "atk": 43,
+    "hp": 48,
+    "rcv": 13,
+    "raidDrop": false,
+    "giftOnly": false,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "今宵の王命はただ一つ。誰ひとり、お菓子を持たずに帰してはならない。",
+    "artStages": [
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_rune_1_icon.webp",
+        "full": "assets/chars/hw_rune_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 5,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_rune_2_icon.webp",
+        "full": "assets/chars/hw_rune_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "万灯の南瓜女帝・ルネ",
+    "evoJob": "万灯の南瓜女帝"
+  },
+  {
+    "id": "hw_kyuko",
+    "name": "甘夜の菓子姫・キュウコ",
+    "job": "甘夜の菓子姫",
+    "portrait": "🙂",
+    "aura": 4,
+    "rarity": 4,
+    "role": "attacker",
+    "leaderSkillId": "ls_kyuko_evo",
+    "skillId": "sk_kyuko_evo",
+    "atk": 43,
+    "hp": 48,
+    "rcv": 13,
+    "raidDrop": false,
+    "giftOnly": true,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "「いたずらが嫌なら、飴をひとつ。……もうひとつでも、よいのよ？」今宵の狐火は甘い香り。",
+    "artStages": [
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_kyuko_1_icon.webp",
+        "full": "assets/chars/hw_kyuko_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 5,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_kyuko_2_icon.webp",
+        "full": "assets/chars/hw_kyuko_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "百鬼甘宴の九尾姫・キュウコ",
+    "evoJob": "百鬼甘宴の九尾姫"
   }
 ];
 
@@ -529,5 +967,64 @@ export const CUSTOM_GIFTS = [
 export const CUSTOM_SETTINGS = {
   "pickupId": "lm_emiri",
   "pickupRate": 0.3,
-  "gachaBanner": "assets/promo/gacha_banner.webp"
+  "gachaBanner": "assets/promo/gacha_banner.webp",
+  "events": [
+    {
+      "id": "halloween_2026",
+      "name": "ハロウィンパーティ",
+      "currency": {
+        "id": "mt_halloween_candy",
+        "name": "ハロウィンキャンディ",
+        "icon": "assets/items/halloween_candy.webp",
+        "emoji": "🍬",
+        "color": "#FFB658"
+      },
+      "shop": [
+        {
+          "id": "hw2026_kyuko",
+          "type": "character",
+          "charId": "hw_kyuko",
+          "price": 500,
+          "totalLimit": 5
+        },
+        {
+          "id": "hw2026_star",
+          "type": "material",
+          "matId": "mt_star",
+          "amount": 5,
+          "price": 50,
+          "totalLimit": 10
+        },
+        {
+          "id": "hw2026_exp",
+          "type": "material",
+          "matId": "mt_exp2",
+          "amount": 5,
+          "price": 25,
+          "totalLimit": 20
+        },
+        {
+          "id": "hw2026_awaken",
+          "type": "material",
+          "matId": "mt_awaken",
+          "amount": 1,
+          "price": 100,
+          "totalLimit": 5
+        },
+        {
+          "id": "hw2026_dark",
+          "type": "material",
+          "matId": "mt_c4",
+          "amount": 10,
+          "price": 40,
+          "totalLimit": 5
+        }
+      ],
+      "enabled": true,
+      "availableFrom": "2026-10-01T00:00:00+09:00",
+      "availableUntil": "2026-11-01T00:00:00+09:00",
+      "description": "仮装した仲間と、甘くて少し不思議な一夜へ。ダンジョンでハロウィンキャンディを集め、限定キュウコや育成素材と交換しよう！",
+      "banner": "assets/promo/halloween_2026.webp"
+    }
+  ]
 };
