@@ -50,6 +50,7 @@ let grabbed = false;       // 操作時間内で「今まさに指がオーブ�
 let clearingCells = [], clearStart = 0;
 let chainLabels = [];          // 盤面に浮かべる「N Chain」
 let run = null;
+let returnScreen = 'dungeon';
 let pendingFriendUid = null, pendingFriendName = '';
 
 /* ===================== 起動 ===================== */
@@ -78,7 +79,7 @@ export function initBattle() {
   });
   $('resultBtn').addEventListener('click', () => {
     $('resultModal').classList.remove('show');
-    showScreen('dungeon', { preserve: true });
+    showScreen(returnScreen, { preserve: true });
   });
   $('battleInfoBtn').addEventListener('click', openPartyInfo);
   $('skillCancelBtn').addEventListener('click', closeSkillConfirm);
@@ -142,6 +143,7 @@ function endTurnNow() {
  * @param {object|null} support サポート枠のキャラクター
  */
 export function startDungeonRun(stage, hard, support) {
+  returnScreen = stage.event ? 'event' : 'dungeon';
   const party = buildParty(support);
   if (!party.own.length) { toast('チームにキャラクターを編成してください'); showScreen('character'); return; }
 
@@ -284,6 +286,7 @@ export function resumeDungeonRun() {
   setPalette(run.stage.auras);
   board = Array.isArray(snap.board) && snap.board.length ? snap.board : genBoard(run.matchMin);
   renderParty();
+  returnScreen = run.stage.event ? 'event' : 'dungeon';
   showScreen('battle', { bgm: run.stage.bgm });
   restoreFloor();
   return true;
@@ -1119,7 +1122,7 @@ function retreat() {
   bstate = 'over';
   clearRunSnapshot();
   run = null;
-  showScreen('dungeon', { preserve: true });
+  showScreen(returnScreen, { preserve: true });
 }
 
 /* ===================== 入力 ===================== */

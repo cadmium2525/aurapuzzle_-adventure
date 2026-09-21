@@ -31,7 +31,7 @@ function draftIconPaths() {
 export default {
   render(view) {
     const s = settings();
-    const chars = allCharacters().filter(c => c.rarity >= G.MAX_GACHA_RARITY);
+    const chars = allCharacters().filter(c => c.rarity === G.MAX_GACHA_RARITY && !c.giftOnly);
     const current = s.pickupOff
       ? null
       : (s.pickupId ? allCharacters().find(c => c.id === s.pickupId) : G.PICKUP_CHARACTER);

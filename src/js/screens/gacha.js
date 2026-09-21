@@ -20,6 +20,7 @@ import {
 } from '../data/gamedata.js';
 import { stars, portraitHTML } from './parts.js';
 import { gachaPoolAt } from '../data/gamedata.js';
+import { isAvailable } from '../data/availability.js';
 
 /* ===================== 抽選 ===================== */
 function pickRarity(weights) {
@@ -239,18 +240,22 @@ async function doPull(kind, count) {
 /* ===================== 画面 ===================== */
 export function renderGacha() {
   const seasonal = gachaPoolAt().filter(c => c.eventId);
+  const pickup = PICKUP_CHARACTER && isAvailable(PICKUP_CHARACTER) && !PICKUP_CHARACTER.giftOnly ? PICKUP_CHARACTER : null;
+  let seasonalBox = $('seasonalGacha');
+  if (!seasonalBox) { seasonalBox=document.createElement('div');seasonalBox.id='seasonalGacha';$('screen-gacha').prepend(seasonalBox); }
+  seasonalBox.innerHTML=seasonal.length ? `<div class="card"><h3>期間限定衣装</h3><div style="display:flex;gap:8px;justify-content:space-around">${seasonal.map(c=>`<div style="min-width:0;flex:1;text-align:center">${portraitHTML(resolveCharacter(c.id,c.rarity,1))}<p style="font-size:11px">${c.name}</p></div>`).join('')}</div><p>開催中のイベント限定衣装がオーブガチャに登場。獲得後はイベント終了後も使用できます。</p></div>` : '';
   // ピックアップ表示。開催していないときは枠ごと隠す
   // (空の枠が残ると、開催中に見えるうえに場所も食う)
   const box = $('pickupBox');
   const note = $('orbGachaNote');
-  if (box) box.hidden = !PICKUP_CHARACTER;
+  if (box) box.hidden = !pickup;
   if (note) {
-    note.textContent = PICKUP_CHARACTER
+    note.textContent = pickup
       ? 'ピックアップ開催中 ・ 最高レア SSR(★4)'
       : '最高レア SSR(★4)';
   }
-  if (box && PICKUP_CHARACTER) {
-    const ch = resolveCharacter(PICKUP_CHARACTER.id, PICKUP_CHARACTER.rarity, 1);
+  if (box && pickup) {
+    const ch = resolveCharacter(pickup.id, pickup.rarity, 1);
     const aura = AURAS[ch.aura];
     box.style.setProperty('--aura', COLOR_HEX[aura.key]);
     box.innerHTML = `

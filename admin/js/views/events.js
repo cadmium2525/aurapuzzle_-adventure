@@ -14,7 +14,7 @@ export default {render(view) {
   }
   const e=editing;
   view.innerHTML=card('イベント編集',`${field('イベントID','id',e.id)}${field('イベント名','name',e.name)}${field('説明','description',e.description || '',{type:'textarea'})}
-    ${publicationFields(e)}${field('交換素材ID','currencyId',e.currency.id)}${field('交換素材名','currencyName',e.currency.name)}
+    ${publicationFields(e,false)}${field('交換素材ID','currencyId',e.currency.id)}${field('交換素材名','currencyName',e.currency.name)}
     ${field('交換素材画像パス','currencyIcon',e.currency.icon || '')}<label class="drop">交換素材画像をWebPに変換<input type="file" id="currencyFile" accept="image/*"></label>
     ${field('イベントバナーのパス','banner',e.banner || '')}<label class="drop">バナーをWebPに変換<input type="file" id="eventBannerFile" accept="image/*"></label>
     ${field('交換商品（JSON配列）','shop',JSON.stringify(e.shop,null,2),{type:'textarea',rows:12})}

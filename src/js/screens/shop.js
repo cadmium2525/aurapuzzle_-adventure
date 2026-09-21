@@ -104,7 +104,7 @@ export function renderShop() {
         <div class="sname2">${name}</div>
         <div class="sprice">${desc}</div>
         ${item.dailyLimit ? `<div class="shop-limit">本日あと <b>${shopRemainingToday(item)}</b> / ${item.dailyLimit} ${item.unit || '個'}</div>` : ''}
-        ${item.totalLimit && !bought ? '<div class="shop-limit">買い切り</div>' : ''}
+        ${item.totalLimit && !bought ? `<div class="shop-limit">あと ${shopRemainingTotal(item)} / ${item.totalLimit} 回</div>` : ''}
       </div>
       <button class="btn buybtn"${soldOut ? ' disabled' : ''}>${
         soldOut ? (bought ? '購入済み' : '本日分は完売')

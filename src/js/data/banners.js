@@ -36,7 +36,7 @@ export function homeBanners() {
   }
 
   const gachaBanner = CUSTOM_SETTINGS.gachaBanner;
-  if (gachaBanner && PICKUP_CHARACTER) {
+  if (gachaBanner && PICKUP_CHARACTER && !PICKUP_CHARACTER.giftOnly && isAvailable(PICKUP_CHARACTER)) {
     list.push({
       key: `gacha-${PICKUP_CHARACTER.id}`,
       image: gachaBanner,

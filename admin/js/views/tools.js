@@ -9,6 +9,8 @@ import { $, esc, card, toast } from '../ui.js';
 import * as G from '../gamedata.js';
 import { draft, blobEntries } from '../draft.js';
 import { partsFor } from '../skill-parts.js';
+import { isAvailable } from '../../../src/js/data/availability.js';
+import { validPublication } from '../publication.js';
 
 /* ===================== 整合性チェック ===================== */
 
@@ -51,7 +53,7 @@ function checkAll() {
   const charIds = new Map();
   G.CHARACTERS.forEach(c => charIds.set(c.id, 'ゲーム本体'));
   d.characters.forEach(c => {
-    if (charIds.has(c.id)) warn('ng', `キャラ ${c.id}`, `IDが ${charIds.get(c.id)} と重複しています`);
+    if (charIds.has(c.id)) warn('warn', `キャラ ${c.id}`, '登録済みキャラクターを更新します');
     charIds.set(c.id, '下書き');
     // 下書きで作ったスキルも参照先として認める(先に作れば新キャラに付けられる)
     if (!lsIds.has(c.leaderSkillId)) {
@@ -68,7 +70,7 @@ function checkAll() {
     }
     (c.artStages || []).forEach(stage => {
       ['icon', 'full'].forEach(key => {
-        if (stage[key] && !heldImages.has(stage[key])) {
+        if (stage[key] && !heldImages.has(stage[key]) && !G.CHARACTERS.some(old=>(old.artStages||[]).some(a=>a[key]===stage[key]))) {
           warn('warn', `キャラ ${c.id}`, `${stage[key]} をまだアップロードしていません(絵文字で表示されます)`);
         }
       });
@@ -95,7 +97,7 @@ function checkAll() {
   [...G.STAGES, ...G.TECHNICAL_STAGES].forEach(s => raidIds.set(String(s.id), '通常/テクニカル'));
   d.raids.forEach(r => {
     if (raidIds.has(String(r.id))) {
-      warn('ng', `降臨 ${r.id}`, `ステージIDが ${raidIds.get(String(r.id))} と重複しています`);
+      warn(raidIds.get(String(r.id))==='通常/テクニカル' ? 'ng' : 'warn', `ダンジョン ${r.id}`, '既存ステージIDです（登録済みイベント・降臨は更新します）');
     }
     raidIds.set(String(r.id), '下書き');
     if (!r.floors || !r.floors.length) warn('ng', `降臨 ${r.id}`, 'フロアがありません');
@@ -131,6 +133,13 @@ function checkAll() {
 
   /* --- プレゼント素材 --- */
   const materialIds = new Set(G.MATERIALS.map(m => m.id));
+  const events = st.events || G.CUSTOM_SETTINGS.events || [];
+  events.forEach(e=>{if(e.currency?.id)materialIds.add(e.currency.id);});
+  [...d.characters,...d.raids].forEach(item=>{
+    if (!validPublication(item)) warn('ng',item.id,'公開期間が不正です');
+    if (item.eventId && !events.some(e=>e.id===item.eventId)) warn('ng',item.id,'紐づくイベントがありません');
+    if (item.currencyDrop && !materialIds.has(item.currencyDrop.id)) warn('ng',item.id,'交換素材がありません');
+  });
   (d.gifts || []).forEach(g => Object.entries(g.materials || {}).forEach(([id, amount]) => {
     if (!materialIds.has(id)) warn('ng', `プレゼント ${g.key}`, `${id} という素材がありません`);
     if (!(Number.isInteger(amount) && amount > 0)) warn('ng', `プレゼント ${g.key}`, `${id} の個数が正の整数ではありません`);
@@ -145,6 +154,7 @@ function checkAll() {
   d.enemies.forEach(e => (e.forms || [e]).forEach(s => { if (s.sprite) referenced.add(s.sprite); }));
   d.raids.forEach(r => { if (r.banner) referenced.add(r.banner); });
   if (st.gachaBanner) referenced.add(st.gachaBanner);
+  events.forEach(e=>{if(e.banner)referenced.add(e.banner);if(e.currency?.icon)referenced.add(e.currency.icon);});
   blobEntries().forEach(([path]) => {
     // アトラスとその索引は焼き直しの成果物なので、参照が無くて当たり前
     if (GENERATED.has(path)) return;
@@ -176,11 +186,11 @@ function spriteExists(path) { return knownSprites.has(path); }
 /** 下書きを重ねたガチャ母集団 */
 function gachaPool() {
   const map = new Map();
-  G.GACHA_POOL.forEach(c => map.set(c.id, c));
+  G.CHARACTERS.forEach(c => map.set(c.id, c));
   draft().characters.forEach(c => {
-    if (c.rarity <= G.MAX_GACHA_RARITY && !c.giftOnly) map.set(c.id, c);
+    map.set(c.id, c);
   });
-  return Array.from(map.values());
+  return Array.from(map.values()).filter(c=>c.rarity<=G.MAX_GACHA_RARITY && !c.giftOnly && isAvailable(c,Date.now(),draft().settings.events || G.CUSTOM_SETTINGS.events || []));
 }
 
 /** 下書きを重ねたピックアップ設定 */
