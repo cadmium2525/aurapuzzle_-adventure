@@ -93,12 +93,13 @@ test('知らないモンスターIDは落ちずに無視される', () => {
 import { homeBanners, BANNER_INTERVAL } from '../src/js/data/banners.js';
 import { CUSTOM_SETTINGS } from '../src/js/data/custom.js';
 import { PICKUP_CHARACTER, PICKUP_RATE } from '../src/js/data/gamedata.js';
+import { isAvailable } from '../src/js/data/availability.js';
 
 test('ホームのバナーは、いちばん新しい降臨のぶんだけ並ぶ', () => {
   const list = homeBanners();
   const raidOnes = list.filter(b => b.key.startsWith('raid-'));
   assert.equal(raidOnes.length, 1, '降臨のバナーは常に1枚(新しいものと差し替わる)');
-  const newest = RAID_STAGES[RAID_STAGES.length - 1];
+  const newest = RAID_STAGES.filter(s => s.raid && isAvailable(s)).at(-1);
   assert.equal(raidOnes[0].key, `raid-${newest.id}`);
   assert.equal(raidOnes[0].screen, 'dungeon');
   assert.deepEqual(raidOnes[0].params, { mode: 'raid' });

@@ -161,7 +161,7 @@ function renderSortie() {
   $('sortieLead').innerHTML = {
     team: `${pendingStage ? pendingStage.name : ''}${pendingHard ? ' / ハード' : ''} に挑むチームを選びます。`,
     support: 'サポートの<b>リーダースキル</b>も発動します。フレンドがいなくてもNPCサポートを選べます。',
-    confirm: 'この4人で挑みます。よければ突入してください。'
+    confirm: 'この編成で挑みます。よければ突入してください。'
   }[sortieStep];
   $('sortieSteps').innerHTML = SORTIE_STEPS.map((st, i) =>
     `<span class="sortie-step${i === at ? ' now' : ''}${i < at ? ' done' : ''}">${i + 1}. ${st.label}</span>`).join('');

@@ -23,7 +23,8 @@ export default {
       ${card('いまのゲームの中身', `<div class="rows">
         ${tile('キャラクター', G.CHARACTERS.length, `ガチャ母集団 ${G.GACHA_POOL.length}`)}
         ${tile('モンスター', G.ENEMIES.length, `マスター ${G.ENEMY_MASTER_IDS.length} 種`)}
-        ${tile('降臨ダンジョン', G.RAID_STAGES.length, G.RAID_STAGES.map(r => r.name).join(' / '))}
+        ${tile('降臨ダンジョン', G.RAID_STAGES.filter(r=>r.raid).length, G.RAID_STAGES.filter(r=>r.raid).map(r => r.name).join(' / '))}
+        ${tile('イベントダンジョン', G.RAID_STAGES.filter(r=>r.event).length, G.RAID_STAGES.filter(r=>r.event).map(r => r.name).join(' / '))}
         ${tile('通常ステージ', G.STAGES.length, '10章 × 5ステージ')}
         ${tile('テクニカル', G.TECHNICAL_STAGES.length, '10階層 × 5ステージ')}
         ${tile('曜日ダンジョン', `${dailyCrystals}種の結晶`, G.DAILY_THEMES.map(t => t.label).join(''))}
