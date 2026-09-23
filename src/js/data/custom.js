@@ -691,8 +691,8 @@ export const CUSTOM_CHARACTERS = [
     "aura": 1,
     "rarity": 4,
     "role": "attacker",
-    "leaderSkillId": "ls_kai4",
-    "skillId": "sk_kai4",
+    "leaderSkillId": "ls_hw_kai4",
+    "skillId": "sk_hw_kai4",
     "atk": 43,
     "hp": 48,
     "rcv": 13,
@@ -721,8 +721,8 @@ export const CUSTOM_CHARACTERS = [
     ],
     "evoName": "夜宴を統べる吸血王・カイ",
     "evoJob": "夜宴の吸血王",
-    "evoLeaderSkillId": "ls_kai5",
-    "evoSkillId": "sk_kai5"
+    "evoLeaderSkillId": "ls_hw_kai5",
+    "evoSkillId": "sk_hw_kai5"
   },
   {
     "id": "hw_mio",
@@ -732,8 +732,8 @@ export const CUSTOM_CHARACTERS = [
     "aura": 1,
     "rarity": 4,
     "role": "balance",
-    "leaderSkillId": "ls_mio_x",
-    "skillId": "sk_mio_x",
+    "leaderSkillId": "ls_hw_mio",
+    "skillId": "sk_hw_mio",
     "atk": 34,
     "hp": 56,
     "rcv": 18,
@@ -771,8 +771,8 @@ export const CUSTOM_CHARACTERS = [
     "aura": 2,
     "rarity": 4,
     "role": "healer",
-    "leaderSkillId": "ls_noa_x",
-    "skillId": "sk_noa_x",
+    "leaderSkillId": "ls_hw_noa",
+    "skillId": "sk_hw_noa",
     "atk": 24,
     "hp": 53,
     "rcv": 31,
@@ -810,8 +810,8 @@ export const CUSTOM_CHARACTERS = [
     "aura": 0,
     "rarity": 4,
     "role": "attacker",
-    "leaderSkillId": "ls_inferno",
-    "skillId": "sk_ignition",
+    "leaderSkillId": "ls_hw_rune",
+    "skillId": "sk_hw_rune",
     "atk": 43,
     "hp": 48,
     "rcv": 13,
@@ -922,6 +922,73 @@ export const CUSTOM_SKILLS = [
     "healPct": 0.35,
     "cooldown": 11,
     "desc": "このターンの操作時間+3.0秒・最大HPの35%を回復・ランダム8個を闇オーラに変化"
+  },
+  {
+    "id": "sk_hw_kai4",
+    "name": "宵闇の吸血剣",
+    "timeThisTurn": 3,
+    "convert": [
+      {
+        "from": "c0",
+        "to": "c1"
+      },
+      {
+        "from": "c2",
+        "to": "c1"
+      }
+    ],
+    "healPct": 0.15,
+    "cooldown": 10,
+    "desc": "このターンの操作時間+3.0秒・最大HPの15%を回復・火オーラを水オーラに変化・木オーラを水オーラに変化"
+  },
+  {
+    "id": "sk_hw_kai5",
+    "name": "夜宴剣・ブラッドムーン",
+    "timeThisTurn": 5,
+    "fixedDamage": 8,
+    "convert": [
+      {
+        "from": "c0",
+        "to": "c1"
+      },
+      {
+        "from": "c2",
+        "to": "c1"
+      }
+    ],
+    "healPct": 0.2,
+    "cooldown": 8,
+    "desc": "このターンの操作時間+5.0秒・最大HPの20%を回復・敵に攻撃力×8のダメージ・火オーラを水オーラに変化・木オーラを水オーラに変化"
+  },
+  {
+    "id": "sk_hw_mio",
+    "name": "ゴースト・クロック",
+    "timeThisTurn": 6,
+    "delay": 1,
+    "cooldown": 9,
+    "desc": "このターンの操作時間+6.0秒・敵の攻撃を1ターン遅らせる"
+  },
+  {
+    "id": "sk_hw_noa",
+    "name": "スイート・ハーベスト",
+    "healPct": 0.5,
+    "spawn": {
+      "to": "c2",
+      "count": 8
+    },
+    "cooldown": 9,
+    "desc": "最大HPの50%を回復・ランダム8個を木オーラに変化"
+  },
+  {
+    "id": "sk_hw_rune",
+    "name": "ジャック・フレア",
+    "timeThisTurn": 3,
+    "spawn": {
+      "to": "c0",
+      "count": 10
+    },
+    "cooldown": 10,
+    "desc": "このターンの操作時間+3.0秒・ランダム10個を火オーラに変化"
   }
 ];
 
@@ -953,6 +1020,57 @@ export const CUSTOM_LEADER_SKILLS = [
     "rcv": 1.5,
     "time": 1,
     "desc": "オーラ操作時間+1.0秒・闇オーラ2倍・回復力1.5倍"
+  },
+  {
+    "id": "ls_hw_kai4",
+    "name": "宵宴の血盟",
+    "auraAtk": {
+      "c1": 2
+    },
+    "time": 3,
+    "damageCut": 0.2,
+    "desc": "オーラ操作時間+3.0秒・水オーラ2倍・被ダメージ20%減"
+  },
+  {
+    "id": "ls_hw_kai5",
+    "name": "吸血王の夜宴",
+    "auraAtk": {
+      "c1": 2.8
+    },
+    "allAtk": 1.2,
+    "hp": 1.2,
+    "time": 5,
+    "damageCut": 0.3,
+    "desc": "オーラ操作時間+5.0秒・水オーラ2.8倍・全オーラ1.2倍・最大HP1.2倍・被ダメージ30%減"
+  },
+  {
+    "id": "ls_hw_mio",
+    "name": "月夜のランタン結界",
+    "auraAtk": {
+      "c1": 1.9
+    },
+    "hp": 1.25,
+    "time": 3.5,
+    "desc": "オーラ操作時間+3.5秒・水オーラ1.9倍・最大HP1.25倍"
+  },
+  {
+    "id": "ls_hw_noa",
+    "name": "収穫祭の魔女の加護",
+    "auraAtk": {
+      "c2": 1.65
+    },
+    "rcv": 2.1,
+    "time": 1.5,
+    "desc": "オーラ操作時間+1.5秒・木オーラ1.65倍・回復力2.1倍"
+  },
+  {
+    "id": "ls_hw_rune",
+    "name": "南瓜女王の祝祭",
+    "auraAtk": {
+      "c0": 2
+    },
+    "hp": 1.25,
+    "desc": "火オーラ2倍・最大HP1.25倍"
   }
 ];
 
