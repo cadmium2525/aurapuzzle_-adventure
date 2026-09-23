@@ -86,14 +86,15 @@ test('新しい5体は固有のWebP画像と区別できる特殊行動を持つ
   assert.equal(effects.size, ids.length, '新しい敵の先制技が重複している');
 });
 
-test('アルカナの色違いは画像の色に対応したオーラを吸収する', async () => {
+test('アルカナの色違いは画像に対応した吸収・バインドを持つ', async () => {
   const variants = [
-    ['arcanacauldron', '魔薬釜アルカナ', [1, 4]],
-    ['arcanacauldron_fire', '紅炎のアルカナ', [0]],
-    ['arcanacauldron_wood', '翠森のアルカナ', [2]],
-    ['arcanacauldron_heal', '聖花のアルカナ', [3]]
+    ['arcanacauldron', '魔薬釜アルカナ', [
+      { type: 'auraAbsorb', aura: 1, turns: 3 }, { type: 'auraAbsorb', aura: 4, turns: 3 }]],
+    ['arcanacauldron_fire', '紅炎のアルカナ', [{ type: 'auraAbsorb', aura: 0, turns: 3 }]],
+    ['arcanacauldron_wood', '翠森のアルカナ', [{ type: 'auraAbsorb', aura: 2, turns: 3 }]],
+    ['arcanacauldron_heal', '聖花のアルカナ', [{ type: 'auraBind', aura: 3, turns: 3 }]]
   ];
-  for (const [id, name, auras] of variants) {
+  for (const [id, name, effects] of variants) {
     const enemy = enemyFormOf(id);
     assert.equal(enemy.name, name);
     assert.ok(ENEMIES.some(e => e.id === id));
@@ -101,12 +102,12 @@ test('アルカナの色違いは画像の色に対応したオーラを吸収�
     const header = readFileSync(fileURLToPath(new URL(`../${enemy.sprite}`, import.meta.url))).subarray(0, 12);
     assert.equal(header.toString('ascii', 0, 4), 'RIFF');
     assert.equal(header.toString('ascii', 8, 12), 'WEBP');
-    assert.deepEqual(enemy.enemySkills.preemptive.effects, auras.map(aura =>
-      ({ type: 'auraAbsorb', aura, turns: 3 })));
+    assert.deepEqual(enemy.enemySkills.preemptive.effects, effects);
   }
   const { TECH_ENCOUNTER_IDS, DAILY_ENCOUNTER_IDS } = await import('../src/js/data/gamedata.js');
+  assert.equal(TECH_ENCOUNTER_IDS[2][3], 'arcanacauldron_heal');
   assert.deepEqual(TECH_ENCOUNTER_IDS[4],
-    ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'arcanacauldron_heal', 'arcanacauldron']);
+    ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'worm', 'arcanacauldron']);
   assert.equal(DAILY_ENCOUNTER_IDS[1][2], 'arcanacauldron_heal');
   assert.equal(DAILY_ENCOUNTER_IDS[2][2], 'arcanacauldron_fire');
   assert.equal(DAILY_ENCOUNTER_IDS[4][2], 'arcanacauldron_wood');

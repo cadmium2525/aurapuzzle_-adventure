@@ -65,7 +65,7 @@ const BUILTIN = {
   arcanacauldron_wood: { emoji: '🫕', hp: 5400, atk: 105, interval: 2,
     enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 2, turns: 3 }] } } },
   arcanacauldron_heal: { emoji: '🫕', hp: 5400, atk: 105, interval: 2,
-    enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 3, turns: 3 }] } } },
+    enemySkills: { preemptive: { effects: [{ type: 'auraBind', aura: 3, turns: 3 }] } } },
 
   /* --- 九狐。変身するボスなので forms を持つ --- */
   kyuko: {

@@ -150,9 +150,9 @@ export function techChapterLastStageId(ch) { return TECH_ID_BASE + ch * TECH_STA
 const DEFAULT_TECH_ENCOUNTER_IDS = [
   ['arcanacauldron', 'raiga', 'gost', 'chronosnail', 'monolith'],
   ['arcanacauldron', 'mirrorjelly', 'umbrastag', 'raiga', 'glyphowl'],
-  ['raiga', 'umbrastag', 'gost', 'mycol', 'umbrastag'],
+  ['raiga', 'umbrastag', 'gost', 'arcanacauldron_heal', 'umbrastag'],
   ['chronosnail', 'gia', 'arcanacauldron', 'raiga', 'kongou'],
-  ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'arcanacauldron_heal', 'arcanacauldron'],
+  ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'worm', 'arcanacauldron'],
   ['gorem', 'glyphowl', 'monolith', 'gorem', 'kongou'],
   ['gost', 'umbrastag', 'arcanacauldron', 'mycol', 'gost'],
   ['arcanacauldron', 'mycol', 'vespar', 'chronosnail', 'gorem'],
