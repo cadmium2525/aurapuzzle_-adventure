@@ -113,7 +113,8 @@ function loop(t) {
     drawBoard({
       board, t, selected, floatPos, dragging: bstate === 'dragging',
       clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total,
-      swapHint: run.chanceActive ? run.chanceHint : null
+      swapHint: run.chanceActive ? run.chanceHint : null,
+      auraBinds: run.enemyEffects.auraBinds
     });
     // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
     if (dragging && remain <= 0) endTurnNow();

@@ -9,6 +9,7 @@ import { COLS, ROWS } from './board.js';
 
 let canvas, ctx;
 let auraAtlas = null, auraAtlasReady = false;
+const bindOverlayCache = new Map();
 export let CELL = 44;
 
 const AURA_ATLAS_CELL = 256;
@@ -62,6 +63,7 @@ export function initRenderer(canvasEl) {
 }
 
 function applyCellSize() {
+  bindOverlayCache.clear();
   const dpr = window.devicePixelRatio || 1;
   const w = CELL * COLS, h = CELL * ROWS;
   canvas.style.width = w + 'px';
@@ -196,6 +198,68 @@ function drawOrb(x, y, radius, colorIndex, opts = {}) {
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.fill();
   ctx.restore();
+}
+
+/** 拘束中のオーラに重ねる鎖と錠。セルサイズごとに描き置きして使い回す。 */
+function bindOverlay(radius) {
+  const dpr = window.devicePixelRatio || 1;
+  const key = `${radius}:${dpr}`;
+  if (bindOverlayCache.has(key)) return bindOverlayCache.get(key);
+  const size = radius * 2.6;
+  const image = document.createElement('canvas');
+  image.width = Math.ceil(size * dpr);
+  image.height = Math.ceil(size * dpr);
+  const pen = image.getContext('2d');
+  pen.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pen.translate(size / 2, size / 2);
+  pen.lineCap = 'round';
+  pen.lineJoin = 'round';
+  pen.shadowColor = 'rgba(6, 4, 22, .95)';
+  pen.shadowBlur = radius * .2;
+
+  for (const angle of [-Math.PI / 4, Math.PI / 4]) {
+    pen.save();
+    pen.rotate(angle);
+    for (let i = -2; i <= 2; i++) {
+      pen.beginPath();
+      pen.ellipse(i * radius * .34, 0, radius * .24, radius * .14, 0, 0, Math.PI * 2);
+      pen.strokeStyle = '#11101f';
+      pen.lineWidth = Math.max(2.5, radius * .19);
+      pen.stroke();
+      pen.shadowBlur = 0;
+      pen.strokeStyle = '#d5d5e3';
+      pen.lineWidth = Math.max(1.3, radius * .085);
+      pen.stroke();
+    }
+    pen.restore();
+  }
+
+  // 交点の小さな錠が「消せない」状態を示す。色とグリフは鎖の周囲に残す。
+  pen.shadowBlur = radius * .18;
+  pen.beginPath();
+  pen.arc(0, -radius * .13, radius * .23, Math.PI, 0);
+  pen.strokeStyle = '#171120';
+  pen.lineWidth = Math.max(3, radius * .24);
+  pen.stroke();
+  pen.strokeStyle = '#f8e8ae';
+  pen.lineWidth = Math.max(1.5, radius * .12);
+  pen.stroke();
+  pen.beginPath();
+  pen.roundRect(-radius * .31, -radius * .1, radius * .62, radius * .48, radius * .1);
+  pen.fillStyle = '#292139';
+  pen.fill();
+  pen.strokeStyle = '#ffe4a0';
+  pen.lineWidth = Math.max(1.5, radius * .09);
+  pen.stroke();
+
+  const overlay = { image, size };
+  bindOverlayCache.set(key, overlay);
+  return overlay;
+}
+
+function drawBoundAura(x, y, radius) {
+  const { image, size } = bindOverlay(radius);
+  ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
 }
 
 /** 同オーラの隣接オーブを繋ぐ「ねっとり」した帯 */
@@ -397,7 +461,7 @@ function drawBoardFuse(remainMs, totalMs) {
  */
 export function drawBoard(v) {
   const { board, t, selected, floatPos, dragging, clearingCells, clearT = 0,
-          chainLabels, remainMs = null, totalMs = 0, swapHint = null } = v;
+          chainLabels, remainMs = null, totalMs = 0, swapHint = null, auraBinds = {} } = v;
   ctx.clearRect(0, 0, CELL * COLS, CELL * ROWS);
 
   // 背景の市松模様
@@ -441,6 +505,13 @@ export function drawBoard(v) {
   }
 
   drawConversion(board,t);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const val = board[r][c];
+    if (val < 0 || !auraBinds[val] || isClearing(r, c)) continue;
+    if (dragging && selected && selected.r === r && selected.c === c) continue;
+    const { x, y } = cellCenter(r, c);
+    drawBoundAura(x, y, radius);
+  }
   // ドラッグ中のオーブは最前面
   if (dragging && selected && floatPos) {
     const val = board[selected.r][selected.c];
@@ -452,6 +523,7 @@ export function drawBoard(v) {
     ctx.stroke();
     ctx.restore();
     drawOrb(floatPos.x, floatPos.y, radius * 1.12, val, { glowing: true });
+    if (auraBinds[val]) drawBoundAura(floatPos.x, floatPos.y, radius * 1.12);
     if (remainMs !== null) drawDragTimer(floatPos, radius * 1.12, remainMs, totalMs);
   }
 

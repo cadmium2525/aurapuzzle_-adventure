@@ -50,6 +50,30 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await page.locator('#partyRow .bound').count(), 3);
     assert.equal(await page.evaluate(() => battleTest.dragTimeMs()), 2000);
     const before = await page.evaluate(() => battleTest.snapshot());
+    const chainOverlays = await page.evaluate(async () => {
+      const { drawBoard, CELL } = await import('/src/js/battle/renderer.js');
+      const context = document.getElementById('board').getContext('2d');
+      const original = context.drawImage;
+      const testBoard = Array.from({ length: 8 }, () => Array(7).fill(-1));
+      testBoard[0][0] = 0;
+      testBoard[0][1] = 3;
+      const count = (auraBinds, dragging = false) => {
+        let overlays = 0;
+        context.drawImage = function (image, ...args) {
+          if (image instanceof HTMLCanvasElement) overlays++;
+          return original.call(this, image, ...args);
+        };
+        try {
+          drawBoard({ board: testBoard, t: performance.now(), auraBinds,
+            selected: dragging ? { r: 0, c: 0 } : null,
+            floatPos: dragging ? { x: CELL * 2, y: CELL * 2 } : null,
+            dragging, clearingCells: [] });
+        } finally { context.drawImage = original; }
+        return overlays;
+      };
+      return [count({}), count({ 0: 2 }), count({ 0: 2, 3: 2 }), count({ 0: 2 }, true)];
+    });
+    assert.deepEqual(chainOverlays, [0, 1, 2, 1], '鎖はバインド中の色だけに重なり、掴んだオーラにも追従する');
     // Status icons and full-screen dialogue must never consume board layout space.
     const boardRect=()=>page.locator('#board').evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,y:el.getBoundingClientRect().y}));
     const baseline=await boardRect();
