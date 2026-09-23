@@ -56,7 +56,16 @@ const BUILTIN = {
   mirrorjelly: { emoji: '🪼', hp: 4800, atk: 85, interval: 2,
     enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 1, turns: 3 }] } } },
   arcanacauldron: { emoji: '🫕', hp: 5700, atk: 105, interval: 2,
-    enemySkills: { preemptive: { effects: [{ type: 'recoveryReduce', percent: 30, turns: 3 }] } } },
+    enemySkills: { preemptive: { effects: [
+      { type: 'auraAbsorb', aura: 1, turns: 3 },
+      { type: 'auraAbsorb', aura: 4, turns: 3 }
+    ] } } },
+  arcanacauldron_fire: { emoji: '🫕', hp: 5400, atk: 105, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 0, turns: 3 }] } } },
+  arcanacauldron_wood: { emoji: '🫕', hp: 5400, atk: 105, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 2, turns: 3 }] } } },
+  arcanacauldron_heal: { emoji: '🫕', hp: 5400, atk: 105, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 3, turns: 3 }] } } },
 
   /* --- 九狐。変身するボスなので forms を持つ --- */
   kyuko: {

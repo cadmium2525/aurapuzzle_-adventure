@@ -79,6 +79,17 @@ test('absorption combines all aura damage before HP update and respects maximum 
   assert.equal(hit(s, { hp: 40, hits: hits.toReversed() }).hp, 70);
   assert.equal(hit(s).hp, 100);
 });
+test('two aura absorptions on one enemy stay active independently', () => {
+  const s = createEnemyEffects(4);
+  applyEnemyEffect(s, { type: 'auraAbsorb', aura: 1, turns: 3 }, []);
+  applyEnemyEffect(s, { type: 'auraAbsorb', aura: 4, turns: 3 }, []);
+  assert.deepEqual(s.defenses.map(d => d.aura), [1, 4]);
+  assert.equal(hit(s, { hp: 50, hits: [
+    { aura: 1, value: 20 }, { aura: 4, value: 25 }, { aura: 0, value: 10 }
+  ] }).hp, 85);
+  for (let i = 0; i < 3; i++) tickEnemyEffects(s);
+  assert.equal(s.defenses.length, 0);
+});
 test('build up does not stack, enemy effects reset on next floor', () => {
   const s = createEnemyEffects(4);
   applyEnemyEffect(s, { type: 'buildUp' }, []);

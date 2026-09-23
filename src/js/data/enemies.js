@@ -14,7 +14,10 @@ const BUILTIN = [
   { id: 'umbrastag', name: '影角鹿ウンブラ', sprite: 'assets/enemy/umbrastag.webp' },
   { id: 'chronosnail', name: '時砂の巻貝クロノ', sprite: 'assets/enemy/chronosnail.webp' },
   { id: 'mirrorjelly', name: '鏡海月ミラージュ', sprite: 'assets/enemy/mirrorjelly.webp' },
-  { id: 'arcanacauldron', name: '魔薬釜アルカナ', sprite: 'assets/enemy/arcanacauldron.webp' }
+  { id: 'arcanacauldron', name: '魔薬釜アルカナ', sprite: 'assets/enemy/arcanacauldron.webp' },
+  { id: 'arcanacauldron_fire', name: '紅炎のアルカナ', sprite: 'assets/enemy/arcanacauldron_fire.webp' },
+  { id: 'arcanacauldron_wood', name: '翠森のアルカナ', sprite: 'assets/enemy/arcanacauldron_wood.webp' },
+  { id: 'arcanacauldron_heal', name: '聖花のアルカナ', sprite: 'assets/enemy/arcanacauldron_heal.webp' }
 ];
 
 /* ENEMIES はノーマルダンジョンの自動抽選だけに使う。

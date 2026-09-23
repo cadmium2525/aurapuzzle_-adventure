@@ -70,7 +70,7 @@ test('管理者ツールによる既存敵の改名・ボス化は通常抽選�
   ]);
 });
 
-test('新しい5体は固有のWebP画像と固有の特殊行動を持つ', () => {
+test('新しい5体は固有のWebP画像と区別できる特殊行動を持つ', () => {
   const ids = ['glyphowl', 'umbrastag', 'chronosnail', 'mirrorjelly', 'arcanacauldron'];
   const effects = new Set();
   ids.forEach(id => {
@@ -80,9 +80,36 @@ test('新しい5体は固有のWebP画像と固有の特殊行動を持つ', () 
     const header = readFileSync(file).subarray(0, 12);
     assert.equal(header.toString('ascii', 0, 4), 'RIFF');
     assert.equal(header.toString('ascii', 8, 12), 'WEBP');
-    effects.add(shape.enemySkills.preemptive.effects[0].type);
+    effects.add(JSON.stringify(shape.enemySkills.preemptive.effects.map(effect =>
+      [effect.type, effect.aura ?? null, effect.shape ?? null, effect.seconds ?? null])));
   });
   assert.equal(effects.size, ids.length, '新しい敵の先制技が重複している');
+});
+
+test('アルカナの色違いは画像の色に対応したオーラを吸収する', async () => {
+  const variants = [
+    ['arcanacauldron', '魔薬釜アルカナ', [1, 4]],
+    ['arcanacauldron_fire', '紅炎のアルカナ', [0]],
+    ['arcanacauldron_wood', '翠森のアルカナ', [2]],
+    ['arcanacauldron_heal', '聖花のアルカナ', [3]]
+  ];
+  for (const [id, name, auras] of variants) {
+    const enemy = enemyFormOf(id);
+    assert.equal(enemy.name, name);
+    assert.ok(ENEMIES.some(e => e.id === id));
+    assert.ok(enemy.sprite.endsWith(`${id}.webp`));
+    const header = readFileSync(fileURLToPath(new URL(`../${enemy.sprite}`, import.meta.url))).subarray(0, 12);
+    assert.equal(header.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(header.toString('ascii', 8, 12), 'WEBP');
+    assert.deepEqual(enemy.enemySkills.preemptive.effects, auras.map(aura =>
+      ({ type: 'auraAbsorb', aura, turns: 3 })));
+  }
+  const { TECH_ENCOUNTER_IDS, DAILY_ENCOUNTER_IDS } = await import('../src/js/data/gamedata.js');
+  assert.deepEqual(TECH_ENCOUNTER_IDS[4],
+    ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'arcanacauldron_heal', 'arcanacauldron']);
+  assert.equal(DAILY_ENCOUNTER_IDS[1][2], 'arcanacauldron_heal');
+  assert.equal(DAILY_ENCOUNTER_IDS[2][2], 'arcanacauldron_fire');
+  assert.equal(DAILY_ENCOUNTER_IDS[4][2], 'arcanacauldron_wood');
 });
 
 test('ボスは通常系ダンジョンの自動抽選から除外され、明示配置はできる', () => {

@@ -152,7 +152,7 @@ const DEFAULT_TECH_ENCOUNTER_IDS = [
   ['arcanacauldron', 'mirrorjelly', 'umbrastag', 'raiga', 'glyphowl'],
   ['raiga', 'umbrastag', 'gost', 'mycol', 'umbrastag'],
   ['chronosnail', 'gia', 'arcanacauldron', 'raiga', 'kongou'],
-  ['mirrorjelly', 'worm', 'mirrorjelly', 'raiga', 'worm'],
+  ['mirrorjelly', 'arcanacauldron_fire', 'arcanacauldron_wood', 'arcanacauldron_heal', 'arcanacauldron'],
   ['gorem', 'glyphowl', 'monolith', 'gorem', 'kongou'],
   ['gost', 'umbrastag', 'arcanacauldron', 'mycol', 'gost'],
   ['arcanacauldron', 'mycol', 'vespar', 'chronosnail', 'gorem'],
@@ -263,10 +263,10 @@ const DAILY_TIERS = [
 /** 曜日別の5フロア。初・中・上級で敵の種類と技は変えず、数値だけ変える。 */
 const DEFAULT_DAILY_ENCOUNTER_IDS = [
   ['valgas', 'arcanacauldron', 'gost', 'chronosnail', 'glyphowl'],
-  ['nereia', 'mirrorjelly', 'umbrastag', 'gost', 'raiga'],
-  ['valgas', 'magdoll', 'arcanacauldron', 'raiga', 'gia'],
+  ['nereia', 'mirrorjelly', 'arcanacauldron_heal', 'gost', 'raiga'],
+  ['valgas', 'magdoll', 'arcanacauldron_fire', 'raiga', 'gia'],
   ['nereia', 'mirrorjelly', 'chronosnail', 'worm', 'gia'],
-  ['magdoll', 'umbrastag', 'mycol', 'worm', 'gorem'],
+  ['magdoll', 'umbrastag', 'arcanacauldron_wood', 'worm', 'gorem'],
   ['magdoll', 'chronosnail', 'arcanacauldron', 'gia', 'gorem'],
   ['gost', 'umbrastag', 'mycol', 'vespar', 'raiga']
 ];
