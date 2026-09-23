@@ -260,11 +260,8 @@ export const CUSTOM_RAIDS = [
         "enemies": [
           {
             "id": "lilim_noctia",
-            "form": 1,
-            "mult": {
-              "hp": 0.688,
-              "atk": 0.833
-            },
+            "form": 0,
+            "mult": 1,
             "sprite": "assets/chars/lilim_noctia_1.webp"
           }
         ],
