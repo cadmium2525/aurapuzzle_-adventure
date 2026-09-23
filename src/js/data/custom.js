@@ -1160,6 +1160,15 @@ export const CUSTOM_SETTINGS = {
           "totalLimit": 5
         },
         {
+          "id": "hw2026_home",
+          "type": "homeTheme",
+          "themeId": "halloween_2026",
+          "name": "ハロウィン仕様のホーム画面",
+          "image": "assets/ui/halloween_home.webp",
+          "price": 300,
+          "totalLimit": 1
+        },
+        {
           "id": "hw2026_star",
           "type": "material",
           "matId": "mt_star",
