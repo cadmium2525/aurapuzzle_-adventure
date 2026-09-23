@@ -7,6 +7,7 @@ import { onChange, pendingCount } from './draft.js';
 
 import home from './views/home.js';
 import enemies from './views/enemies.js';
+import encounters from './views/encounters.js';
 import raids from './views/raids.js';
 import characters from './views/characters.js';
 import gacha from './views/gacha.js';
@@ -16,9 +17,9 @@ import tools from './views/tools.js';
 import release from './views/release.js';
 import events from './views/events.js';
 
-const SCREENS = { home, enemies, raids, characters, gacha, skills, gifts, tools, release, events };
+const SCREENS = { home, enemies, encounters, raids, characters, gacha, skills, gifts, tools, release, events };
 const TITLES = {
-  home: '管理ツール', enemies: 'モンスター', raids: '降臨ダンジョン',
+  home: '管理ツール', enemies: 'モンスター', encounters: '出現管理', raids: '降臨ダンジョン',
   characters: 'キャラクター', gacha: 'ガチャ', skills: 'スキル一覧',
   gifts: 'プレゼント', tools: '点検', release: 'リリース', events:'期間限定イベント'
 };

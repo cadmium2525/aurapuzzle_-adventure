@@ -7,6 +7,7 @@ export * from './characters.js';
 export * from './skills.js';
 export * from './enemies.js';
 import { ENEMIES } from './enemies.js';
+import { enemyFormOf } from './enemy-master.js';
 
 import { CHARACTERS, MAX_GACHA_RARITY, FEATURED_CHARACTER } from './characters.js';
 import { CUSTOM_SETTINGS } from './custom.js';
@@ -141,41 +142,52 @@ const TECH_CHAPTER_NAMES = [
   '鉄壁の試練', '沈黙の試練', '重圧の試練', '混沌の試練', '極まりの試練'
 ];
 const TECH_STAGE_SUFFIX = ['初門', '二門', '三門', '四門', '極門'];
-const TECH_SHAPES = ['L', 'cross', 'square', 'line'];
-
 export function techChapterNameOf(ch) { return TECH_CHAPTER_NAMES[ch - 1] || ''; }
 /** その階層の最終ステージID(クリアで次の階層が解禁される) */
 export function techChapterLastStageId(ch) { return TECH_ID_BASE + ch * TECH_STAGES_PER_CHAPTER; }
 
-/**
- * フロア1つぶんの特殊行動。10種類を順に巡らせるので、
- * 1ステージ(5フロア)で5種類、2ステージで一巡する。
- *
- * ずっと続くのは耐えきれる3種類だけ(連鎖ガード・根性・ビルドアップ)。
- * 形ガードや吸収をフロアの間ずっと続けると、手持ちのオーラ次第で
- * 手も足も出なくなるので、こちらはターン数を区切って先制で撃たせる。
- *
- * @param {number} kind 0〜9 の種類
- * @param {number} lv   階層(1〜10)。奥ほど条件が厳しくなる
- * @param {number} seed 色や形を散らすための通し番号
- */
-function techSkills(kind, lv, seed) {
-  const aura = seed % 5;
-  const hit = effect => ({ preemptive: { effects: [effect] } });
-  switch (kind) {
-    case 0: return { passives: [{ type: 'comboGuard', chains: 2 + Math.ceil(lv / 3) }] };
-    case 1: return hit({ type: 'shapeGuard', shape: TECH_SHAPES[seed % TECH_SHAPES.length],
-      turns: 2 + Math.floor(lv / 4) });
-    case 2: return hit({ type: 'auraAbsorb', aura, turns: 2 + Math.floor(lv / 4) });
-    case 3: return hit({ type: 'bind', count: 1 + Math.floor(lv / 6), turns: 1 + Math.floor(lv / 4) });
-    case 4: return hit({ type: 'skillDelay', count: 2 + Math.floor(lv / 5), turns: 1 + Math.floor(lv / 6) });
-    case 5: return hit({ type: 'timeReduce', seconds: 1 + Math.floor(lv / 5), turns: 2 + Math.floor(lv / 3) });
-    case 6: return hit({ type: 'timeFixed', seconds: Math.max(3, 6 - Math.floor(lv / 3)),
-      turns: 1 + Math.floor(lv / 4) });
-    case 7: return { passives: [{ type: 'resolve', threshold: 25 + lv * 2 }] };
-    case 8: return { passives: [{ type: 'buildUp' }] };
-    default: return hit({ type: 'auraBind', aura, turns: 1 + Math.floor(lv / 4) });
-  }
+/** 特殊ダンジョンは明示したIDだけ出す。新規登録しても勝手には混ざらない。 */
+const DEFAULT_TECH_ENCOUNTER_IDS = [
+  ['arcanacauldron', 'raiga', 'gost', 'chronosnail', 'monolith'],
+  ['arcanacauldron', 'mirrorjelly', 'umbrastag', 'raiga', 'glyphowl'],
+  ['raiga', 'umbrastag', 'gost', 'mycol', 'umbrastag'],
+  ['chronosnail', 'gia', 'arcanacauldron', 'raiga', 'kongou'],
+  ['mirrorjelly', 'worm', 'mirrorjelly', 'raiga', 'worm'],
+  ['gorem', 'glyphowl', 'monolith', 'gorem', 'kongou'],
+  ['gost', 'umbrastag', 'arcanacauldron', 'mycol', 'gost'],
+  ['arcanacauldron', 'mycol', 'vespar', 'chronosnail', 'gorem'],
+  ['mycol', 'vespar', 'glyphowl', 'mirrorjelly', 'kongou'],
+  ['monolith', 'gorem', 'worm', 'glyphowl', 'kongou']
+];
+
+const isRegularEnemy = id => {
+  const shape = enemyFormOf(id);
+  return !!(shape && !shape.boss && shape.sprite);
+};
+const hasSpecialAction = id => {
+  if (!isRegularEnemy(id)) return false;
+  const skills = enemyFormOf(id).enemySkills;
+  return !!(skills && (skills.preemptive || skills.passives?.length || skills.actions?.some(a => a.effects?.length)
+    || skills.buildUpBelow != null));
+};
+const configuredEncounters = CUSTOM_SETTINGS.specialEncounters || {};
+const configuredTech = configuredEncounters.technical;
+export const TECH_ENCOUNTER_IDS = Object.freeze(
+  (Array.isArray(configuredTech) && configuredTech.length === TECH_CHAPTER_COUNT
+    && configuredTech.every(ids => Array.isArray(ids) && ids.length === FLOORS_PER_STAGE
+      && ids.every(hasSpecialAction)) ? configuredTech : DEFAULT_TECH_ENCOUNTER_IDS)
+    .map(ids => Object.freeze([...ids]))
+);
+
+/** ステージはHP/攻撃力だけ調整し、行動は常に敵マスターから複製する。 */
+function specialEnemy(id) {
+  const shape = enemyFormOf(id);
+  if (!shape || shape.boss || !shape.sprite) throw new Error(`特殊ダンジョンの敵IDが不正: ${id}`);
+  return {
+    enemyId: id, name: shape.name, sprite: shape.sprite, emoji: shape.emoji,
+    interval: shape.interval,
+    ...(shape.enemySkills ? { enemySkills: structuredClone(shape.enemySkills) } : {})
+  };
 }
 
 export const TECHNICAL_STAGES = (() => {
@@ -186,18 +198,13 @@ export const TECHNICAL_STAGES = (() => {
       const step = order - 1;                                  // 0始まりの通し難易度
       const floors = [];
       for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
-        const seed = step * FLOORS_PER_STAGE + (f - 1);
-        const enemy = ENEMIES[(seed * 3 + 1) % ENEMIES.length];
+        // 階層ごとの5体を、ステージごとに開始位置だけずらして出現させる。
+        const enemy = specialEnemy(TECH_ENCOUNTER_IDS[ch - 1][(i + f - 2) % FLOORS_PER_STAGE]);
         floors.push({
-          enemyId: enemy.id,
-          name: enemy.name,
-          emoji: ENEMY_EMOJIS[(seed * 3 + 1) % ENEMY_EMOJIS.length],
-          sprite: enemy.sprite,
+          ...enemy,
           // ボスがいないので、フロアごとの山谷は付けず素直に上げていく
           hp: Math.round(200 + step * 250 + (f - 1) * (90 + step * 22)),
-          atk: Math.round(10 + step * 8 + (f - 1) * (3.5 + step * 0.7)),
-          interval: 2,
-          enemySkills: techSkills(seed % 10, ch, seed)
+          atk: Math.round(10 + step * 8 + (f - 1) * (3.5 + step * 0.7))
         });
       }
       list.push({
@@ -253,6 +260,24 @@ const DAILY_TIERS = [
   { tier: 3, name: '上級', rank: 18, stamina: 25, mult: 5,   hp: 9000,  atk: 190 }
 ];
 
+/** 曜日別の5フロア。初・中・上級で敵の種類と技は変えず、数値だけ変える。 */
+const DEFAULT_DAILY_ENCOUNTER_IDS = [
+  ['valgas', 'arcanacauldron', 'gost', 'chronosnail', 'glyphowl'],
+  ['nereia', 'mirrorjelly', 'umbrastag', 'gost', 'raiga'],
+  ['valgas', 'magdoll', 'arcanacauldron', 'raiga', 'gia'],
+  ['nereia', 'mirrorjelly', 'chronosnail', 'worm', 'gia'],
+  ['magdoll', 'umbrastag', 'mycol', 'worm', 'gorem'],
+  ['magdoll', 'chronosnail', 'arcanacauldron', 'gia', 'gorem'],
+  ['gost', 'umbrastag', 'mycol', 'vespar', 'raiga']
+];
+const configuredDaily = configuredEncounters.daily;
+export const DAILY_ENCOUNTER_IDS = Object.freeze(
+  (Array.isArray(configuredDaily) && configuredDaily.length === 7
+    && configuredDaily.every(ids => Array.isArray(ids) && ids.length === FLOORS_PER_STAGE
+      && ids.every(isRegularEnemy)) ? configuredDaily : DEFAULT_DAILY_ENCOUNTER_IDS)
+    .map(ids => Object.freeze([...ids]))
+);
+
 /** その曜日に挑めるステージ一覧を返す(idは 1000番台で通常ステージと分ける) */
 export function dailyStagesFor(day) {
   const t = DAILY_THEMES[day];
@@ -261,15 +286,11 @@ export function dailyStagesFor(day) {
     const floors = [];
     for (let f = 1; f <= FLOORS_PER_STAGE; f++) {
       const isBoss = f === FLOORS_PER_STAGE;
-      const enemy = ENEMIES[(day * 3 + d.tier + f) % ENEMIES.length];
+      const enemy = specialEnemy(DAILY_ENCOUNTER_IDS[day][f - 1]);
       floors.push({
-        enemyId: enemy.id,
-        name: enemy.name,
-        emoji: ENEMY_EMOJIS[(day * 3 + d.tier + f) % ENEMY_EMOJIS.length],
-        sprite: enemy.sprite,
+        ...enemy,
         hp: Math.round((d.hp + (f - 1) * d.hp * 0.25) * (isBoss ? 1.6 : 1)),
-        atk: Math.round(d.atk + (f - 1) * d.atk * 0.15),
-        interval: isBoss ? 1 : 2
+        atk: Math.round(d.atk + (f - 1) * d.atk * 0.15)
       });
     }
     return {

@@ -91,6 +91,36 @@ function checkAll() {
     enemyIds.add(e.id);
   });
 
+  /* --- 特殊ダンジョンの出現表 --- */
+  const effectiveEnemy = new Map(G.ENEMY_MASTER_IDS.map(id => [id, G.enemyFormOf(id)]));
+  d.enemies.forEach(e => effectiveEnemy.set(e.id,
+    e.forms ? { ...e.forms[0], boss: true } : e));
+  const regular = id => {
+    const enemy = effectiveEnemy.get(id);
+    return !!(enemy && !enemy.boss && enemy.sprite);
+  };
+  const special = id => {
+    if (!regular(id)) return false;
+    const skills = effectiveEnemy.get(id).enemySkills;
+    return !!(skills && (skills.preemptive || skills.passives?.length
+      || skills.actions?.some(action => action.effects?.length) || skills.buildUpBelow != null));
+  };
+  const encounterSettings = d.settings?.specialEncounters || G.CUSTOM_SETTINGS.specialEncounters || {};
+  const techRows = encounterSettings.technical || G.TECH_ENCOUNTER_IDS;
+  const dailyRows = encounterSettings.daily || G.DAILY_ENCOUNTER_IDS;
+  if (!Array.isArray(techRows) || techRows.length !== 10
+    || techRows.some(ids => !Array.isArray(ids) || ids.length !== 5)) {
+    warn('ng', 'テクニカル出現表', '10階層それぞれに5体が必要です');
+  } else techRows.forEach((ids, chapter) => ids.forEach(id => {
+    if (!special(id)) warn('ng', `テクニカル${chapter + 1}階層`, `${id} は通常敵でないか、特殊行動がありません`);
+  }));
+  if (!Array.isArray(dailyRows) || dailyRows.length !== 7
+    || dailyRows.some(ids => !Array.isArray(ids) || ids.length !== 5)) {
+    warn('ng', '曜日出現表', '7曜日それぞれに5体が必要です');
+  } else dailyRows.forEach((ids, day) => ids.forEach(id => {
+    if (!regular(id)) warn('ng', `${G.DAILY_THEMES[day].label}曜出現表`, `${id} は通常敵ではありません`);
+  }));
+
   /* --- 降臨 --- */
   const raidIds = new Map();
   G.RAID_STAGES.forEach(r => raidIds.set(String(r.id), 'ゲーム本体'));

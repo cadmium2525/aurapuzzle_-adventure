@@ -47,6 +47,16 @@ const BUILTIN = {
     enemySkills: { preemptive: { effects: [{ type: 'timeFixed', seconds: 5, turns: 3 }, guard(3)] } } },
   gost: { hp: 3800, atk: 80, interval: 2,
     enemySkills: { preemptive: { effects: [{ type: 'skillDelay', count: 1, turns: 1 }] } } },
+  glyphowl: { emoji: '🦉', hp: 5200, atk: 95, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'shapeGuard', shape: 'L', turns: 2 }] } } },
+  umbrastag: { emoji: '🦌', hp: 4700, atk: 100, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'auraBind', aura: 1, turns: 2 }] } } },
+  chronosnail: { emoji: '🐌', hp: 5500, atk: 90, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'timeFixed', seconds: 6, turns: 2 }] } } },
+  mirrorjelly: { emoji: '🪼', hp: 4800, atk: 85, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'auraAbsorb', aura: 1, turns: 3 }] } } },
+  arcanacauldron: { emoji: '🫕', hp: 5700, atk: 105, interval: 2,
+    enemySkills: { preemptive: { effects: [{ type: 'recoveryReduce', percent: 30, turns: 3 }] } } },
 
   /* --- 九狐。変身するボスなので forms を持つ --- */
   kyuko: {

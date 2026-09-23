@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v83';
+const CACHE_NAME = 'aura-connect-v84';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -14,6 +14,11 @@ const ASSETS = [
   './assets/enemy/hw_vespar.webp',
   './assets/enemy/hw_magdoll.webp',
   './assets/enemy/hw_valgas.webp',
+  './assets/enemy/glyphowl.webp',
+  './assets/enemy/umbrastag.webp',
+  './assets/enemy/chronosnail.webp',
+  './assets/enemy/mirrorjelly.webp',
+  './assets/enemy/arcanacauldron.webp',
   './assets/battle/aura_atlas.webp',
   './assets/ui/loading.webp',
   './assets/ui/title.webp',

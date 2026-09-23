@@ -1,4 +1,4 @@
-const CACHE_NAME = 'acb-admin-v18';
+const CACHE_NAME = 'acb-admin-v19';
 
 /* 管理ツールの本体。オフラインでも一覧の確認くらいはできるようにする
    (push は当然ネットが要る)。 */
@@ -23,6 +23,7 @@ const ASSETS = [
   './js/gamedata.js',
   './js/views/home.js',
   './js/views/enemies.js',
+  './js/views/encounters.js',
   './js/views/raids.js',
   './js/views/characters.js',
   './js/views/gacha.js',

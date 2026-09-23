@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import {
   ENEMY_MASTER, enemyMasterById, enemyFormOf, formCountOf, spawnEnemy, isBossEnemy
 } from '../src/js/data/enemy-master.js';
-import { ENEMIES } from '../src/js/data/enemies.js';
+import { ENEMIES, buildEnemyPool } from '../src/js/data/enemies.js';
 import { KYUKO_RAID, RAID_STAGES } from '../src/js/data/raids.js';
 import { CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS } from '../src/js/data/custom.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { URL } from 'node:url';
 
 test('custom.js は3つのキーを必ず配列で持つ(管理者ツールが壊れた形を書いたら気づく)', () => {
   [CUSTOM_ENEMIES, CUSTOM_RAIDS, CUSTOM_CHARACTERS].forEach(v => assert.ok(Array.isArray(v)));
@@ -51,6 +54,37 @@ test('変身するボスは姿ごとに別のステータスと台詞を持つ',
   assert.equal(enemyFormOf('kyuko', 99).name, before.name);
 });
 
+test('管理者ツールによる既存敵の改名・ボス化は通常抽選にも反映される', () => {
+  const builtins = [
+    { id: 'first', name: '旧名', sprite: 'old.webp' },
+    { id: 'second', name: '通常敵', sprite: 'second.webp' }
+  ];
+  const custom = [
+    { id: 'first', name: '新名', sprite: 'new.webp' },
+    { id: 'second', boss: true, sprite: 'boss.webp' },
+    { id: 'third', name: '追加敵', sprite: 'third.webp' }
+  ];
+  assert.deepEqual(buildEnemyPool(builtins, custom), [
+    { id: 'first', name: '新名', sprite: 'new.webp' },
+    { id: 'third', name: '追加敵', sprite: 'third.webp' }
+  ]);
+});
+
+test('新しい5体は固有のWebP画像と固有の特殊行動を持つ', () => {
+  const ids = ['glyphowl', 'umbrastag', 'chronosnail', 'mirrorjelly', 'arcanacauldron'];
+  const effects = new Set();
+  ids.forEach(id => {
+    const shape = enemyFormOf(id);
+    assert.ok(shape && shape.name && shape.enemySkills, `${id} のマスターが未登録`);
+    const file = fileURLToPath(new URL(`../${shape.sprite}`, import.meta.url));
+    const header = readFileSync(file).subarray(0, 12);
+    assert.equal(header.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(header.toString('ascii', 8, 12), 'WEBP');
+    effects.add(shape.enemySkills.preemptive.effects[0].type);
+  });
+  assert.equal(effects.size, ids.length, '新しい敵の先制技が重複している');
+});
+
 test('ボスは通常系ダンジョンの自動抽選から除外され、明示配置はできる', () => {
   const bosses = Object.keys(ENEMY_MASTER).filter(isBossEnemy);
   assert.ok(bosses.includes('kyuko'));
@@ -70,6 +104,31 @@ test('ノーマル・テクニカル・曜日の生成済みフロアにもボ�
     assert.equal(isBossEnemy(floor.enemyId), false,
       `${stage.name} にボス ${floor.enemyId} が自動配置されている`);
   }));
+});
+
+test('特殊ダンジョンの出現表は固定され、技は敵マスターと一致する', async () => {
+  const { TECHNICAL_STAGES, TECH_ENCOUNTER_IDS, DAILY_ENCOUNTER_IDS, dailyStagesFor } =
+    await import('../src/js/data/gamedata.js');
+  TECHNICAL_STAGES.forEach((stage, stageIndex) => {
+    stage.floors.forEach((floor, floorIndex) => {
+      const chapter = Math.floor(stageIndex / 5);
+      const withinChapter = stageIndex % 5;
+      assert.equal(floor.enemyId, TECH_ENCOUNTER_IDS[chapter][(withinChapter + floorIndex) % 5]);
+      assert.ok(floor.enemySkills, `${floor.enemyId} に特殊行動が無い`);
+      assert.deepEqual(floor.enemySkills, enemyFormOf(floor.enemyId).enemySkills);
+      assert.equal(floor.interval, enemyFormOf(floor.enemyId).interval);
+      assert.notStrictEqual(floor.enemySkills, enemyFormOf(floor.enemyId).enemySkills);
+    });
+  });
+  for (let day = 0; day < 7; day++) {
+    for (const stage of dailyStagesFor(day)) {
+      assert.deepEqual(stage.floors.map(floor => floor.enemyId), DAILY_ENCOUNTER_IDS[day]);
+      stage.floors.forEach(floor => {
+        assert.deepEqual(floor.enemySkills, enemyFormOf(floor.enemyId).enemySkills);
+        assert.equal(floor.interval, enemyFormOf(floor.enemyId).interval);
+      });
+    }
+  }
 });
 
 test('九狐降臨は5フロアで、ボスの2フロアが変身前後になっている', () => {

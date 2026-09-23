@@ -9,18 +9,34 @@ const BUILTIN = [
   { id: 'kongou', name: 'コンゴウ', sprite: 'assets/enemy/kongou.webp' },
   { id: 'monolith', name: 'モノリス', sprite: 'assets/enemy/monolith.webp' },
   { id: 'raiga', name: 'ボルトウルフ', sprite: 'assets/enemy/raiga.webp' },
-  { id: 'worm', name: 'ワーム', sprite: 'assets/enemy/worm.webp' }
+  { id: 'worm', name: 'ワーム', sprite: 'assets/enemy/worm.webp' },
+  { id: 'glyphowl', name: '符紋梟グリフ', sprite: 'assets/enemy/glyphowl.webp' },
+  { id: 'umbrastag', name: '影角鹿ウンブラ', sprite: 'assets/enemy/umbrastag.webp' },
+  { id: 'chronosnail', name: '時砂の巻貝クロノ', sprite: 'assets/enemy/chronosnail.webp' },
+  { id: 'mirrorjelly', name: '鏡海月ミラージュ', sprite: 'assets/enemy/mirrorjelly.webp' },
+  { id: 'arcanacauldron', name: '魔薬釜アルカナ', sprite: 'assets/enemy/arcanacauldron.webp' }
 ];
 
-/* 管理者ツールで足した通常モンスターも、絵のあるものは同じ並びに載せる。
-   ENEMIES はノーマル・テクニカル・曜日ダンジョンの自動抽選に使われるため、
-   ボスは必ず除外する。forms は boss 属性導入前のデータを守る互換判定。 */
-const ADDED = (CUSTOM_ENEMIES || [])
-  .filter(e => e && e.id && e.sprite && !e.boss && !e.forms
-    && !BUILTIN.some(b => b.id === e.id))
-  .map(e => ({ id: e.id, name: e.name || e.id, sprite: e.sprite }));
+/* ENEMIES はノーマルダンジョンの自動抽選だけに使う。
+   既存IDを管理者ツールで編集した場合も、名前・画像・ボス分類を反映する。
+   テクニカル・曜日・降臨・イベントは専用の出現表または明示フロアを使う。 */
+export function buildEnemyPool(builtins, additions) {
+  const customById = new Map((additions || []).filter(e => e && e.id).map(e => [e.id, e]));
+  const visible = builtins.flatMap(base => {
+    const override = customById.get(base.id);
+    // forms は boss 属性導入前のデータを守る互換判定
+    if (override?.boss || override?.forms) return [];
+    return [{ id: base.id, name: override?.name || base.name, sprite: override?.sprite || base.sprite }];
+  });
+  const builtinIds = new Set(builtins.map(e => e.id));
+  for (const enemy of customById.values()) {
+    if (builtinIds.has(enemy.id) || !enemy.sprite || enemy.boss || enemy.forms) continue;
+    visible.push({ id: enemy.id, name: enemy.name || enemy.id, sprite: enemy.sprite });
+  }
+  return visible;
+}
 
-export const ENEMIES = BUILTIN.concat(ADDED);
+export const ENEMIES = buildEnemyPool(BUILTIN, CUSTOM_ENEMIES);
 
 export function enemyById(id) {
   return ENEMIES.find(enemy => enemy.id === id) || null;

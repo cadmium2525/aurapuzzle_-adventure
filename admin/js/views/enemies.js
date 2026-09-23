@@ -181,7 +181,7 @@ function renderEditor(view) {
       <label class="field"><span>
         <input type="checkbox" id="bossFlag"${w.boss ? ' checked' : ''} style="width:auto;margin-right:6px">
         ボスとして扱う</span>
-        <small>ノーマル・テクニカル・曜日の自動抽選から除外します。降臨やボスラッシュには明示して配置できます。</small>
+        <small>ノーマルの自動抽選から除外します。テクニカル・曜日は「出現管理」で明示配置し、降臨やボスラッシュは各フロアで指定します。</small>
       </label>
 
       <h3 style="margin-top:14px">変身</h3>
