@@ -362,6 +362,7 @@ export const CUSTOM_RAIDS = [
       "id": "mt_halloween_candy",
       "amount": 10
     },
+    "battleBackground": "assets/ui/halloween_battle.webp",
     "coinReward": 600,
     "orbReward": 0,
     "expReward": 25,
@@ -385,7 +386,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.12,
               "atk": 0.35
-            }
+            },
+            "sprite": "assets/enemy/hw_gost.webp"
           }
         ]
       },
@@ -397,7 +399,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.15,
               "atk": 0.4
-            }
+            },
+            "sprite": "assets/enemy/hw_gost.webp"
           }
         ]
       },
@@ -408,8 +411,9 @@ export const CUSTOM_RAIDS = [
             "form": 0,
             "mult": {
               "hp": 0.2,
-              "atk": 0.45
-            }
+              "atk": 0.452
+            },
+            "sprite": "assets/enemy/hw_valgas.webp"
           }
         ],
         "dialogue": "お菓子の門番を越えて、パーティ会場へ！"
@@ -430,6 +434,7 @@ export const CUSTOM_RAIDS = [
       "id": "mt_halloween_candy",
       "amount": 25
     },
+    "battleBackground": "assets/ui/halloween_battle.webp",
     "coinReward": 1500,
     "orbReward": 0,
     "expReward": 50,
@@ -453,7 +458,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.3,
               "atk": 0.65
-            }
+            },
+            "sprite": "assets/enemy/hw_gost.webp"
           }
         ]
       },
@@ -465,7 +471,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.3,
               "atk": 0.65
-            }
+            },
+            "sprite": "assets/enemy/hw_mycol.webp"
           }
         ]
       },
@@ -476,8 +483,9 @@ export const CUSTOM_RAIDS = [
             "form": 0,
             "mult": {
               "hp": 0.3,
-              "atk": 0.65
-            }
+              "atk": 0.653
+            },
+            "sprite": "assets/enemy/hw_vespar.webp"
           }
         ]
       },
@@ -488,8 +496,9 @@ export const CUSTOM_RAIDS = [
             "form": 0,
             "mult": {
               "hp": 0.45,
-              "atk": 0.65
-            }
+              "atk": 0.652
+            },
+            "sprite": "assets/enemy/hw_valgas.webp"
           }
         ],
         "dialogue": "いたずら好きの門番が、キャンディの山を守っている！"
@@ -510,6 +519,7 @@ export const CUSTOM_RAIDS = [
       "id": "mt_halloween_candy",
       "amount": 50
     },
+    "battleBackground": "assets/ui/halloween_battle.webp",
     "coinReward": 3000,
     "orbReward": 0,
     "expReward": 80,
@@ -533,7 +543,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.6,
               "atk": 1
-            }
+            },
+            "sprite": "assets/enemy/hw_gost.webp"
           }
         ]
       },
@@ -545,7 +556,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.6,
               "atk": 1
-            }
+            },
+            "sprite": "assets/enemy/hw_vespar.webp"
           }
         ]
       },
@@ -557,7 +569,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.6,
               "atk": 1
-            }
+            },
+            "sprite": "assets/enemy/hw_mycol.webp"
           }
         ]
       },
@@ -569,7 +582,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.6,
               "atk": 1
-            }
+            },
+            "sprite": "assets/enemy/hw_magdoll.webp"
           }
         ]
       },
@@ -581,7 +595,8 @@ export const CUSTOM_RAIDS = [
             "mult": {
               "hp": 0.9,
               "atk": 1.2
-            }
+            },
+            "sprite": "assets/enemy/hw_valgas.webp"
           }
         ],
         "intro": "warning",
