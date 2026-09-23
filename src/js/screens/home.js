@@ -16,6 +16,7 @@ import { homeCharacters } from '../core/state.js';
 import { AURAS, COLOR_HEX } from '../data/gamedata.js';
 import { homeBanners, BANNER_INTERVAL } from '../data/banners.js';
 import { updatePresentBadge } from './present.js';
+import { activeHomeTheme, ownedHomeThemes, setHomeTheme, DEFAULT_HOME_THEME } from '../core/home-theme.js';
 
 /** 前面に出す人(編成内の位置)。表示上の状態なのでセーブには持たせない */
 let frontIndex = 0;
@@ -68,6 +69,7 @@ function applyPositions(mons) {
 export function renderHome() {
   renderBanners();
   updatePresentBadge();
+  renderHomeTheme();
   const mons = homeCharacters();
   const art = $('homePartyArt');
   const navs = [$('homePrevBtn'), $('homeNextBtn')];
@@ -86,6 +88,20 @@ export function renderHome() {
   const key = mons.map(memberKey).join('|');
   if (key !== builtKey) { build(art, mons); builtKey = key; }
   applyPositions(mons);
+}
+
+/** 背景は固定のキャラ配置の後ろにだけ敷く。イベント終了後も切替可能。 */
+function renderHomeTheme() {
+  const theme = activeHomeTheme();
+  const button = $('homeThemeBtn');
+  const owned = ownedHomeThemes();
+  const image = theme ? new URL(`../../../${theme.image}`, import.meta.url) : null;
+  if (image) document.documentElement.style.setProperty('--home-bg-image', `url("${image.href}")`);
+  else document.documentElement.style.removeProperty('--home-bg-image');
+  document.body.classList.toggle('home-theme-active', !!theme);
+  button.hidden = owned.length === 0;
+  button.textContent = theme ? '🎃 通常背景へ' : '🎃 限定背景へ';
+  button.setAttribute('aria-label', theme ? '通常のホーム背景に切り替える' : 'ハロウィンのホーム背景に切り替える');
 }
 
 /** 前面に出す人をずらす(リーダーは変わらない) */
@@ -189,6 +205,10 @@ export function stopBannerRotation() {
 export function initHome() {
   $('homePrevBtn').addEventListener('click', () => shiftFront(-1));
   $('homeNextBtn').addEventListener('click', () => shiftFront(1));
+  $('homeThemeBtn').addEventListener('click', () => {
+    const next = activeHomeTheme() ? DEFAULT_HOME_THEME : ownedHomeThemes()[0]?.themeId;
+    if (next && setHomeTheme(next)) renderHomeTheme();
+  });
   // 裏に回ったまま切り替え続けても意味がないので、戻ってきたら再開する
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) stopBannerRotation();

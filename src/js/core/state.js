@@ -84,7 +84,7 @@ function createInitialState() {
     login: { date: '', streak: 0 },    // 最後にログインボーナスを配った日と連続日数
     shopLog: { date: '', counts: {} }, // 1日に買える数に上限がある商品の、今日ぶんの購入数
     shopTotal: {},                     // 買い切り商品の通算購入数(日付では戻らない)
-    settings: { bgm: 60, se: 80, playerId: uid() },
+    settings: { bgm: 60, se: 80, playerId: uid(), homeThemeId: 'default' },
     profile: {
       name: 'プレイヤー',
       icon: DEFAULT_ICONS[0],

@@ -143,6 +143,12 @@ function checkAll() {
   const materialIds = new Set(G.MATERIALS.map(m => m.id));
   const events = st.events || G.CUSTOM_SETTINGS.events || [];
   events.forEach(e=>{if(e.currency?.id)materialIds.add(e.currency.id);});
+  events.forEach(e=>(e.shop || []).filter(i=>i.type==='homeTheme').forEach(i=>{
+    if (!i.themeId || !i.name || i.totalLimit!==1 || !/^assets\/ui\/[a-zA-Z0-9_/-]+\.webp$/.test(i.image || ''))
+      warn('ng', `イベント ${e.id}`, `ホーム背景商品 ${i.id || ''} の設定が不正です`);
+    if (i.image && !heldImages.has(i.image) && !(G.CUSTOM_SETTINGS.events || []).some(old=>(old.shop || []).some(product=>product.image===i.image)))
+      warn('warn', `イベント ${e.id}`, `ホーム背景 ${i.image} をまだアップロードしていません`);
+  }));
   [...d.characters,...d.raids].forEach(item=>{
     if (!validPublication(item)) warn('ng',item.id,'公開期間が不正です');
     if (item.eventId && !events.some(e=>e.id===item.eventId)) warn('ng',item.id,'紐づくイベントがありません');
@@ -166,7 +172,8 @@ function checkAll() {
     (r.floors || []).forEach(f => (f.enemies || []).forEach(s => { if (s.sprite) referenced.add(s.sprite); }));
   });
   if (st.gachaBanner) referenced.add(st.gachaBanner);
-  events.forEach(e=>{if(e.banner)referenced.add(e.banner);if(e.currency?.icon)referenced.add(e.currency.icon);});
+  events.forEach(e=>{if(e.banner)referenced.add(e.banner);if(e.currency?.icon)referenced.add(e.currency.icon);
+    (e.shop || []).filter(i=>i.type==='homeTheme' && i.image).forEach(i=>referenced.add(i.image));});
   blobEntries().forEach(([path]) => {
     // アトラスとその索引は焼き直しの成果物なので、参照が無くて当たり前
     if (GENERATED.has(path)) return;

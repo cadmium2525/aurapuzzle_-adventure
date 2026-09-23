@@ -53,6 +53,13 @@ function present(item) {
       desc: `${AURAS[ch.aura].emoji}${AURAS[ch.aura].name} ・ ${RARITY_TITLE[ch.rarity]} ・ ATK ${ch.atk} / HP ${ch.hp}`
     };
   }
+  if (item.type === 'homeTheme') {
+    return {
+      visual: `<img class="shop-home-preview" src="./${item.image}" alt="">`,
+      name: item.name, plain: item.name,
+      desc: 'ホーム背景を解放 ・ 交換後もいつでも切替可能'
+    };
+  }
   if (item.type === 'orb') {
     // コインをダイヤに替える唯一の道。1日1個までで蛇口を止めている
     return { visual: itemIcon('orb', 'shop'), name: 'オーブ小袋', plain: 'オーブ小袋',
@@ -75,6 +82,7 @@ function grant(item) {
   const matId = materialIdOf(item);
   if (matId) { addMaterials({ [matId]: item.amount }); return; }
   if (item.type === 'character') addCharacter(item.charId);
+  if (item.type === 'homeTheme') state.settings.homeThemeId = item.themeId;
   if (item.type === 'orb') state.orb += item.amount;
   if (item.type === 'frepo') state.frepo += item.amount;
   if (item.type === 'stamina') state.stamina += item.amount;

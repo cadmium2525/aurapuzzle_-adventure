@@ -27,6 +27,7 @@ const ASSETS = [
   './src/js/core/audio.js',
   './src/js/core/boot.js',
   './src/js/core/state.js',
+  './src/js/core/home-theme.js',
   './src/js/core/account.js',
   './src/js/core/version.js',
   './src/js/core/recovery.js',

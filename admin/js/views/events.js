@@ -18,7 +18,8 @@ export default {render(view) {
     ${field('交換素材画像パス','currencyIcon',e.currency.icon || '')}<label class="drop">交換素材画像をWebPに変換<input type="file" id="currencyFile" accept="image/*"></label>
     ${field('イベントバナーのパス','banner',e.banner || '')}<label class="drop">バナーをWebPに変換<input type="file" id="eventBannerFile" accept="image/*"></label>
     ${field('交換商品（JSON配列）','shop',JSON.stringify(e.shop,null,2),{type:'textarea',rows:12})}
-    <p class="lead small">商品: id, type (character / material), charId または matId, amount, price（キャンディ数）, totalLimit。商品IDはイベントごとに一意にしてください。キャラとダンジョンは各タブのイベントID欄で紐づけます。</p>
+    <p class="lead small">商品: id, type (character / material / homeTheme), price（交換素材数）, totalLimit。キャラは charId、素材は matId と amount、ホーム背景は themeId・name・image（assets/ui/以下のWebPパス）を指定。背景は買い切りなので totalLimit: 1 にしてください。商品IDはイベントごとに一意にしてください。</p>
+    <label class="drop">ホーム背景画像をWebPに変換（商品JSONの image パスへ保存）<input type="file" id="homeThemeFile" accept="image/*"></label>
     <button class="btn primary" id="saveEvent">下書きに保存</button><button class="btn" id="cancelEvent">戻る</button>`);
   const collect=()=>{
     const v=readForm(view);
@@ -36,7 +37,12 @@ export default {render(view) {
       ids.add(i.id);
       if (i.type==='character') { if (![...G.CHARACTERS,...draft().characters].some(c=>c.id===i.charId)) throw Error(`キャラ ${i.charId} を先に登録してください`); }
       else if (i.type==='material') { if (!G.materialById(i.matId) || !Number.isInteger(i.amount) || i.amount<1) throw Error('素材と数量を確認してください'); }
-      else throw Error('商品のtypeはcharacterまたはmaterialです');
+      else if (i.type==='homeTheme') {
+        if (!/^[a-z][a-z0-9_]+$/.test(i.themeId || '') || !i.name ||
+            !/^assets\/ui\/[a-zA-Z0-9_/-]+\.webp$/.test(i.image || '') || i.totalLimit !== 1)
+          throw Error('ホーム背景は themeId・name・assets/ui/以下のWebPパス・通算上限1を指定してください');
+      }
+      else throw Error('商品のtypeはcharacter / material / homeTheme から選んでください');
     }
     setSetting('events',[...all().filter(x=>x.id!==e.id),structuredClone(e)]);editing=null;toast('イベントを下書きに保存しました','ok');this.render(view);
   }catch(err){toast(err.message,'ng');}};
@@ -46,6 +52,14 @@ export default {render(view) {
       const path=kind==='currency' ? e.currency.icon : e.banner;
       if(!/^assets\/[a-zA-Z0-9_/-]+\.webp$/.test(path)) throw Error('保存先はassets/以下のWebPパスを指定してください');
       putBlob(path,kind==='currency' ? await toWebp(file,128) : await toBannerWebp(file));toast('WebP画像を下書きに保存しました','ok');
+    }catch(err){toast(err.message,'ng');}
+  };
+  $('homeThemeFile').onchange=async ev=>{
+    try {collect();const file=ev.target.files[0];if(!file)return;
+      const themes=e.shop.filter(i=>i.type==='homeTheme');
+      if (themes.length!==1 || !/^assets\/ui\/[a-zA-Z0-9_/-]+\.webp$/.test(themes[0].image || ''))
+        throw Error('商品JSONにホーム背景を1件登録し、image に assets/ui/以下のWebPパスを指定してください');
+      putBlob(themes[0].image,await toWebp(file,1600));toast('ホーム背景をWebPに変換して下書きに保存しました','ok');
     }catch(err){toast(err.message,'ng');}
   };
 }};
