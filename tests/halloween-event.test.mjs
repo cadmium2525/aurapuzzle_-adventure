@@ -66,7 +66,7 @@ test('every Halloween encounter uses its costume and every floor uses the event 
 });
 test('event exchange has validated finite limits and persistent material/owned masters',()=>{
   const items=eventShopItems().filter(i=>i.eventId===event.id);
-  assert.equal(items.length,5);
+  assert.equal(items.length,6);
   for(const item of items){
     assert.equal(item.currency,event.currency.id);assert.ok(item.price>0);assert.ok(item.totalLimit>0);
     assert.equal(isAvailable(item,start),true);assert.equal(isAvailable(item,end),false);
@@ -74,6 +74,9 @@ test('event exchange has validated finite limits and persistent material/owned m
   }
   const kyuko=items.find(i=>i.charId==='hw_kyuko');
   assert.equal(kyuko.price,500);assert.equal(kyuko.totalLimit,5);
+  const home=items.find(i=>i.type==='homeTheme');
+  assert.equal(home.themeId,'halloween_2026');assert.equal(home.price,300);
+  assert.equal(home.totalLimit,1);assert.ok(existsSync(home.image));
   addMaterials({[event.currency.id]:50});assert.equal(state.materials[event.currency.id],50);
   addCharacter('hw_kyuko');assert.equal(resolveOwned('hw_kyuko').rarity,4);
   assert.ok(eventMaterials().some(m=>m.id===event.currency.id));

@@ -19,18 +19,20 @@ S.state.orb=500;S.state.stamina=999;S.state.profile.name='検証用（保存な�
 const N=await import('/src/js/core/nav.js');
 const E=await import('/src/js/screens/event.js');
 const Shop=await import('/src/js/screens/shop.js');
+const Home=await import('/src/js/screens/home.js');
 const G=await import('/src/js/screens/gacha.js');
 const D=await import('/src/js/screens/dungeon.js');
 const B=await import('/src/js/battle/battle.js');
 N.registerScreen('event',E.renderEvent);N.registerScreen('shop',Shop.renderShop);
+N.registerScreen('home',Home.renderHome);
 N.registerScreen('gacha',G.renderGacha);N.registerScreen('dungeon',D.renderDungeon);
-N.initNav();G.initGacha();D.initDungeon();B.initBattle();
+N.initNav();Home.initHome();G.initGacha();D.initDungeon();B.initBattle();
 const controls=document.createElement('div');
 controls.style='position:relative;background:#30203d;padding:10px;font-size:12px';
-controls.innerHTML=`<b>ローカル検証・セーブ／クラウド接続なし</b><br><select id="testDate"><option value="2026-10-01T00:00:00+09:00">開催中 10/1</option><option value="2026-09-30T23:59:59+09:00">開始直前</option><option value="2026-11-01T00:00:00+09:00">終了時刻</option></select> <button data-test-screen="event">イベント</button> <button data-test-screen="shop">ショップ</button> <button data-test-screen="gacha">ガチャ</button><output id="testInventory"></output>`;
+controls.innerHTML=`<b>ローカル検証・セーブ／クラウド接続なし</b><br><select id="testDate"><option value="2026-10-01T00:00:00+09:00">開催中 10/1</option><option value="2026-09-30T23:59:59+09:00">開始直前</option><option value="2026-11-01T00:00:00+09:00">終了時刻</option></select> <button data-test-screen="event">イベント</button> <button data-test-screen="shop">ショップ</button> <button data-test-screen="home">ホーム</button> <button data-test-screen="gacha">ガチャ</button><output id="testInventory"></output>`;
 document.querySelector('#app').prepend(controls);
 controls.querySelector('#testDate').onchange=e=>{now=Date.parse(e.target.value);N.showScreen('event');};
 controls.querySelectorAll('[data-test-screen]').forEach(b=>b.onclick=()=>N.showScreen(b.dataset.testScreen));
-const report=()=>document.querySelector('#testInventory').textContent=` キャンディ:${S.state.materials.mt_halloween_candy} キュウコ:${S.state.characters.hw_kyuko?.n||0}`;
+const report=()=>document.querySelector('#testInventory').textContent=` キャンディ:${S.state.materials.mt_halloween_candy} キュウコ:${S.state.characters.hw_kyuko?.n||0} 背景:${S.state.settings.homeThemeId||'default'}`;
 S.onSave(report);report();N.showScreen('event');
 </script></body></html>
