@@ -633,7 +633,7 @@ button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:non
   background:
     radial-gradient(ellipse at 50% 26%, rgba(255,107,107,0.16), transparent 62%),
     linear-gradient(180deg, rgba(8,4,20,.30) 0%, rgba(8,4,20,.40) 55%, rgba(8,4,20,.72) 100%),
-    url('../../assets/ui/danjon_bg.webp') center 38% / cover no-repeat,
+    var(--battle-bg-image, url('../../assets/ui/danjon_bg.webp')) center 38% / cover no-repeat,
     linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
   border:0;border-radius:0;
   padding:9px 13px 8px;

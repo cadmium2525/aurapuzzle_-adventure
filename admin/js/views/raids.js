@@ -5,7 +5,7 @@
 import { $, esc, card, toast, field, readForm, clampInt, modal, confirmAsk } from '../ui.js';
 import * as G from '../gamedata.js';
 import { draft, upsert, remove, find, putBlob, getBlob } from '../draft.js';
-import { toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
+import { toWebp, toBannerWebp, previewUrl, humanSize, canEncodeWebp } from '../image.js';
 import { mergeCatalog } from '../draft-catalog.js';
 import { publicationFields, readPublication, validPublication } from '../publication.js';
 
@@ -61,7 +61,8 @@ function backToSpec(enemy) {
   const hp = base.hp ? enemy.hp / base.hp : 1;
   const atk = base.atk ? enemy.atk / base.atk : 1;
   const same = Math.abs(hp - atk) < 0.001;
-  return { id: masterId, form, mult: same ? round3(hp) : { hp: round3(hp), atk: round3(atk) } };
+  return { id: masterId, form, mult: same ? round3(hp) : { hp: round3(hp), atk: round3(atk) },
+    ...(enemy.sprite && enemy.sprite !== base.sprite ? { sprite: enemy.sprite } : {}) };
 }
 const round3 = n => Math.round(n * 1000) / 1000;
 
@@ -146,6 +147,9 @@ function slotRow(spec, fi, si) {
         <input class="mini" type="number" step="0.05" min="0.05" max="50" data-slot-atk value="${m.atk}"></label>
       <span class="grow tail mono" style="text-align:right">${hp.toLocaleString()} / ${atk.toLocaleString()}</span>
     </div>
+    <label class="small">この出現枠だけの画像（空欄なら通常の姿）
+      <input data-slot-sprite value="${esc(spec.sprite || '')}" placeholder="assets/enemy/xxx.webp"></label>
+    <label class="drop">画像をWebPに変換<input data-slot-file type="file" accept="image/*"></label>
   </div>`;
 }
 
@@ -203,6 +207,9 @@ function renderEditor(view) {
 
       ${field('掲載場所', 'category', r.category || 'raid', {type:'select',options:[['raid','降臨ダンジョン'],['event','イベント']]})}
       ${publicationFields(r)}
+      ${field('バトル背景画像パス', 'battleBackground', r.battleBackground || '', {placeholder:'assets/ui/xxx.webp'})}
+      <label class="drop">バトル背景をWebPに変換<input type="file" id="battleBgFile" accept="image/*"></label>
+      <div class="shots" id="battleBgShot"></div>
       ${field('交換素材ID（空で通常ドロップ）', 'currencyId', r.currencyDrop?.id || '')}
       ${field('クリア時の確定ドロップ数', 'currencyAmount', r.currencyDrop?.amount || 0, {type:'number',min:0,max:9999})}
       <h3 style="margin-top:12px">ホームのバナー</h3>
@@ -229,7 +236,25 @@ function renderEditor(view) {
 
   const floors = $('floors');
 
-  floors.addEventListener('change', e => {
+  floors.addEventListener('change', async e => {
+    if (e.target.matches('[data-slot-file]')) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (!canEncodeWebp()) { toast('この端末はWebPを書き出せません', 'ng'); return; }
+      const [fi, si] = e.target.closest('[data-slot]').dataset.slot.split('-').map(Number);
+      collect(view);
+      const spec = r.floors[fi].enemies[si];
+      const dest = spec.sprite || `assets/enemy/raid_${r.id}_floor_${fi + 1}_${si + 1}.webp`;
+      if (!/^assets\/[a-zA-Z0-9_/-]+\.webp$/.test(dest)) { toast('保存先はassets/以下のWebPパスにしてください', 'ng'); return; }
+      try {
+        const blob = await toWebp(file, 768, 0.9);
+        putBlob(dest, blob);
+        spec.sprite = dest;
+        toast(`WebPにしました (${humanSize(blob.size)})`, 'ok');
+        renderEditor(view);
+      } catch (err) { toast(String(err.message || err), 'ng'); }
+      return;
+    }
     const slot = e.target.closest('[data-slot]');
     if (slot) {
       collect(view);
@@ -238,6 +263,27 @@ function renderEditor(view) {
     }
     if (e.target.name && e.target.name.startsWith('intro-')) collect(view);
   });
+
+  $('battleBgFile').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!canEncodeWebp()) { toast('この端末はWebPを書き出せません', 'ng'); return; }
+    collect(view);
+    const dest = r.battleBackground || `assets/ui/raid_${r.id}_battle.webp`;
+    if (!/^assets\/[a-zA-Z0-9_/-]+\.webp$/.test(dest)) { toast('保存先はassets/以下のWebPパスにしてください', 'ng'); return; }
+    try {
+      const blob = await toWebp(file, 1600, 0.86);
+      putBlob(dest, blob);
+      r.battleBackground = dest;
+      toast(`WebPにしました (${humanSize(blob.size)})`, 'ok');
+      renderEditor(view);
+    } catch (err) { toast(String(err.message || err), 'ng'); }
+  });
+  const bgPath = r.battleBackground;
+  const bgBlob = bgPath && getBlob(bgPath);
+  $('battleBgShot').innerHTML = bgBlob
+    ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(bgBlob)}" alt=""><span class="cap">${esc(bgPath)} / ${humanSize(bgBlob.size)}</span></div>`
+    : (bgPath ? `<p class="empty">${esc(bgPath)} を使う設定です</p>` : '');
   floors.addEventListener('input', e => {
     if (e.target.matches('[data-slot-hp],[data-slot-atk]')) { collect(view); renderEditor(view); }
   });
@@ -306,6 +352,7 @@ function renderEditor(view) {
       category:r.category, eventId:r.eventId, enabled:r.enabled,
       availableFrom:r.availableFrom, availableUntil:r.availableUntil, currencyDrop:r.currencyDrop,
       ...(r.banner ? { banner: r.banner } : {}),
+      ...(r.battleBackground ? { battleBackground: r.battleBackground } : {}),
       coinReward: r.coinReward, orbReward: 0, expReward: r.expReward,
       charExpReward: r.charExpReward, auras: [0, 1, 2, 3, 4],
       dropAura: r.dropAura, shardRate: r.shardRate, crystalBase: r.crystalBase,
@@ -342,6 +389,7 @@ function collect(view) {
   r.name = String(v.name || '').trim();
   r.bgm = String(v.bgm || '').trim();
   r.banner = String(v.banner || '').trim() || undefined;
+  r.battleBackground = String(v.battleBackground || '').trim() || undefined;
   r.stamina = clampInt(v.stamina, 1, 99, r.stamina);
   r.coinReward = clampInt(v.coinReward, 0, 9999999, r.coinReward);
   r.expReward = clampInt(v.expReward, 0, 999999, r.expReward);
@@ -365,6 +413,8 @@ function collect(view) {
       const atk = Number(slot.querySelector('[data-slot-atk]').value) || 1;
       const spec = { id, form: formSel ? Number(formSel.value) : 0 };
       spec.mult = Math.abs(hp - atk) < 0.0001 ? hp : { hp, atk };
+      const sprite = slot.querySelector('[data-slot-sprite]').value.trim();
+      if (sprite) spec.sprite = sprite;
       return spec;
     });
     const intro = box.querySelector(`[name="intro-${fi}"]`);

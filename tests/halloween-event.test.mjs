@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { eventCatalog,activeEvents,eventMaterials,eventShopItems,isAvailable } from '../src/js/data/availability.js';
 import { CHARACTERS,gachaPoolAt,resolveCharacter,materialById,canEvolveChar } from '../src/js/data/gamedata.js';
 import { RAID_STAGES,rollRaidCharacter } from '../src/js/data/raids.js';
-import { isBossEnemy } from '../src/js/data/enemy-master.js';
+import { isBossEnemy,spawnEnemy } from '../src/js/data/enemy-master.js';
 import { CHAR_ATLAS } from '../src/js/data/char-atlas.js';
 import { state,addCharacter,addMaterials,resolveOwned,shopRemaining,recordShopPurchase } from '../src/js/core/state.js';
 const event=eventCatalog().find(e=>e.id==='halloween_2026');
@@ -42,6 +42,15 @@ test('three event-only dungeons reward increasing candy and never drop raid char
     assert.equal(s.currencyDrop.id,event.currency.id);
     for(const f of s.floors) for(const e of f.enemies) assert.equal(isBossEnemy(e.id),false);
   }
+});
+test('a dungeon appearance override preserves the enemy master and its combat behavior',()=>{
+  const regular=spawnEnemy({id:'gost',mult:{hp:.12,atk:.35}});
+  const costumed=spawnEnemy({id:'gost',mult:{hp:.12,atk:.35},sprite:'assets/enemy/hw_gost.webp'});
+  assert.equal(costumed.sprite,'assets/enemy/hw_gost.webp');
+  assert.equal(regular.sprite,'assets/enemy/gost.webp');
+  assert.equal(costumed.hp,regular.hp);
+  assert.equal(costumed.atk,regular.atk);
+  assert.deepEqual(costumed.enemySkills,regular.enemySkills);
 });
 test('event exchange has validated finite limits and persistent material/owned masters',()=>{
   const items=eventShopItems().filter(i=>i.eventId===event.id);

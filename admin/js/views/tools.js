@@ -119,6 +119,14 @@ function checkAll() {
     if (r.banner && !heldImages.has(r.banner) && !existingBanner(r.banner)) {
       warn('warn', `降臨 ${r.id}`, `バナー ${r.banner} をまだアップロードしていません`);
     }
+    if (r.battleBackground && !heldImages.has(r.battleBackground) && !existingStageArt(r.battleBackground)) {
+      warn('warn', `ダンジョン ${r.id}`, `背景 ${r.battleBackground} をまだアップロードしていません`);
+    }
+    (r.floors || []).forEach((floor, i) => (floor.enemies || []).forEach(spec => {
+      if (spec.sprite && !heldImages.has(spec.sprite) && !existingStageArt(spec.sprite)) {
+        warn('warn', `ダンジョン ${r.id}`, `${i + 1}F の画像 ${spec.sprite} をまだアップロードしていません`);
+      }
+    }));
   });
   const st = d.settings || {};
   if (st.gachaBanner && !heldImages.has(st.gachaBanner)) {
@@ -152,7 +160,11 @@ function checkAll() {
     if (s.full) referenced.add(s.full);
   }));
   d.enemies.forEach(e => (e.forms || [e]).forEach(s => { if (s.sprite) referenced.add(s.sprite); }));
-  d.raids.forEach(r => { if (r.banner) referenced.add(r.banner); });
+  d.raids.forEach(r => {
+    if (r.banner) referenced.add(r.banner);
+    if (r.battleBackground) referenced.add(r.battleBackground);
+    (r.floors || []).forEach(f => (f.enemies || []).forEach(s => { if (s.sprite) referenced.add(s.sprite); }));
+  });
   if (st.gachaBanner) referenced.add(st.gachaBanner);
   events.forEach(e=>{if(e.banner)referenced.add(e.banner);if(e.currency?.icon)referenced.add(e.currency.icon);});
   blobEntries().forEach(([path]) => {
@@ -172,6 +184,8 @@ const GENERATED = new Set(['assets/chars/char_atlas.webp', 'src/js/data/char-atl
 /** ゲーム本体が既に持っているバナー */
 const knownBanners = new Set(G.RAID_STAGES.map(r => r.banner).filter(Boolean));
 function existingBanner(path) { return knownBanners.has(path); }
+const knownStageArt = new Set(G.RAID_STAGES.flatMap(r => [r.battleBackground, ...r.floors.flatMap(f => f.enemies.map(e => e.sprite))]).filter(Boolean));
+function existingStageArt(path) { return knownStageArt.has(path); }
 
 /** 既にリポジトリにある画像かどうかの当て推量(相対パスで引けるものだけ) */
 const knownSprites = new Set(G.ENEMIES.map(e => e.sprite));

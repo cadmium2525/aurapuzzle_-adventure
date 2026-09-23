@@ -144,6 +144,7 @@ function endTurnNow() {
  */
 export function startDungeonRun(stage, hard, support) {
   returnScreen = stage.event ? 'event' : 'dungeon';
+  setBattleBackground(stage);
   const party = buildParty(support);
   if (!party.own.length) { toast('チームにキャラクターを編成してください'); showScreen('character'); return; }
 
@@ -287,9 +288,17 @@ export function resumeDungeonRun() {
   board = Array.isArray(snap.board) && snap.board.length ? snap.board : genBoard(run.matchMin);
   renderParty();
   returnScreen = run.stage.event ? 'event' : 'dungeon';
+  setBattleBackground(run.stage);
   showScreen('battle', { bgm: run.stage.bgm });
   restoreFloor();
   return true;
+}
+
+function setBattleBackground(stage) {
+  const panel = $('enemyStage');
+  if (!stage.battleBackground) { panel.style.removeProperty('--battle-bg-image'); return; }
+  const url = new URL(stage.battleBackground, document.baseURI);
+  panel.style.setProperty('--battle-bg-image', `url("${url.href}")`);
 }
 
 /** 再開時の画面づくり。loadFloor から演出と先制行動を除いたもの。 */

@@ -155,7 +155,7 @@ export function spawnEnemy(spec) {
   const hpMult  = typeof m === 'number' ? m : (m.hp  == null ? 1 : m.hp);
   const atkMult = typeof m === 'number' ? m : (m.atk == null ? 1 : m.atk);
   const out = {
-    id: shape.id, name: shape.name, sprite: shape.sprite, emoji: shape.emoji,
+    id: shape.id, name: shape.name, sprite: at.sprite || shape.sprite, emoji: shape.emoji,
     hp: Math.round(shape.hp * hpMult),
     atk: Math.round(shape.atk * atkMult),
     interval: at.interval == null ? shape.interval : at.interval,
