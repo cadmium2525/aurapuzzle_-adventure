@@ -1668,9 +1668,11 @@ input[type=range]{accent-color:var(--accent);}
   border-radius:3px; background-color:#3a1c3f;
   background-image:linear-gradient(#ff647f,#ff647f); background-repeat:no-repeat;
   background-size:100% 100%; transition:background-size .42s cubic-bezier(.3,.9,.4,1); }
-/* バッジは敵の絵に重ねる。縦を使わないので盤面が狭くならない */
-.foe-badges { position:absolute; left:0; right:0; top:2px; z-index:2;
-  display:flex; justify-content:center; gap:2px; flex-wrap:wrap; pointer-events:none; }
+/* 各敵の右上から縦に並べ、顔のある中央と下の名前・HP帯を空ける。
+   多い場合は左の列へ折り返す。絶対配置なので盤面の高さには影響しない。 */
+.foe-badges { position:absolute; right:2px; top:2px; bottom:36px; width:24px; z-index:2;
+  display:flex; flex-direction:column; justify-content:flex-start; align-content:flex-start;
+  gap:2px; flex-wrap:wrap-reverse; pointer-events:none; }
 .foe-badges .enemy-badge { pointer-events:auto; }
 /* 形ガードが効いているあいだ、必要な形を敵の前にうっすら重ねる。
    バッジは押さないと中身が読めないので、盤面を見ながら形を確かめられるように。
