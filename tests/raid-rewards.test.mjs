@@ -6,7 +6,7 @@ import { raidDropSummaryHTML, raidDropResultHTML } from '../src/js/data/raid-rew
 test('each raid displays its configured character in summary and both result states', () => {
   for (const [id, name] of [[2001,'キュウコ'],[2002,'リリム=ノクティア']]) {
     const stage=RAID_STAGES.find(s=>s.id===id);
-    assert.equal(raidDropSummaryHTML(stage),`全10フロア ・ ${name} ★3 基本50%ドロップ`);
+    assert.equal(raidDropSummaryHTML(stage),`全5フロア ・ ${name} ★3 基本50%ドロップ`);
     assert.equal(raidDropResultHTML(stage,stage.characterDrop.id,.7),`${name} ★3 ×1 獲得！（確率70%）`);
     assert.equal(raidDropResultHTML(stage,null,.5),`${name} ★3のドロップなし（確率50%）`);
   }

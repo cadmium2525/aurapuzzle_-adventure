@@ -26,7 +26,7 @@ const bossFloor = form => {
   return { ...shape, ...meta };
 };
 
-export const KYUKO_RAID = {
+const BUILTIN_KYUKO_RAID = {
   id: 2001, raid: true, name: '九狐降臨', bgm: 'kyuko',
   banner: 'assets/promo/kyuko_banner.webp',
   stamina: 30, coinReward: 9000, orbReward: 0, expReward: 180, charExpReward: 600,
@@ -34,13 +34,8 @@ export const KYUKO_RAID = {
   characterDrop: { id: 'dk_kyuko', rate: .5 },
   floors: [
     floor(['monolith', 'monolith', 'monolith']),
-    floor(['worm', 'worm']),
     floor(['monolith', 'gia', 'gorem']),
-    floor(['raiga', 'raiga']),
     floor(['kongou']),
-    floor(['raiga', 'raiga']),
-    floor(['gorem', 'worm']),
-    floor(['gia', 'monolith', 'gia']),
     bossFloor(0),
     bossFloor(1)
   ]
@@ -66,9 +61,12 @@ function buildCustomRaid(raw) {
   };
 }
 
-export const RAID_STAGES = [KYUKO_RAID].concat(
-  (CUSTOM_RAIDS || []).map(buildCustomRaid).filter(Boolean)
-);
+// 管理ツールで既存IDを編集した場合は、同じ降臨を追加せず設定を置き換える。
+export const RAID_STAGES = Array.from(new Map(
+  [BUILTIN_KYUKO_RAID, ...(CUSTOM_RAIDS || []).map(buildCustomRaid).filter(Boolean)]
+    .map(stage => [stage.id, stage])
+).values());
+export const KYUKO_RAID = RAID_STAGES.find(stage => stage.id === 2001);
 
 /** Own raid members contribute percentage points, supports do not. */
 export function raidDropRate(stage, own) {
