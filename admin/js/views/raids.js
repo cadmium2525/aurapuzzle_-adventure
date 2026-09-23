@@ -23,6 +23,8 @@ function enemyShape(id, form = 0) {
 function allRaids() {
   const map = new Map();
   G.RAID_STAGES.forEach(r => map.set(String(r.id), { raw: r, source: 'game' }));
+  // 登録済みの形態・倍率は正本から取得する。同じIDを持つ進化前後を逆推定しない。
+  G.CUSTOM_RAIDS.forEach(r => map.set(String(r.id), { raw: r, source: 'game' }));
   draft().raids.forEach(r => map.set(String(r.id), { raw: r, source: 'draft' }));
   return Array.from(map.values());
 }

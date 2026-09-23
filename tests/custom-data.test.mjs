@@ -72,8 +72,8 @@ test('ノーマル・テクニカル・曜日の生成済みフロアにもボ�
   }));
 });
 
-test('九狐降臨は10フロアで、ボスの2フロアが変身前後になっている', () => {
-  assert.equal(KYUKO_RAID.floors.length, 10);
+test('九狐降臨は5フロアで、ボスの2フロアが変身前後になっている', () => {
+  assert.equal(KYUKO_RAID.floors.length, 5);
   const [b1, b2] = KYUKO_RAID.floors.slice(-2);
   assert.equal(b1.intro, 'warning');
   assert.equal(b2.intro, 'evolution');
