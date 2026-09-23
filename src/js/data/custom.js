@@ -197,6 +197,12 @@ export const CUSTOM_RAIDS = [
     "name": "夢魔皇降臨",
     "bgm": "battle",
     "stamina": 30,
+    "category": "raid",
+    "eventId": "",
+    "enabled": true,
+    "availableFrom": "",
+    "availableUntil": "",
+    "currencyDrop": null,
     "banner": "assets/promo/ririmu_banner.webp",
     "coinReward": 9000,
     "orbReward": 0,
@@ -230,40 +236,12 @@ export const CUSTOM_RAIDS = [
       {
         "enemies": [
           {
-            "id": "worm",
-            "form": 0,
-            "mult": 1
-          },
-          {
-            "id": "worm",
-            "form": 0,
-            "mult": 1
-          }
-        ]
-      },
-      {
-        "enemies": [
-          {
             "id": "gia",
             "form": 0,
             "mult": 1
           },
           {
             "id": "monolith",
-            "form": 0,
-            "mult": 1
-          }
-        ]
-      },
-      {
-        "enemies": [
-          {
-            "id": "raiga",
-            "form": 0,
-            "mult": 1
-          },
-          {
-            "id": "gost",
             "form": 0,
             "mult": 1
           }
@@ -281,51 +259,13 @@ export const CUSTOM_RAIDS = [
       {
         "enemies": [
           {
-            "id": "gorem",
-            "form": 0,
-            "mult": 1
-          },
-          {
-            "id": "worm",
-            "form": 0,
-            "mult": 1
-          }
-        ]
-      },
-      {
-        "enemies": [
-          {
-            "id": "gia",
-            "form": 0,
-            "mult": 1
-          },
-          {
-            "id": "raiga",
-            "form": 0,
-            "mult": 1
-          }
-        ]
-      },
-      {
-        "enemies": [
-          {
-            "id": "gost",
-            "form": 0,
-            "mult": 1
-          },
-          {
-            "id": "monolith",
-            "form": 0,
-            "mult": 1
-          }
-        ]
-      },
-      {
-        "enemies": [
-          {
             "id": "lilim_noctia",
-            "form": 0,
-            "mult": 1
+            "form": 1,
+            "mult": {
+              "hp": 0.688,
+              "atk": 0.833
+            },
+            "sprite": "assets/chars/lilim_noctia_1.webp"
           }
         ],
         "intro": "warning",
@@ -603,6 +543,108 @@ export const CUSTOM_RAIDS = [
         "dialogue": "最後のいたずらを越えれば、今宵のキャンディはあなたのもの！"
       }
     ]
+  },
+  {
+    "id": 2001,
+    "name": "九狐降臨",
+    "bgm": "kyuko",
+    "stamina": 30,
+    "category": "raid",
+    "eventId": "",
+    "enabled": true,
+    "availableFrom": "",
+    "availableUntil": "",
+    "currencyDrop": null,
+    "banner": "assets/promo/kyuko_banner.webp",
+    "coinReward": 9000,
+    "orbReward": 0,
+    "expReward": 180,
+    "charExpReward": 600,
+    "auras": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "dropAura": 4,
+    "shardRate": 0.35,
+    "crystalBase": 8,
+    "floors": [
+      {
+        "enemies": [
+          {
+            "id": "monolith",
+            "form": 0,
+            "mult": 1
+          },
+          {
+            "id": "monolith",
+            "form": 0,
+            "mult": 1
+          },
+          {
+            "id": "monolith",
+            "form": 0,
+            "mult": 1
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "monolith",
+            "form": 0,
+            "mult": 1
+          },
+          {
+            "id": "gia",
+            "form": 0,
+            "mult": 1
+          },
+          {
+            "id": "gorem",
+            "form": 0,
+            "mult": 1
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "kongou",
+            "form": 0,
+            "mult": 1
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "kyuko",
+            "form": 0,
+            "mult": 1
+          }
+        ],
+        "intro": "warning",
+        "dialogue": "こんな奥まで、わたくしを追いかけてきたの？ ふふ……いい子ね。少しだけ、遊んであげる。"
+      },
+      {
+        "enemies": [
+          {
+            "id": "kyuko",
+            "form": 1,
+            "mult": 1
+          }
+        ],
+        "intro": "evolution",
+        "dialogue": "人の姿は、もうおしまい。九つの尾、九つのまやかし――さあ、本当のわたくしを見つけてごらんなさい。"
+      }
+    ],
+    "characterDrop": {
+      "id": "dk_kyuko",
+      "rate": 0.5
+    }
   }
 ];
 
