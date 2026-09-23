@@ -52,6 +52,18 @@ test('a dungeon appearance override preserves the enemy master and its combat be
   assert.equal(costumed.atk,regular.atk);
   assert.deepEqual(costumed.enemySkills,regular.enemySkills);
 });
+test('every Halloween encounter uses its costume and every floor uses the event arena',()=>{
+  const stages=RAID_STAGES.filter(s=>s.eventId===event.id);
+  const background='assets/ui/halloween_battle.webp';
+  assert.ok(existsSync(background));
+  for(const stage of stages){
+    assert.equal(stage.battleBackground,background);
+    for(const floor of stage.floors) for(const enemy of floor.enemies){
+      assert.equal(enemy.sprite,`assets/enemy/hw_${enemy.id}.webp`);
+      assert.ok(existsSync(enemy.sprite));
+    }
+  }
+});
 test('event exchange has validated finite limits and persistent material/owned masters',()=>{
   const items=eventShopItems().filter(i=>i.eventId===event.id);
   assert.equal(items.length,5);
