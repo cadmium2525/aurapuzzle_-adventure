@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { eventCatalog,activeEvents,eventMaterials,eventShopItems,isAvailable } from '../src/js/data/availability.js';
 import { CHARACTERS,gachaPoolAt,resolveCharacter,materialById,canEvolveChar } from '../src/js/data/gamedata.js';
 import { RAID_STAGES,rollRaidCharacter } from '../src/js/data/raids.js';
+import { eventCurrencyBonusAmount,eventCurrencyBoosters,rollCurrencyDrop } from '../src/js/data/event-drops.js';
 import { isBossEnemy,spawnEnemy } from '../src/js/data/enemy-master.js';
 import { CHAR_ATLAS } from '../src/js/data/char-atlas.js';
 import { state,addCharacter,addMaterials,resolveOwned,shopRemaining,recordShopPurchase } from '../src/js/core/state.js';
@@ -42,6 +43,29 @@ test('three event-only dungeons reward increasing candy and never drop raid char
     assert.equal(s.currencyDrop.id,event.currency.id);
     for(const f of s.floors) for(const e of f.enemies) assert.equal(isBossEnemy(e.id),false);
   }
+});
+test('four gacha costumes grant independent candy bonus rolls; exchange Kyuko and support do not',()=>{
+  const stages=RAID_STAGES.filter(s=>s.eventId===event.id);
+  assert.deepEqual(stages.map(eventCurrencyBonusAmount),[2,5,10]);
+  const own=['hw_kai','hw_mio','hw_noa'].map(id=>resolveCharacter(id,5,1));
+  const support=resolveCharacter('hw_rune',5,1);
+  const party={own,support};
+  assert.deepEqual(eventCurrencyBoosters(stages[0],party).map(c=>c.id),own.map(c=>c.id));
+  let rolls=[.29,.30,.10,.01];
+  const result=rollCurrencyDrop(stages[0],party,()=>rolls.shift());
+  assert.deepEqual(result,{id:event.currency.id,base:10,bonus:4,hits:2,total:14});
+  assert.equal(rolls.length,1,'サポートの追加抽選は行わない');
+  const kyuko=resolveCharacter('hw_kyuko',5,1);
+  assert.equal(eventCurrencyBoosters(stages[0],{own:[kyuko]}).length,0);
+  assert.equal(rollCurrencyDrop(stages[1],{own:[kyuko]},()=>0).total,25);
+  for(const id of ['hw_kai','hw_mio','hw_noa','hw_rune']){
+    const base=CHARACTERS.find(c=>c.id===id);
+    assert.equal(base.eventDropBonusChance,.3);
+    assert.equal(rollCurrencyDrop(stages[2],{own:[resolveCharacter(id,5,1)]},()=>0).total,60);
+  }
+  assert.equal(eventCurrencyBoosters({...stages[0],eventId:'other_event'},party).length,0);
+  assert.equal(eventCurrencyBoosters({...stages[0],event:false},party).length,0);
+  assert.equal(eventCurrencyBoosters({...stages[0],currencyDrop:{id:'mt_star',amount:10}},party).length,0);
 });
 test('a dungeon appearance override preserves the enemy master and its combat behavior',()=>{
   const regular=spawnEnemy({id:'gost',mult:{hp:.12,atk:.35}});

@@ -85,6 +85,15 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
 
  // --- キャラ新規 ---
  await page.locator('[data-go="characters"]').click(); await page.waitForTimeout(300);
+ await page.locator('[data-open="hw_kai"]').click(); await page.waitForTimeout(300);
+ await page.locator('[data-ok]').click(); await page.waitForTimeout(350);
+ assert.equal(await v('[name=eventDropBonusPercent]'),'30','ハロウィン特効率を編集画面に復元できない');
+ await page.locator('#saveBtn').click(); await page.waitForTimeout(350);
+ const boost=await page.evaluate(()=>{
+   const d=JSON.parse(localStorage.getItem('acb_admin_draft')||'{}');
+   return (d.characters||[]).find(c=>c.id==='hw_kai')?.eventDropBonusChance;
+ });
+ assert.equal(boost,0.3,'キャラを保存し直すとイベント特効が消える');
  await page.locator('#newChar').click(); await page.waitForTimeout(400);
  const before = await v('[name=atk]');
  await page.locator('#rollBtn').click(); await page.waitForTimeout(300);

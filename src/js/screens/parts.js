@@ -99,6 +99,7 @@ export function charDetailHTML(ch, extra, opts) {
       </div>
     </div>
     ${show.flavor && ch.flavor ? `<div class="cd-flavor">${ch.flavor}</div>` : ''}
+    ${ch.eventDropBonusChance ? `<div class="cd-note">🍬 イベント特効：対応イベントの交換素材を、クリア時に${Math.round(ch.eventDropBonusChance * 100)}%で追加獲得（自陣に編成中・1人ずつ抽選）</div>` : ''}
     ${show.level && ch.level ? levelBarHTML(ch) : ''}
     ${show.stats ? `<div class="cd-stats">
       <div><span>ATK</span><b>${ch.atk}</b></div>

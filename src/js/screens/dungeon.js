@@ -29,6 +29,7 @@ import { fetchFriendRentals, fetchStrangerRentals } from '../core/friends.js';
 import { portraitHTML, awakenPipsHTML } from './parts.js';
 import { RAID_STAGES } from '../data/raids.js';
 import { raidDropSummaryHTML } from '../data/raid-rewards.js';
+import { eventCurrencyBoosters, eventCurrencyBonusAmount } from '../data/event-drops.js';
 import { isAvailable } from '../data/availability.js';
 
 let dungeonHard = false;
@@ -329,6 +330,7 @@ function pickSupport(support) {
 /* --- 3. 編成の確認 --- */
 function renderSortieConfirm() {
   const members = charactersOfTeam(state.teamIndex);
+  const currencyBoosters = eventCurrencyBoosters(pendingStage, { own: members });
   const lineup = members.map((m, i) => lineupCard(m, i === 0 ? 'リーダー' : 'サブ' + i, ''));
   lineup.push(pendingSupport
     ? lineupCard(pendingSupport, 'サポート', pendingSupport.ownerName || '')
@@ -348,6 +350,7 @@ function renderSortieConfirm() {
     <div class="ts-row"><span>攻撃できるオーラ</span><b class="aura-chips">${auras}</b></div>
     <div class="ts-row"><span>4人のHP合計</span><b>${totalHP}</b></div>
     <div class="ts-row"><span>消費スタミナ</span><b>${itemIcon('stamina')}${cost}</b></div>
+    ${currencyBoosters.length ? `<div class="ts-row"><span>交換素材の特効</span><b>${currencyBoosters.length}人 ・ 成功時+${eventCurrencyBonusAmount(pendingStage)}/人</b></div>` : ''}
     <div class="skill-line on"><span class="skill-tag ls">LS</span>
       <span><b>${own ? own.name : '—'}</b><br>${own ? own.desc : ''}</span></div>
     <div class="skill-line on"><span class="skill-tag ls">SUP</span>

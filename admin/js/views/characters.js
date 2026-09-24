@@ -146,6 +146,7 @@ function openDetail(view, id) {
       ${c.evoName ? `<dt>進化後</dt><dd>${esc(c.evoName)}${c.evoJob ? ` / ${esc(c.evoJob)}` : ''}</dd>` : ''}
       ${c.raidDrop ? '<dt>入手</dt><dd>降臨ドロップ</dd>' : ''}
       ${c.giftOnly ? '<dt>ガチャ</dt><dd>対象外(配布限定)</dd>' : ''}
+      ${c.eventDropBonusChance ? `<dt>イベント特効</dt><dd>交換素材の追加ドロップ抽選 ${esc(Math.round(c.eventDropBonusChance * 100))}%（自陣のみ）</dd>` : ''}
     </dl>
     ${c.flavor ? `<p class="small" style="color:var(--ink-dim)">${esc(c.flavor)}</p>` : ''}
   `, {
@@ -202,9 +203,11 @@ function renderEditor(view) {
         type: 'select', options: Object.keys(ROLE_WEIGHT).map(r => [r, G.ROLE_LABEL[r] || r]) })}
       ${field('入手方法', 'acquisition', c.acquisition || acquisitionOf(c), {
         type: 'select', options: [['gacha', 'ガチャ'], ['gift', '配布限定（ガチャ対象外）'], ['raid', '降臨ドロップ限定（ガチャ対象外・開眼10段階）']] })}
-      <p class="lead small">降臨ドロップ限定は開眼でドロップ率が上がります。ドロップ先と基本確率は降臨タブで設定してください。</p>
+      <p class="lead small">降臨ドロップ限定は開眼でドロップ率が上がります。ドロップ先と基本確率は「ダンジョン」タブで設定してください。</p>
 
       ${publicationFields(c)}
+      ${field('イベント交換素材の追加ドロップ抽選率 (%)', 'eventDropBonusPercent', Math.round((c.eventDropBonusChance || 0) * 100),
+        { type: 'number', min: 0, max: 100, step: 1, hint: '関連イベントIDを持つガチャキャラ専用。自陣に編成した1人ずつ抽選。0なら特効なし' })}
       <h3 style="margin-top:12px">ステータス (Lv1)</h3>
       <p class="lead small">ロールとレアリティから自動で出します。標準値は
         ATK ${exact.atk} / HP ${exact.hp} / 回復 ${exact.rcv}。</p>
@@ -323,6 +326,9 @@ function renderEditor(view) {
     if (!/^[a-z0-9_]+$/i.test(c.id)) { toast('IDは英数字とアンダースコアだけにしてください', 'ng'); return; }
     if (!c.name) { toast('名前を入れてください', 'ng'); return; }
     if (!validPublication(c)) { toast('公開期間を確認してください', 'ng'); return; }
+    if (c.eventDropBonusChance && (!c.eventId || c.acquisition !== 'gacha')) {
+      toast('イベント特効は関連イベントIDを指定したガチャキャラに設定してください', 'ng'); return;
+    }
     if (G.CHARACTERS.some(x => x.id === c.id) && c._new) {
       toast('そのIDは既にあります', 'ng'); return;
     }
@@ -371,6 +377,7 @@ function build(c) {
     enabled:c.enabled, eventId:c.eventId, availableFrom:c.availableFrom, availableUntil:c.availableUntil
   };
   if (c.flavor) out.flavor = c.flavor;
+  if (c.eventDropBonusChance) out.eventDropBonusChance = c.eventDropBonusChance;
   out.artStages = c.evolve
     ? [
       { star: c.rarity, minLevel: 1, icon: `assets/chars/${name}_1_icon.webp`, full: `assets/chars/${name}_1.webp`, label: '通常' },
@@ -413,6 +420,7 @@ function collect(view) {
   c.leaderSkillId = v.leaderSkillId || c.leaderSkillId;
   c.skillId = v.skillId || c.skillId;
   c.flavor = String(v.flavor || '').trim();
+  c.eventDropBonusChance = Math.max(0, Math.min(1, (Number(v.eventDropBonusPercent) || 0) / 100));
   // 倍率なので clampInt は使えない(丸めると 1.15 が 1 になる)
   c.artScale1 = clampScale(v.artScale1, c.artScale1);
   if (v.artScale2 != null) c.artScale2 = clampScale(v.artScale2, c.artScale2);

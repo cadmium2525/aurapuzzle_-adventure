@@ -41,6 +41,7 @@ import { bossTransition, bossDialogue } from './raid-presentation.js';
 import { renderPlayerBadges } from './player-badges.js';
 import { raidDropRate, rollRaidCharacter } from '../data/raids.js';
 import { raidDropResultHTML } from '../data/raid-rewards.js';
+import { rollCurrencyDrop } from '../data/event-drops.js';
 
 let canvas;
 let board = null;
@@ -991,9 +992,6 @@ async function floorClear() {
  * @returns {object} {materialId: 個数}
  */
 function rollDrops(stage, hard) {
-  if (stage.currencyDrop && materialById(stage.currencyDrop.id)) {
-    return { [stage.currencyDrop.id]: Math.max(0, Math.floor(stage.currencyDrop.amount || 0)) };
-  }
   const drops = {};
   const add = (id, n) => { if (n > 0) drops[id] = (drops[id] || 0) + n; };
   const mult = hard ? 2 : 1;
@@ -1053,7 +1051,9 @@ function finishRun() {
   saveState();
 
   // 素材ドロップと編成キャラの育成(サポートは自分のキャラではないので対象外)
-  const drops = rollDrops(stage, hard);
+  const currencyDrop = stage.currencyDrop && materialById(stage.currencyDrop.id)
+    ? rollCurrencyDrop(stage, run.party) : null;
+  const drops = currencyDrop ? { [currencyDrop.id]: currencyDrop.total } : rollDrops(stage, hard);
   addMaterials(drops);
   const dropRate = stage.raid ? raidDropRate(stage,run.party.own) : 0;
   const characterDropped=rollRaidCharacter(stage,run.party.own);
@@ -1073,7 +1073,8 @@ function finishRun() {
     <div class="rstat"><span>残りHP</span><b>${run.playerHP} / ${run.maxHP}</b></div>`;
   const dropHTML = Object.keys(drops).map(id => {
     const mt = materialById(id);
-    return `<div class="rrow drop" style="--mt:${mt.color}">${itemIcon(mt.id)} ${mt.name} <b>×${drops[id]}</b></div>`;
+    const bonus = id === currencyDrop?.id ? currencyDrop.bonus : 0;
+    return `<div class="rrow drop" style="--mt:${mt.color}">${itemIcon(mt.id)} ${mt.name} <b>×${drops[id]}${bonus ? `（特効 +${bonus}）` : ''}</b></div>`;
   }).join('');
   $('resultRewards').innerHTML = `
     <div class="rrow">${itemIcon('coin')} <b>${coin}</b></div>

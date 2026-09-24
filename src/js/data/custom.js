@@ -724,6 +724,7 @@ export const CUSTOM_CHARACTERS = [
   },
   {
     "id": "hw_kai",
+    "eventDropBonusChance": 0.3,
     "name": "宵宴の吸血剣士・カイ",
     "job": "宵宴の吸血剣士",
     "portrait": "🙂",
@@ -765,6 +766,7 @@ export const CUSTOM_CHARACTERS = [
   },
   {
     "id": "hw_mio",
+    "eventDropBonusChance": 0.3,
     "name": "月夜の幽霊姫・ミオ",
     "job": "月夜の幽霊姫",
     "portrait": "🙂",
@@ -804,6 +806,7 @@ export const CUSTOM_CHARACTERS = [
   },
   {
     "id": "hw_noa",
+    "eventDropBonusChance": 0.3,
     "name": "収穫祭の魔女・ノア",
     "job": "収穫祭の魔女",
     "portrait": "🙂",
@@ -843,6 +846,7 @@ export const CUSTOM_CHARACTERS = [
   },
   {
     "id": "hw_rune",
+    "eventDropBonusChance": 0.3,
     "name": "南瓜の女王・ルネ",
     "job": "南瓜の女王",
     "portrait": "🙂",

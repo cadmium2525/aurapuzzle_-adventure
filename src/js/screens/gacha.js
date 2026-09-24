@@ -243,7 +243,7 @@ export function renderGacha() {
   const pickup = PICKUP_CHARACTER && isAvailable(PICKUP_CHARACTER) && !PICKUP_CHARACTER.giftOnly ? PICKUP_CHARACTER : null;
   let seasonalBox = $('seasonalGacha');
   if (!seasonalBox) { seasonalBox=document.createElement('div');seasonalBox.id='seasonalGacha';$('screen-gacha').prepend(seasonalBox); }
-  seasonalBox.innerHTML=seasonal.length ? `<div class="card"><h3>期間限定衣装</h3><div style="display:flex;gap:8px;justify-content:space-around">${seasonal.map(c=>`<div style="min-width:0;flex:1;text-align:center">${portraitHTML(resolveCharacter(c.id,c.rarity,1))}<p style="font-size:11px">${c.name}</p></div>`).join('')}</div><p>開催中のイベント限定衣装がオーブガチャに登場。獲得後はイベント終了後も使用できます。</p></div>` : '';
+  seasonalBox.innerHTML=seasonal.length ? `<div class="card"><h3>期間限定衣装</h3><div style="display:flex;gap:8px;justify-content:space-around">${seasonal.map(c=>`<div style="min-width:0;flex:1;text-align:center">${portraitHTML(resolveCharacter(c.id,c.rarity,1))}<p style="font-size:11px">${c.name}</p></div>`).join('')}</div><p>開催中のイベント限定衣装がオーブガチャに登場。獲得後はイベント終了後も使用できます。</p>${seasonal.some(c=>c.eventDropBonusChance) ? '<p>🍬 特効：自陣に編成すると、対応イベントの交換素材をクリア時に追加獲得するチャンス！</p>' : ''}</div>` : '';
   // ピックアップ表示。開催していないときは枠ごと隠す
   // (空の枠が残ると、開催中に見えるうえに場所も食う)
   const box = $('pickupBox');
