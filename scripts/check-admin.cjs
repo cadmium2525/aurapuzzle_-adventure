@@ -3,7 +3,7 @@
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const http=require('node:http'), fs=require('node:fs/promises'), path=require('node:path');
-const root='/home/user/aurapuzzle_-adventure';
+const root=path.resolve(__dirname,'..');
 const types={'.js':'text/javascript','.css':'text/css','.html':'text/html','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.json':'application/json'};
 const server=http.createServer(async(req,res)=>{const p=decodeURIComponent(new URL(req.url,'http://l').pathname);
  try{const f=path.resolve(root,'.'+(p.endsWith('/')?p+'index.html':p)); res.setHeader('Cache-Control','no-store');
@@ -33,7 +33,7 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
 
  // 変身ボスを開く
  await page.locator('#cancelBtn').click(); await page.waitForTimeout(300);
- await page.locator('.icon-cell').last().click(); await page.waitForTimeout(400);
+ await page.locator('.icon-cell[data-open="kyuko"]').click(); await page.waitForTimeout(400);
  assert.equal(await page.locator('[data-form]').count(), 2, '変身の姿が2つ出ていない');
  console.log('キュウコ: 変身タブ=%d / 変身前hp=%s', await page.locator('[data-form]').count(), await v('[name=hp]'));
  await page.locator('[data-form="1"]').click(); await page.waitForTimeout(350);
@@ -51,8 +51,25 @@ const SHOT = process.env.ACB_SHOT_DIR ? process.env.ACB_SHOT_DIR + '/' : null;
  console.log('保存後のモンスター数:', await page.locator('.icon-cell').count());
  console.log('バッジ:', await page.locator('#draftBadge').textContent());
 
- // --- 降臨を新規作成 ---
+ // --- 降臨とイベントが別の一覧に出て、イベントを直接作れる ---
  await page.locator('[data-go="raids"]').click(); await page.waitForTimeout(300);
+ assert.equal((await page.locator('[data-go="raids"]').textContent()).trim(),'ダンジョン');
+ assert.equal((await page.locator('[data-go="events"]').textContent()).trim(),'イベント設定');
+ const dungeonGroups=await page.locator('#view .card').evaluateAll(cards=>cards.map(c=>c.innerText));
+ assert.match(dungeonGroups[0],/降臨ダンジョン/);
+ assert.match(dungeonGroups[0],/九狐降臨/);
+ assert.doesNotMatch(dungeonGroups[0],/ハロウィンパーティ/);
+ assert.match(dungeonGroups[1],/イベントダンジョン/);
+ assert.match(dungeonGroups[1],/ハロウィンパーティ 初級/);
+ assert.doesNotMatch(dungeonGroups[1],/九狐降臨/);
+ await page.locator('#newEventDungeon').click();
+ assert.equal(await v('[name=category]'),'event');
+ assert.match(await page.locator('#view').innerText(),/イベントダンジョンを新規作成/);
+ assert.equal(await page.locator('[name=dropChar]').count(),0,'イベントに降臨キャラドロップ欄は出さない');
+ assert.equal(await page.locator('#raidBannerFile').count(),0,'イベントに降臨バナー欄は出さない');
+ await page.locator('#cancelBtn').click();
+
+ // --- 降臨を新規作成 ---
  await page.locator('#newRaid').click(); await page.waitForTimeout(400);
  await page.fill('[name=name]','テスト降臨');
  await page.locator('#addFloor').click(); await page.waitForTimeout(350);

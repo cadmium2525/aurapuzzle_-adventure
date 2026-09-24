@@ -19,9 +19,9 @@ import events from './views/events.js';
 
 const SCREENS = { home, enemies, encounters, raids, characters, gacha, skills, gifts, tools, release, events };
 const TITLES = {
-  home: '管理ツール', enemies: 'モンスター', encounters: '出現管理', raids: '降臨ダンジョン',
+  home: '管理ツール', enemies: 'モンスター', encounters: '出現管理', raids: 'ダンジョン管理',
   characters: 'キャラクター', gacha: 'ガチャ', skills: 'スキル一覧',
-  gifts: 'プレゼント', tools: '点検', release: 'リリース', events:'期間限定イベント'
+  gifts: 'プレゼント', tools: '点検', release: 'リリース', events:'イベント設定'
 };
 
 /** 画面の中の階層(一覧→詳細)から戻るための積み場所 */

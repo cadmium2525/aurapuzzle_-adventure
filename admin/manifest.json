@@ -1,7 +1,7 @@
 {
   "name": "オーラコネクト 管理ツール",
   "short_name": "ACB管理",
-  "description": "モンスター・降臨ダンジョン・キャラクターを編集して GitHub へ push する管理ツール",
+  "description": "モンスター・降臨／イベントダンジョン・キャラクターを編集して GitHub へ push する管理ツール",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -1,5 +1,5 @@
 /* =========================================================
- * raids.js — 降臨ダンジョンの編集
+ * raids.js — 降臨・イベントダンジョンの共通編集
  * フロアごとに出すモンスターを並べ、マスターの基礎値に倍率をかける。
  * =======================================================*/
 import { $, esc, card, toast, field, readForm, clampInt, modal, confirmAsk } from '../ui.js';
@@ -29,7 +29,7 @@ function allRaids() {
   return Array.from(map.values());
 }
 
-/** 既存の降臨(組み立て済み)を編集できる形に戻す */
+/** 既存のダンジョン(組み立て済み)を編集できる形に戻す */
 function toEditable(stage) {
   if (stage.floors && stage.floors[0] && stage.floors[0].enemies
       && stage.floors[0].enemies[0] && stage.floors[0].enemies[0].hp != null
@@ -70,32 +70,40 @@ const round3 = n => Math.round(n * 1000) / 1000;
 
 function renderList(view) {
   const list = allRaids();
+  const raids = list.filter(({ raw }) => raw.category !== 'event' && !raw.event);
+  const events = list.filter(({ raw }) => raw.category === 'event' || raw.event);
+  const rows = entries => entries.length ? entries.map(({ raw, source }) => `<button class="row" data-open="${esc(raw.id)}">
+    <div class="grow"><b>${esc(raw.name)}${source === 'draft' ? ' <span class="tagline new">下書き</span>' : ''}</b>
+      <span class="sub">ID ${esc(raw.id)} ・ ${(raw.floors || []).length}フロア ・
+        スタミナ${esc(raw.stamina ?? 30)}</span></div>
+    <span class="tail">›</span></button>`).join('') : '<p class="lead small">登録はまだありません。</p>';
   view.innerHTML = `
-    ${card(`降臨ダンジョン (${list.length})`, `
-      <p class="lead">フロアごとにモンスターを置き、マスターの基礎ステータスに倍率をかけます。</p>
-      <div class="rows">
-        ${list.map(({ raw, source }) => `<button class="row" data-open="${esc(raw.id)}">
-          <div class="grow"><b>${esc(raw.name)}${source === 'draft' ? ' <span class="tagline new">下書き</span>' : ''}</b>
-            <span class="sub">ID ${esc(raw.id)} ・ ${(raw.floors || []).length}フロア ・
-              スタミナ${esc(raw.stamina ?? 30)}</span></div>
-          <span class="tail">›</span></button>`).join('')}
-      </div>`,
-      '<button class="btn primary" id="newRaid">＋ 新規</button>')}
+    ${card(`降臨ダンジョン (${raids.length})`, `
+      <p class="lead">ゲーム内ではホーム → ダンジョン → 降臨ダンジョンに表示されます。</p>
+      <div class="rows">${rows(raids)}</div>`,
+      '<button class="btn primary" id="newRaid">＋ 降臨を追加</button>')}
+    ${card(`イベントダンジョン (${events.length})`, `
+      <p class="lead">ゲーム内では開催中のみホーム → イベントに表示されます。開催期間・交換所・告知バナーは「イベント設定」タブで管理します。</p>
+      <div class="rows">${rows(events)}</div>`,
+      '<button class="btn primary" id="newEventDungeon">＋ イベントダンジョンを追加</button>')}
   `;
-  $('newRaid').addEventListener('click', () => {
+  const createDungeon = category => {
     const used = new Set(allRaids().map(r => Number(r.raw.id)));
     let id = 2002;
     while (used.has(id)) id += 1;
     editing = {
-      id, name: '新しい降臨', bgm: 'kyuko', stamina: 30,
+      id, name: category === 'event' ? '新しいイベントダンジョン' : '新しい降臨',
+      category, bgm: category === 'event' ? 'battle' : 'kyuko', stamina: 30,
       coinReward: 9000, expReward: 180, charExpReward: 600,
       shardRate: 0.35, crystalBase: 8, dropAura: 4,
-      characterDrop: { id: '', rate: 0.5 },
+      ...(category === 'raid' ? { characterDrop: { id: '', rate: 0.5 } } : {}),
       floors: [{ enemies: [{ id: G.ENEMY_MASTER_IDS[0], form: 0, mult: 1 }] }],
       _new: true
     };
     renderEditor(view);
-  });
+  };
+  $('newRaid').addEventListener('click', () => createDungeon('raid'));
+  $('newEventDungeon').addEventListener('click', () => createDungeon('event'));
   view.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => {
     const hit = list.find(r => String(r.raw.id) === b.dataset.open);
     editing = toEditable(hit.raw);
@@ -177,9 +185,10 @@ function floorBox(floor, fi, total) {
 function renderEditor(view) {
   const r = editing;
   const charOpts = [['', '（なし）']].concat(mergeCatalog(G.CHARACTERS, draft().characters).map(c => [c.id, `${c.name}(★${c.rarity})`]));
+  const raidOnly = r.category !== 'event';
 
   view.innerHTML = `
-    ${card(r._new ? '降臨を新規作成' : `${r.name} を編集`, `
+    ${card(r._new ? (r.category === 'event' ? 'イベントダンジョンを新規作成' : '降臨ダンジョンを新規作成') : `${r.name} を編集`, `
       <p class="lead small">ボスを含むすべてのモンスターを明示配置できます。ボスは選択肢に「【ボス】」と表示され、通常ダンジョンの自動抽選には入りません。</p>
       <div class="grid2">
         ${field('ID', 'id', r.id, { type: 'number', hint: '2001〜。他とかぶらない番号' })}
@@ -200,29 +209,27 @@ function renderEditor(view) {
           type: 'select', options: G.AURA_NAME.map((n, i) => [i, n]) })}
         ${field('BGM', 'bgm', r.bgm || 'kyuko', { hint: 'assets/bgm/ のファイル名' })}
       </div>
-      <div class="grid2">
+      ${raidOnly ? `<div class="grid2">
         ${field('ドロップするキャラ', 'dropChar', (r.characterDrop || {}).id || '',
           { type: 'select', options: charOpts })}
         ${field('ドロップ率', 'dropRate', (r.characterDrop || {}).rate ?? 0.5,
           { type: 'number', min: 0, max: 1, step: 0.05 })}
-      </div>
+      </div>` : ''}
 
-      ${field('掲載場所', 'category', r.category || 'raid', {type:'select',options:[['raid','降臨ダンジョン'],['event','イベント']]})}
+      ${field('ゲーム内の掲載場所', 'category', r.category || 'raid', {type:'select',options:[['raid','ホーム → ダンジョン → 降臨'],['event','ホーム → イベント']]})}
       ${publicationFields(r)}
       ${field('バトル背景画像パス', 'battleBackground', r.battleBackground || '', {placeholder:'assets/ui/xxx.webp'})}
       <label class="drop">バトル背景をWebPに変換<input type="file" id="battleBgFile" accept="image/*"></label>
       <div class="shots" id="battleBgShot"></div>
       ${field('交換素材ID（空で通常ドロップ）', 'currencyId', r.currencyDrop?.id || '')}
       ${field('クリア時の確定ドロップ数', 'currencyAmount', r.currencyDrop?.amount || 0, {type:'number',min:0,max:9999})}
-      <h3 style="margin-top:12px">ホームのバナー</h3>
-      <p class="lead small">ホームに出す宣伝バナーです。
-        <b>降臨のバナーは常に1枚</b>で、新しい降臨を足すと今までのものと入れ替わります
-        (ガチャのバナーとは数秒ごとに交互に出ます)。</p>
+      ${raidOnly ? `<h3 style="margin-top:12px">降臨のホームバナー</h3>
+      <p class="lead small">ホームのスライドに表示します。降臨のバナーは常に1枚で、新しい降臨を足すと入れ替わります。</p>
       ${field('バナー画像のパス', 'banner', r.banner || '',
         { hint: 'assets/promo/xxx.webp', placeholder: 'assets/promo/xxx.webp' })}
       <label class="drop">バナー画像を選ぶ(1080×400 に整えます)
         <input type="file" accept="image/*" id="raidBannerFile"></label>
-      <div class="shots" id="raidBannerShot"></div>`)}
+      <div class="shots" id="raidBannerShot"></div>` : `<p class="lead small">イベントの告知画像は「イベント設定」タブのイベントバナーで設定します。</p>`}`)}
 
     ${card(`フロア (${r.floors.length})`, `
       <p class="lead">右の数字は「倍率をかけたあとのHP / 攻撃力」です。</p>
@@ -237,6 +244,11 @@ function renderEditor(view) {
   `;
 
   const floors = $('floors');
+
+  view.querySelector('[name="category"]').addEventListener('change', () => {
+    collect(view);
+    renderEditor(view);
+  });
 
   floors.addEventListener('change', async e => {
     if (e.target.matches('[data-slot-file]')) {
@@ -312,30 +324,32 @@ function renderEditor(view) {
   });
 
   /* --- バナー --- */
-  const shot = () => {
-    const path = r.banner;
-    const held = path ? getBlob(path) : null;
-    $('raidBannerShot').innerHTML = held
-      ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(held)}" alt="">
-         <span class="cap">${esc(path)} / ${humanSize(held.size)}</span></div>`
-      : (path ? `<p class="empty">${esc(path)} を使う設定です(画像は未アップロード)</p>` : '');
-  };
-  shot();
-  $('raidBannerFile').addEventListener('change', async e => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    if (!canEncodeWebp()) { toast('この端末は webp を書き出せません', 'ng'); return; }
-    collect(view);
-    // パスを決めていなければ、降臨IDから作る
-    const dest = r.banner || `assets/promo/raid_${r.id}_banner.webp`;
-    try {
-      const blob = await toBannerWebp(file);
-      putBlob(dest, blob);
-      r.banner = dest;
-      toast(`webp にしました (${humanSize(blob.size)})`, 'ok');
-      renderEditor(view);
-    } catch (err) { toast(String(err.message || err), 'ng'); }
-  });
+  if (raidOnly) {
+    const shot = () => {
+      const path = r.banner;
+      const held = path ? getBlob(path) : null;
+      $('raidBannerShot').innerHTML = held
+        ? `<div class="shot wide" style="width:100%"><img src="${previewUrl(held)}" alt="">
+           <span class="cap">${esc(path)} / ${humanSize(held.size)}</span></div>`
+        : (path ? `<p class="empty">${esc(path)} を使う設定です(画像は未アップロード)</p>` : '');
+    };
+    shot();
+    $('raidBannerFile').addEventListener('change', async e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      if (!canEncodeWebp()) { toast('この端末は webp を書き出せません', 'ng'); return; }
+      collect(view);
+      // パスを決めていなければ、降臨IDから作る
+      const dest = r.banner || `assets/promo/raid_${r.id}_banner.webp`;
+      try {
+        const blob = await toBannerWebp(file);
+        putBlob(dest, blob);
+        r.banner = dest;
+        toast(`webp にしました (${humanSize(blob.size)})`, 'ok');
+        renderEditor(view);
+      } catch (err) { toast(String(err.message || err), 'ng'); }
+    });
+  }
 
   $('addFloor').addEventListener('click', () => {
     collect(view);
@@ -353,7 +367,7 @@ function renderEditor(view) {
       id: Number(r.id), name: r.name, bgm: r.bgm, stamina: r.stamina,
       category:r.category, eventId:r.eventId, enabled:r.enabled,
       availableFrom:r.availableFrom, availableUntil:r.availableUntil, currencyDrop:r.currencyDrop,
-      ...(r.banner ? { banner: r.banner } : {}),
+      ...(r.category !== 'event' && r.banner ? { banner: r.banner } : {}),
       ...(r.battleBackground ? { battleBackground: r.battleBackground } : {}),
       coinReward: r.coinReward, orbReward: 0, expReward: r.expReward,
       charExpReward: r.charExpReward, auras: [0, 1, 2, 3, 4],

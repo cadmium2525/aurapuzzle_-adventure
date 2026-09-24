@@ -7,7 +7,7 @@ let editing=null;
 const all=()=>draft().settings.events || G.CUSTOM_SETTINGS.events || [];
 export default {render(view) {
   if (!editing) {
-    view.innerHTML=card('期間限定イベント', `<p>イベントを非公開にすると、紐づくガチャ・ダンジョン・交換所を一括停止できます。</p>${all().map(e=>`<button class="btn" data-edit="${esc(e.id)}">${esc(e.name)}</button>`).join('')}<button class="btn primary" id="newEvent">＋ イベント</button>`);
+    view.innerHTML=card('期間限定イベント設定', `<p>ここでは開催期間・告知バナー・交換所を管理します。イベントダンジョンのフロアは「ダンジョン」タブで編集します。イベントを非公開にすると、紐づくガチャ・ダンジョン・交換所を一括停止できます。</p>${all().map(e=>`<button class="btn" data-edit="${esc(e.id)}">${esc(e.name)}</button>`).join('')}<button class="btn primary" id="newEvent">＋ イベント</button>`);
     $('newEvent').onclick=()=>{editing={id:'',name:'',currency:{id:'',name:'',icon:''},shop:[]};this.render(view);};
     view.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editing=structuredClone(all().find(e=>e.id===b.dataset.edit));this.render(view);});
     return;
