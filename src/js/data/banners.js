@@ -42,7 +42,7 @@ export function homeBanners() {
       image: gachaBanner,
       alt: `${PICKUP_CHARACTER.name} ピックアップ召喚`,
       screen: 'gacha',
-      params: {}
+      params: { campaignId: 'normal' }
     });
   }
 

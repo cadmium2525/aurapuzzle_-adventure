@@ -1442,6 +1442,23 @@ input[type=range]{accent-color:var(--accent);}
 /* =========================================================
  * ガチャ画面
  * =======================================================*/
+.gacha-tabs{overflow-x:auto;flex-shrink:0;}
+.gacha-tabs button{min-width:120px;white-space:nowrap;}
+.campaign-pickups{display:block!important;--aura:#bd69ef;}
+.campaign-pickups[hidden]{display:none!important;}
+.campaign-pickups h3{margin:10px 0;}
+.campaign-pickups p{font-size:12px;line-height:1.6;}
+.gacha-banner{width:100%;border-radius:12px;}
+.gacha-pu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.gacha-pu{display:flex;align-items:center;flex-direction:column;gap:8px;padding:14px 8px;min-width:0;border:1px solid #ba8ddd66;border-radius:14px;background:#20162d;color:var(--ink);font:inherit;cursor:pointer;}
+.gacha-pu b{font-size:12px;line-height:1.5;}
+.gacha-pu small{font-size:10px;color:var(--ink-dim);}
+.gacha-pu .portrait{width:66px;height:66px;}
+.gacha-probabilities{font-size:11px;margin:12px 0;}
+.gacha-probabilities summary{cursor:pointer;padding:10px 0;color:var(--gold-1);}
+.gacha-probabilities table{width:100%;border-collapse:collapse;}
+.gacha-probabilities td,.gacha-probabilities th{padding:7px 3px;border-bottom:1px solid #ffffff20;text-align:right;}
+.gacha-probabilities td:first-child,.gacha-probabilities th:first-child{text-align:left;}
 .pickup-card{
   position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
   border-radius:var(--r-lg);padding:16px;

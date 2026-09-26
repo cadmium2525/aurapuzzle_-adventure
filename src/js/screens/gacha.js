@@ -8,47 +8,22 @@
  * 画面タップでいつでもスキップできる。
  * =======================================================*/
 import { $, toast, sleep, itemIcon } from '../core/ui.js';
-import { state, addCharacter, saveState, resolveOwned } from '../core/state.js';
+import { state, addCharacter, saveState } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, COLOR_GLOW, RARITY_TITLE, RARITY_HEX, ROLE_LABEL,
-  GACHA_POOL, FREPO_POOL, FREPO_WEIGHTS, ORB_WEIGHTS,
-  FREPO_GUARANTEE_WEIGHTS, ORB_GUARANTEE_WEIGHTS,
   FREPO_COST, ORB_COST, FREPO_COST_MULTI, ORB_COST_MULTI, MULTI_PULL,
-  PICKUP_CHARACTER, PICKUP_RATE, MAX_GACHA_RARITY,
+  MAX_GACHA_RARITY,
   resolveCharacter
 } from '../data/gamedata.js';
 import { stars, portraitHTML } from './parts.js';
-import { gachaPoolAt } from '../data/gamedata.js';
-import { isAvailable } from '../data/availability.js';
+import { gachaCampaignsAt, gachaRates, drawGacha } from '../data/gacha-campaigns.js';
+import { charDetailHTML } from './parts.js';
 
 /* ===================== 抽選 ===================== */
-function pickRarity(weights) {
-  const rarities = Object.keys(weights).map(Number).sort((a, b) => a - b);
-  const total = rarities.reduce((s, r) => s + weights[r], 0);
-  let roll = Math.random() * total;
-  for (const r of rarities) {
-    if (roll < weights[r]) return r;
-    roll -= weights[r];
-  }
-  return rarities[rarities.length - 1];
-}
-
-function pullFrom(pool, weights) {
-  const rarity = pickRarity(weights);
-  // ピックアップ:最高レアを引いたときは一定確率で看板キャラになる
-  const pickupOn = PICKUP_CHARACTER && rarity >= MAX_GACHA_RARITY && pool.includes(PICKUP_CHARACTER);
-  if (pickupOn && Math.random() < PICKUP_RATE) return PICKUP_CHARACTER;
-  // ピックアップ枠を外したあとの通常枠に看板キャラを残すと、
-  // PICKUP_RATE より出やすくなってしまうのでここでは除外する
-  const cands = pool.filter(c => c.rarity === rarity && !(pickupOn && c === PICKUP_CHARACTER));
-  if (!cands.length) return pool[Math.floor(Math.random() * pool.length)];
-  return cands[Math.floor(Math.random() * cands.length)];
-}
-
-/** 1回ぶんの抽選結果(所持前の判定込み) */
-function rollOne(pool, weights) {
-  const base = pullFrom(pool, weights);
+let selectedCampaign = 'normal';
+function rollOne(campaign, kind, guaranteed) {
+  const base = drawGacha(campaign, kind, guaranteed);
   const isNew = !state.characters[base.id];
   return { base, isNew };
 }
@@ -191,10 +166,10 @@ function renderSummary(results) {
 async function doPull(kind, count) {
   if (animating) return;
   const useOrb = kind === 'orb';
-  const pool = gachaPoolAt().filter(c => useOrb || c.rarity <= 3);
-  if (!pool.length) { toast('開催中のガチャがありません'); return; }
-  const weights = useOrb ? ORB_WEIGHTS : FREPO_WEIGHTS;
-  const guarantee = useOrb ? ORB_GUARANTEE_WEIGHTS : FREPO_GUARANTEE_WEIGHTS;
+  const campaign = gachaCampaignsAt().find(c => c.id === selectedCampaign);
+  if (!campaign || !gachaRates(campaign, kind).length) {
+    toast('このガチャは開催期間外です'); renderGacha(); return;
+  }
   const cost = count > 1
     ? (useOrb ? ORB_COST_MULTI : FREPO_COST_MULTI)
     : (useOrb ? ORB_COST : FREPO_COST);
@@ -209,8 +184,8 @@ async function doPull(kind, count) {
   const rolls = [];
   for (let i = 0; i < count; i++) {
     const isLast = count > 1 && i === count - 1;
-    const hasHigh = rolls.some(r => r.base.rarity >= 3);
-    rolls.push(rollOne(pool, (isLast && !hasHigh) ? guarantee : weights));
+    const hasHigh = rolls.some(r => r.base.rarity >= (useOrb ? 3 : 2));
+    rolls.push(rollOne(campaign, kind, isLast && !hasHigh));
   }
   rolls.forEach(r => addCharacter(r.base.id));
   saveState();
@@ -238,61 +213,75 @@ async function doPull(kind, count) {
 }
 
 /* ===================== 画面 ===================== */
-export function renderGacha() {
-  const seasonal = gachaPoolAt().filter(c => c.eventId);
-  const pickup = PICKUP_CHARACTER && isAvailable(PICKUP_CHARACTER) && !PICKUP_CHARACTER.giftOnly ? PICKUP_CHARACTER : null;
-  let seasonalBox = $('seasonalGacha');
-  if (!seasonalBox) { seasonalBox=document.createElement('div');seasonalBox.id='seasonalGacha';$('screen-gacha').prepend(seasonalBox); }
-  seasonalBox.innerHTML=seasonal.length ? `<div class="card"><h3>期間限定衣装</h3><div style="display:flex;gap:8px;justify-content:space-around">${seasonal.map(c=>`<div style="min-width:0;flex:1;text-align:center">${portraitHTML(resolveCharacter(c.id,c.rarity,1))}<p style="font-size:11px">${c.name}</p></div>`).join('')}</div><p>開催中のイベント限定衣装がオーブガチャに登場。獲得後はイベント終了後も使用できます。</p>${seasonal.some(c=>c.eventDropBonusChance) ? '<p>🍬 特効：自陣に編成すると、対応イベントの交換素材をクリア時に追加獲得するチャンス！</p>' : ''}</div>` : '';
-  // ピックアップ表示。開催していないときは枠ごと隠す
-  // (空の枠が残ると、開催中に見えるうえに場所も食う)
-  const box = $('pickupBox');
-  const note = $('orbGachaNote');
-  if (box) box.hidden = !pickup;
-  if (note) {
-    note.textContent = pickup
-      ? 'ピックアップ開催中 ・ 最高レア SSR(★4)'
-      : '最高レア SSR(★4)';
-  }
-  if (box && pickup) {
-    const ch = resolveCharacter(pickup.id, pickup.rarity, 1);
-    const aura = AURAS[ch.aura];
-    box.style.setProperty('--aura', COLOR_HEX[aura.key]);
-    box.innerHTML = `
-      <div class="pu-label">PICK UP</div>
-      ${portraitHTML(ch, 'big')}
-      <div class="pu-info">
-        <div class="pu-name">${ch.name}</div>
-        <div class="pu-job">${ch.job} ・ ${aura.emoji}${aura.name}オーラ</div>
-        ${stars(ch.rarity, MAX_GACHA_RARITY)}
-        <div class="pu-ls"><span class="mini-tag ls">LS</span>${ch.leaderSkill.name}
-          <span class="pu-lsdesc">${ch.leaderSkill.desc}</span></div>
-      </div>`;
-  }
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const percent = rate => (rate * 100).toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%';
 
-  // コスト表示
+export function renderGacha(options = {}) {
+  if (options.campaignId || options.eventId) selectedCampaign = options.campaignId || options.eventId;
+  const campaigns = gachaCampaignsAt();
+  const campaign = campaigns.find(c => c.id === selectedCampaign) || campaigns[0];
+  selectedCampaign = campaign.id;
+  let tabs = $('gachaTabs');
+  if (!tabs) {
+    tabs = document.createElement('div'); tabs.id = 'gachaTabs'; tabs.className = 'segmented gacha-tabs';
+    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'ガチャの種類');
+    $('screen-gacha').prepend(tabs);
+  }
+  tabs.innerHTML = campaigns.map(c => `<button role="tab" aria-selected="${c.id === campaign.id}" class="${c.id === campaign.id ? 'active' : ''}" data-campaign="${esc(c.id)}">${esc(c.name)}</button>`).join('');
+  tabs.querySelectorAll('[data-campaign]').forEach(button => button.onclick = () => {
+    if (animating) return;
+    selectedCampaign = button.dataset.campaign; renderGacha();
+  });
+  const rates = gachaRates(campaign);
+  const box = $('pickupBox');
+  box.hidden = !campaign.pickups.length;
+  box.className = 'pickup-card campaign-pickups';
+  box.innerHTML = `
+    ${campaign.banner ? `<img class="gacha-banner" src="${esc(campaign.banner)}" alt="${esc(campaign.name)}">` : ''}
+    <h3>${esc(campaign.name)} PICK UP</h3>
+    ${campaign.availableUntil ? `<p>開催終了：${new Date(campaign.availableUntil).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})}（日本時間）</p>` : ''}
+    <div class="gacha-pu-grid">${campaign.pickups.map(base => {
+      const ch = resolveCharacter(base.id, base.rarity, 1);
+      const rate = rates.find(r => r.character.id === ch.id)?.rate || 0;
+      return `<button class="gacha-pu" data-pickup="${esc(ch.id)}">
+        ${portraitHTML(ch)}<b>${esc(ch.name)}</b><span>★${ch.rarity} ・ ${percent(rate)}</span>
+        ${ch.eventDropBonusChance ? '<span class="chip">🍬 キャンディ特効</span>' : ''}
+        <small>タップでスキル・詳細</small></button>`;
+    }).join('')}</div>
+    ${campaign.id !== 'normal' ? '<p>限定衣装はこのガチャから登場。獲得後はイベント終了後も使用できます。</p>' : ''}`;
+  box.querySelectorAll('[data-pickup]').forEach(button => button.onclick = () => {
+    const ch = resolveCharacter(button.dataset.pickup, undefined, 1);
+    let modal = $('gachaDetail');
+    if (!modal) {
+      modal = document.createElement('div'); modal.id = 'gachaDetail'; modal.className = 'modal';
+      $('screen-gacha').appendChild(modal);
+    }
+    modal.innerHTML = `<div class="modal-card"><div>${charDetailHTML(ch)}</div><button class="btn block" data-back-close>閉じる</button></div>`;
+    modal.querySelector('button').onclick = () => modal.classList.remove('show');
+    modal.classList.add('show');
+  });
+  $('screen-gacha').querySelector('.g-frepo').hidden = campaign.id !== 'normal';
+  $('screen-gacha').querySelector('.g-orb .gtitle').innerHTML = `${itemIcon('orb')} ${esc(campaign.name)}`;
+  $('orbGachaNote').textContent = campaign.pickups.length ? 'ピックアップ開催中 ・ 最高レア SSR(★4)' : '最高レア SSR(★4)';
   $('frepoCost1').textContent = FREPO_COST.toLocaleString();
   $('frepoCost10').textContent = FREPO_COST_MULTI.toLocaleString();
   $('orbCost1').textContent = ORB_COST;
   $('orbCost10').textContent = ORB_COST_MULTI;
-
-  // 排出率
-  const rates = $('gachaRates');
-  if (!rates) return;
-  const rows = [
-    { label: `${itemIcon('frepo')} フレポガチャ`, weights: FREPO_WEIGHTS },
-    { label: `${itemIcon('orb')} オーブガチャ`, weights: ORB_WEIGHTS }
-  ];
-  rates.innerHTML = rows.map(r => {
-    const total = Object.values(r.weights).reduce((s, v) => s + v, 0);
-    const items = Object.keys(r.weights).map(k =>
-      `<span class="rate-item" style="--rare:${RARITY_HEX[k]}"><b>${RARITY_TITLE[k]}</b>${(r.weights[k] / total * 100).toFixed(1)}%</span>`
-    ).join('');
-    return `<div class="rate-row"><div class="rate-label">${r.label}</div><div class="rate-items">${items}</div></div>`;
-  }).join('')
-    + (seasonal.length ? `<div class="rate-note">期間限定衣装：${seasonal.map(c=>c.name).join(' / ')}<br>イベント期間中のみオーブガチャから登場。</div>` : '')
-    + `<div class="rate-note">★5(UR)はガチャからは出ません。★4まで育てて「進化」で到達します。<br>
-       ${MULTI_PULL}連は1回ぶんお得＆★3以上が1体確定です。</div>`;
+  const kinds = campaign.id === 'normal' ? ['orb', 'frepo'] : ['orb'];
+  $('gachaRates').innerHTML = kinds.map(kind => {
+    const ordinary = gachaRates(campaign, kind);
+    const guaranteed = gachaRates(campaign, kind, true);
+    const bands = [1,2,3,4].map(star => {
+      const rate = ordinary.filter(r => r.character.rarity === star).reduce((sum,r) => sum+r.rate,0);
+      return rate ? `<span class="rate-item"><b>★${star}</b>${percent(rate)}</span>` : '';
+    }).join('');
+    return `<div class="rate-row"><b>${kind === 'orb' ? esc(campaign.name) : 'フレポ召喚'}</b><div class="rate-items">${bands}</div></div>
+      <details class="gacha-probabilities"><summary>キャラクター別の提供割合</summary>
+      <p>通常抽選と保証抽選の1枠あたりの確率です。10連の最初の9枠に★${kind === 'orb' ? 3 : 2}以上が出なかった場合のみ、最後の1枠が保証抽選になります。</p>
+      <table><thead><tr><th>キャラクター</th><th>通常</th><th>保証</th></tr></thead><tbody>
+      ${ordinary.slice().sort((a,b) => Number(b.pickup)-Number(a.pickup) || b.character.rarity-a.character.rarity).map(row => `<tr><td>${row.pickup ? 'PU ' : ''}★${row.character.rarity} ${esc(row.character.name)}</td><td>${percent(row.rate)}</td><td>${percent(guaranteed.find(r=>r.character.id===row.character.id)?.rate || 0)}</td></tr>`).join('')}
+      </tbody></table><p>表示は小数第3位まで丸めています。</p></details>`;
+  }).join('') + '<p class="rate-note">★5は進化で到達できます。10連は1回ぶんお得です。</p>';
 }
 
 export function initGacha() {

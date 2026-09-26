@@ -31,7 +31,7 @@ function draftIconPaths() {
 export default {
   render(view) {
     const s = settings();
-    const chars = allCharacters().filter(c => c.rarity === G.MAX_GACHA_RARITY && !c.giftOnly);
+    const chars = allCharacters().filter(c => c.rarity === G.MAX_GACHA_RARITY && !c.giftOnly && !c.eventId);
     const current = s.pickupOff
       ? null
       : (s.pickupId ? allCharacters().find(c => c.id === s.pickupId) : G.PICKUP_CHARACTER);
@@ -43,7 +43,7 @@ export default {
     const held = getBlob(bannerPath);
 
     // ★4帯の内訳。PUを1体抜いた残りを均等に割る
-    const pool = G.GACHA_POOL.filter(c => c.rarity === G.MAX_GACHA_RARITY);
+    const pool = G.GACHA_POOL.filter(c => c.rarity === G.MAX_GACHA_RARITY && !c.eventId);
     const band = (G.ORB_WEIGHTS || {})[G.MAX_GACHA_RARITY] || 0;
     const total = Object.values(G.ORB_WEIGHTS || {}).reduce((a, b) => a + b, 0) || 1;
     const share = band / total;
@@ -51,7 +51,8 @@ export default {
     const eachOther = (share * (1 - rate)) / others;
 
     view.innerHTML = `
-      ${card('ピックアップ', `
+      ${card('通常ガチャのピックアップ', `
+        <p class="lead">イベント専用ガチャの複数PUと割合は「イベント設定」で管理します。</p>
         <p class="lead">★${G.MAX_GACHA_RARITY} の枠のうち、決めた割合をこの1体に寄せます。
         残りは同じレアリティで均等に割ります。「ピックアップなし」を選ぶと、
         ガチャ画面のPU枠と「開催中」の表示も消えます。</p>

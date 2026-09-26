@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-connect-v88';
+const CACHE_NAME = 'aura-connect-v89';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -53,6 +53,7 @@ const ASSETS = [
   './src/js/data/raids.js',
   './src/js/data/raid-rewards.js',
   './src/js/data/event-drops.js',
+  './src/js/data/gacha-campaigns.js',
   './src/js/data/custom.js',
   './src/js/data/banners.js',
   './src/js/battle/encounter.js',

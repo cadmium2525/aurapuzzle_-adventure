@@ -1148,6 +1148,12 @@ export const CUSTOM_SETTINGS = {
     {
       "id": "halloween_2026",
       "name": "ハロウィンパーティ",
+      "gacha": {
+        "name": "ハロウィンガチャ",
+        "enabled": true,
+        "pickupRate": 0.5,
+        "pickupIds": ["hw_kai", "hw_mio", "hw_noa", "hw_rune"]
+      },
       "currency": {
         "id": "mt_halloween_candy",
         "name": "ハロウィンキャンディ",

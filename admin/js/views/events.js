@@ -17,6 +17,12 @@ export default {render(view) {
     ${publicationFields(e,false)}${field('交換素材ID','currencyId',e.currency.id)}${field('交換素材名','currencyName',e.currency.name)}
     ${field('交換素材画像パス','currencyIcon',e.currency.icon || '')}<label class="drop">交換素材画像をWebPに変換<input type="file" id="currencyFile" accept="image/*"></label>
     ${field('イベントバナーのパス','banner',e.banner || '')}<label class="drop">バナーをWebPに変換<input type="file" id="eventBannerFile" accept="image/*"></label>
+    <h3>イベント専用ガチャ</h3>
+    ${field('専用ガチャ','gachaEnabled',e.gacha?.enabled !== false && !!e.gacha ? 'true' : 'false',{type:'select',options:[['false','なし'],['true','開催期間中に公開']]})}
+    ${field('ガチャの表示名','gachaName',e.gacha?.name || '')}
+    ${field('PUキャラID（カンマ区切り）','gachaPickups',(e.gacha?.pickupIds || []).join(', '))}
+    ${field('★4帯のうちPU全員が占める割合 (%)','gachaRate',(e.gacha?.pickupRate ?? .5)*100,{type:'number',min:0,max:100})}
+    <p class="lead small">PUはこのイベントの★4ガチャキャラを指定。設定割合をPU全員で均等に分けます。50%・4人なら通常抽選で各1.5%（合計6%）。残りには通常キャラが登場します。</p>
     ${field('交換商品（JSON配列）','shop',JSON.stringify(e.shop,null,2),{type:'textarea',rows:12})}
     <p class="lead small">商品: id, type (character / material / homeTheme), price（交換素材数）, totalLimit。キャラは charId、素材は matId と amount、ホーム背景は themeId・name・image（assets/ui/以下のWebPパス）を指定。背景は買い切りなので totalLimit: 1 にしてください。商品IDはイベントごとに一意にしてください。</p>
     <label class="drop">ホーム背景画像をWebPに変換（商品JSONの image パスへ保存）<input type="file" id="homeThemeFile" accept="image/*"></label>
@@ -25,12 +31,21 @@ export default {render(view) {
     const v=readForm(view);
     Object.assign(e,readPublication(v),{id:v.id.trim(),name:v.name.trim(),description:v.description,banner:v.banner.trim(),currency:{id:v.currencyId.trim(),name:v.currencyName.trim(),icon:v.currencyIcon.trim(),emoji:'🍬',color:'#FFB658'},shop:JSON.parse(v.shop)});
     delete e.eventId;
+    e.gacha={name:v.gachaName.trim(),enabled:v.gachaEnabled==='true',pickupRate:Number(v.gachaRate)/100,pickupIds:[...new Set(v.gachaPickups.split(',').map(id=>id.trim()).filter(Boolean))]};
   };
   $('saveEvent').onclick=()=>{try {
     collect();
     if (!/^[a-z][a-z0-9_]+$/.test(e.id) || !e.name || !validPublication(e) || !e.availableFrom || !e.availableUntil) throw Error('ID・名前・開始終了日時を確認してください');
     if (!/^mt_[a-z0-9_]+$/.test(e.currency.id) || !e.currency.name) throw Error('交換素材IDはmt_で始めてください');
     if (!Array.isArray(e.shop)) throw Error('商品は配列で指定してください');
+    if (e.gacha.enabled) {
+      const chars=new Map([...G.CHARACTERS,...draft().characters].map(c=>[c.id,c]));
+      if (!e.gacha.name || !Number.isFinite(e.gacha.pickupRate) || e.gacha.pickupRate<0 || e.gacha.pickupRate>1 || !e.gacha.pickupIds.length) throw Error('ガチャ名・PUキャラ・割合を確認してください');
+      for (const id of e.gacha.pickupIds) {
+        const c=chars.get(id);
+        if (!c || c.eventId!==e.id || c.rarity!==4 || c.giftOnly || c.raidDrop) throw Error(`PU ${id} はこのイベントの★4ガチャキャラを指定してください`);
+      }
+    }
     const ids=new Set();
     for (const i of e.shop) {
       if (!i.id || ids.has(i.id) || !Number.isInteger(i.price) || i.price<1 || !Number.isInteger(i.totalLimit) || i.totalLimit<1) throw Error('商品IDの重複・価格・通算上限を確認してください');
