@@ -3,20 +3,19 @@
  *
  * 演出の流れ:
  *   魔法陣が出る → オーラのオーブが集まる → フラッシュ →
- *   カード出現 → 星が1つずつ灯る → (10連は1枚ずつめくって最後に一覧)
+ *   全身イラスト出現 → 星が1つずつ灯る → (10連はタップで次へ、最後に一覧)
  * 期待度は集まるオーブの色で示す(青=通常 / 金=SR以上 / 虹=SSR)。
- * 画面タップでいつでもスキップできる。
+ * 召喚ゲートのタップ / 結果のスキップボタンで待機を即時終了する。
  * =======================================================*/
-import { $, toast, sleep, itemIcon } from '../core/ui.js';
+import { $, toast, itemIcon, artImg } from '../core/ui.js';
 import { state, addCharacter, saveState } from '../core/state.js';
 import { updateStatusBar } from '../core/nav.js';
 import {
   AURAS, COLOR_HEX, COLOR_GLOW, RARITY_TITLE, RARITY_HEX, ROLE_LABEL,
   FREPO_COST, ORB_COST, FREPO_COST_MULTI, ORB_COST_MULTI, MULTI_PULL,
-  MAX_GACHA_RARITY,
   resolveCharacter
 } from '../data/gamedata.js';
-import { stars, portraitHTML } from './parts.js';
+import { portraitHTML } from './parts.js';
 import { gachaCampaignsAt, gachaRates, drawGacha } from '../data/gacha-campaigns.js';
 import { charDetailHTML } from './parts.js';
 
@@ -31,11 +30,25 @@ function rollOne(campaign, kind, guaranteed) {
 /* ===================== 演出 ===================== */
 let skipRequested = false;
 let animating = false;
+let finishWait = null;
+let advanceReveal = null;
+let previousFocus = null;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function skipAnimation() {
+  skipRequested = true;
+  finishWait?.();
+  advanceReveal?.();
+}
 
 /** タップされたら以降の待ち時間を飛ばす */
 function waitStep(ms) {
   if (skipRequested) return Promise.resolve();
-  return sleep(ms);
+  return new Promise(resolve => {
+    const done = () => { clearTimeout(timer); finishWait = null; resolve(); };
+    const timer = setTimeout(done, reducedMotion() ? Math.min(ms, 100) : ms);
+    finishWait = done;
+  });
 }
 
 function stageEl() { return $('gachaStage'); }
@@ -61,7 +74,7 @@ function buildOrbs(tier) {
     : tier === 'gold'
       ? ['#FFD86B', '#FFC65C', '#FFE9A8']
       : [COLOR_HEX.c1, COLOR_GLOW.c1, '#7FB6FF'];
-  const n = tier === 'rainbow' ? 26 : tier === 'gold' ? 20 : 14;
+  const n = reducedMotion() ? 0 : tier === 'rainbow' ? 24 : tier === 'gold' ? 18 : 12;
   for (let i = 0; i < n; i++) {
     const sp = document.createElement('span');
     const angle = (360 / n) * i + Math.random() * 12;
@@ -81,23 +94,26 @@ async function playSummon(topRarity) {
   const tier = tierOf(topRarity);
   const el = stageEl();
   el.className = 'gacha-stage show tier-' + tier;
+  $('gachaSkipBtn').focus({ preventScroll: true });
+  $('gachaTease').textContent = tier === 'rainbow' ? '虹彩の扉が、開く。' : tier === 'gold' ? '黄金の輝きが、応える。' : '新たな絆が、目を覚ます。';
   buildOrbs(tier);
 
   setStagePhase('circle');
-  await waitStep(tier === 'blue' ? 700 : 1000);
+  await waitStep(650);
 
   setStagePhase('gather');
-  await waitStep(tier === 'blue' ? 800 : 1100);
+  await waitStep(1050);
 
   // 期待度の高いときは一度「溜め」を入れる
   if (tier !== 'blue') {
-    $('gachaTease').textContent = tier === 'rainbow' ? 'SSR 確定!' : 'SR 以上!';
     setStagePhase('charge');
-    await waitStep(tier === 'rainbow' ? 1000 : 700);
+    await waitStep(tier === 'rainbow' ? 950 : 650);
   }
 
+  setStagePhase('open');
+  await waitStep(550);
   setStagePhase('flash');
-  await waitStep(320);
+  await waitStep(180);
 }
 
 function hideStage() {
@@ -112,34 +128,38 @@ function resultCardHTML(ch, isNew) {
   const aura = AURAS[ch.aura];
   const ls = ch.leaderSkill, sk = ch.skill;
   return `
-    <div class="pull-burst"></div>
-    <div class="pemoji">${portraitHTML(ch, 'big')}</div>
+    <div class="pull-burst" aria-hidden="true"></div>
+    <div class="pull-rarity-label">${RARITY_TITLE[ch.rarity]} <span>SUMMONED</span></div>
+    <div class="pull-art">${artImg(ch.art?.full || ch.art?.icon, ch.portrait, 'summon')}</div>
     <div class="pname">${ch.name}${isNew ? '<span class="newtag">NEW</span>' : ''}
       <span class="pjob">${ch.job}</span></div>
-    <div class="pstars">${stars(ch.rarity, MAX_GACHA_RARITY)}
-      <span class="rarity-tag" style="--rare:${RARITY_HEX[ch.rarity]}">${RARITY_TITLE[ch.rarity]}</span></div>
+    <div class="pstars" aria-label="星${ch.rarity}">${Array.from({length: ch.rarity}, (_, i) => `<span class="reveal-star" style="--i:${i}" aria-hidden="true">★</span>`).join('')}</div>
+    <details class="pull-details"><summary>能力・スキルを見る</summary>
     <div class="pstats">${aura.emoji}${aura.name}オーラ ・ ${ROLE_LABEL[ch.role]}<br>
       ATK ${ch.atk} / HP ${ch.hp} / RCV ${ch.rcv}</div>
     <div class="pskills">
       <div class="skill-line on"><span class="skill-tag ls">LS</span><span><b>${ls.name}</b><br>${ls.desc}</span></div>
       <div class="skill-line on"><span class="skill-tag sk">SKILL</span><span><b>${sk.name}</b><br>${sk.desc}</span></div>
-    </div>`;
+    </div></details>`;
 }
 
 /** 1体ぶんのカードを出す */
 async function revealOne(ch, isNew, index, total) {
   const card = $('pullCard');
-  card.className = 'modal-card r' + ch.rarity;
+  card.className = 'modal-card cinematic r' + ch.rarity;
   card.style.setProperty('--rare', RARITY_HEX[ch.rarity]);
   card.style.setProperty('--aura', COLOR_HEX[AURAS[ch.aura].key]);
   $('pullBody').innerHTML = resultCardHTML(ch, isNew);
+  card.scrollTop = 0;
+  $('pullCloseBtn').textContent = total > 1 ? (index === total - 1 ? '結果一覧へ' : '次の仲間へ') : '受け取る';
   $('pullCounter').textContent = total > 1 ? `${index + 1} / ${total}` : '';
   $('pullCounter').style.display = total > 1 ? 'block' : 'none';
   $('pullOverlay').classList.add('show');
-  // 星を1つずつ灯す
-  const starEls = $('pullBody').querySelectorAll('.stars');
-  if (starEls.length) starEls[0].classList.add('pop-in');
-  await waitStep(total > 1 ? 620 : 300);
+  // A new body restarts the art/star animations without forced layout.
+  $('pullCloseBtn').focus({ preventScroll: true });
+  if (total > 1 && !skipRequested) {
+    await new Promise(resolve => { advanceReveal = () => { advanceReveal = null; resolve(); }; });
+  }
 }
 
 /** 10連のまとめ一覧 */
@@ -147,7 +167,7 @@ function renderSummary(results) {
   const box = $('pullSummary');
   box.innerHTML = results.map(r => {
     const ch = r.ch;
-    return `<div class="ps-cell r${ch.rarity}" style="--rare:${RARITY_HEX[ch.rarity]}">
+    return `<div class="ps-cell r${ch.rarity}" style="--rare:${RARITY_HEX[ch.rarity]};--i:${results.indexOf(r)}">
       ${portraitHTML(ch)}
       <span class="ps-name">${ch.name}</span>
       <span class="ps-star">${'★'.repeat(ch.rarity)}</span>
@@ -160,6 +180,9 @@ function renderSummary(results) {
   $('pullSkipBtn').style.display = 'none';
   const card = $('pullCard');
   card.className = 'modal-card wide summary';
+  card.scrollTop = 0;
+  $('pullCloseBtn').textContent = '受け取る';
+  $('pullCloseBtn').focus({ preventScroll: true });
 }
 
 /* ===================== ガチャ実行 ===================== */
@@ -177,15 +200,20 @@ async function doPull(kind, count) {
   if (have < cost) { toast(useOrb ? 'オーブが足りません' : 'フレポが足りません'); return; }
 
   animating = true;
+  previousFocus = document.activeElement;
   skipRequested = false;
   if (useOrb) state.orb -= cost; else state.frepo -= cost;
 
   // 抽選(10連は最後の1枠が★3以上確定)
   const rolls = [];
+  const seen = new Set(Object.keys(state.characters));
   for (let i = 0; i < count; i++) {
     const isLast = count > 1 && i === count - 1;
     const hasHigh = rolls.some(r => r.base.rarity >= (useOrb ? 3 : 2));
-    rolls.push(rollOne(campaign, kind, isLast && !hasHigh));
+    const roll = rollOne(campaign, kind, isLast && !hasHigh);
+    roll.isNew = !seen.has(roll.base.id);
+    seen.add(roll.base.id);
+    rolls.push(roll);
   }
   rolls.forEach(r => addCharacter(r.base.id));
   saveState();
@@ -196,6 +224,8 @@ async function doPull(kind, count) {
     isNew: r.isNew
   }));
   const topRarity = Math.max(...results.map(r => r.ch.rarity));
+  // Start fetching full artwork while the gate animation is running.
+  results.forEach(({ch}) => { if (ch.art?.full) { const img = new Image(); img.src = ch.art.full; } });
 
   // 演出 → 1枚ずつ公開
   $('pullSummaryWrap').style.display = 'none';
@@ -291,11 +321,24 @@ export function initGacha() {
   $('orbGacha10Btn').addEventListener('click', () => doPull('orb', MULTI_PULL));
 
   // 演出中のタップでスキップ
-  stageEl().addEventListener('click', () => { skipRequested = true; });
-  $('pullSkipBtn').addEventListener('click', () => { skipRequested = true; });
+  stageEl().addEventListener('click', skipAnimation);
+  $('pullSkipBtn').addEventListener('click', skipAnimation);
+  document.addEventListener('keydown', e => {
+    if (animating && e.key === 'Escape') { e.preventDefault(); skipAnimation(); }
+    const dialog = stageEl().classList.contains('show') ? stageEl()
+      : $('pullOverlay').classList.contains('show') ? $('pullOverlay') : null;
+    if (dialog && e.key === 'Tab') {
+      const controls = [...dialog.querySelectorAll('button, summary')].filter(el => el.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (!dialog.contains(document.activeElement) || (e.shiftKey && document.activeElement === first)) {
+        e.preventDefault(); (e.shiftKey ? last : first)?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
+  });
 
   $('pullCloseBtn').addEventListener('click', () => {
-    if (animating) { skipRequested = true; return; }
+    if (animating) { advanceReveal ? advanceReveal() : skipAnimation(); return; }
     $('pullOverlay').classList.remove('show');
+    previousFocus?.focus({ preventScroll: true });
   });
 }

@@ -1,0 +1,33 @@
+// Isolated browser fixture: no player save or cloud connection is touched.
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
+const root=path.resolve(__dirname,'..');
+const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.png':'image/png'};
+const server=http.createServer(async(req,res)=>{try{const p=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://local').pathname));if(!p.startsWith(root+path.sep))throw Error();res.setHeader('Content-Type',mime[path.extname(p)]||'application/octet-stream');res.end(await fs.readFile(p));}catch{res.writeHead(404);res.end();}});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({channel:'chrome',headless:true});
+try{const page=await browser.newPage({viewport:{width:390,height:844},serviceWorkers:'block'}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto(`http://127.0.0.1:${server.address().port}/tests/event-preview.html`);await page.locator('[data-gacha]').click();
+await page.evaluate(()=>{Math.random=()=>.945;});await page.locator('#orbGacha1Btn').click();
+await page.locator('#gachaStage[data-phase="charge"]').waitFor();await page.screenshot({path:path.join(os.tmpdir(),'aura-summon-gate.png')});
+await page.locator('#pullCard.cinematic').waitFor();await page.waitForTimeout(1000);
+assert.equal(await page.locator('.pull-art img').evaluate(i=>i.complete&&i.naturalWidth>0),true);
+assert.equal(await page.locator('.reveal-star').count(),4);
+await page.screenshot({path:path.join(os.tmpdir(),'aura-summon-ssr.png')});
+await page.locator('.pull-details summary').click();assert.ok((await page.locator('.pull-details').innerText()).includes('SKILL'));
+await page.locator('#pullCloseBtn').click();
+await page.locator('#orbGacha10Btn').click();await page.locator('#gachaSkipBtn').click();
+await page.locator('#pullCard.summary').waitFor({timeout:1500});assert.equal(await page.locator('.ps-cell').count(),10);
+assert.equal(await page.locator('.ps-new').count(),0);await page.locator('#pullCloseBtn').click();
+// Without skipping, each reveal remains until the player advances.
+await page.emulateMedia({reducedMotion:'reduce'});await page.locator('#orbGacha10Btn').click();
+await page.locator('#pullCard.cinematic').waitFor();await page.waitForTimeout(1100);assert.equal(await page.locator('#pullCounter').innerText(),'1 / 10');
+await page.locator('#pullCloseBtn').click();await page.waitForFunction(()=>document.querySelector('#pullCounter').textContent==='2 / 10');
+await page.locator('#pullSkipBtn').click();await page.locator('#pullCard.summary').waitFor();
+assert.equal(await page.evaluate(async()=>(await import('/src/js/core/state.js')).state.orb),405);
+await page.setViewportSize({width:320,height:568});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+await page.screenshot({path:path.join(os.tmpdir(),'aura-summon-summary.png')});await page.locator('#pullCloseBtn').click();
+await page.locator('[data-campaign="normal"]').click();await page.evaluate(()=>{Math.random=()=>.01;});
+await page.locator('#orbGacha1Btn').click();await page.keyboard.press('Escape');await page.locator('#pullCard.cinematic').waitFor({timeout:1500});
+assert.equal(await page.locator('.reveal-star').count(),1);assert.equal(await page.locator('.pull-art img').evaluate(i=>i.complete&&i.naturalWidth>0),true);
+assert.deepEqual(errors,[]);console.log('PASS: SSR artwork, gate, instant skip, manual ten-pull progression, repeat ownership, reduced motion, 320px layout and exact currency debit');
+}finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- src/js/core/version.js と sw.js の CACHE_NAME に必ずそろえる。
      食い違いはHTMLとJSの版ずれなので、main.js が読み込み直す。 -->
-<meta name="app-version" content="89">
+<meta name="app-version" content="90">
 <link rel="stylesheet" href="./src/css/style.css">
 </head>
 <body>
@@ -649,8 +649,11 @@
 </div>
 
 <!-- ===================== 召喚演出 ===================== -->
-<div class="gacha-stage" id="gachaStage">
+<div class="gacha-stage" id="gachaStage" role="dialog" aria-modal="true" aria-label="召喚演出">
   <div class="gs-veil"></div>
+  <div class="gs-heading">AURA CONNECT<span>魂の召喚</span></div>
+  <div class="gs-gate" aria-hidden="true"><i></i><i></i></div>
+  <svg class="gs-seal" viewBox="0 0 240 240" aria-hidden="true"><g fill="none" stroke="currentColor"><circle cx="120" cy="120" r="110"/><circle cx="120" cy="120" r="95"/><path d="M120 10 215 175H25ZM120 230 25 65H215Z"/><path d="m120 42 78 78-78 78-78-78Z"/></g></svg>
   <div class="gs-rays"></div>
   <div class="gs-circle gs-c1"></div>
   <div class="gs-circle gs-c2"></div>
@@ -659,11 +662,11 @@
   <div class="gs-orbs" id="gachaOrbs"></div>
   <div class="gs-tease" id="gachaTease"></div>
   <div class="gs-flash"></div>
-  <div class="gs-hint">タップでスキップ</div>
+  <button class="gs-hint" id="gachaSkipBtn" type="button">演出をスキップ ›</button>
 </div>
 
 <!-- ===================== ガチャ結果 ===================== -->
-<div class="modal" id="pullOverlay">
+<div class="modal" id="pullOverlay" role="dialog" aria-modal="true" aria-label="召喚結果">
   <div class="modal-card" id="pullCard">
     <div class="pull-counter" id="pullCounter"></div>
     <div id="pullBody"></div>
