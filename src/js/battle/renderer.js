@@ -6,6 +6,7 @@
  * =======================================================*/
 import { COLORS, COLOR_HEX, COLOR_DARK, COLOR_GLOW } from '../data/gamedata.js';
 import { COLS, ROWS } from './board.js';
+import { chainLabelFill } from './chain-style.js';
 
 let canvas, ctx;
 let auraAtlas = null, auraAtlasReady = false;
@@ -360,7 +361,7 @@ function drawChainLabels(labels, now) {
     ctx.lineWidth = Math.max(3, size * 0.3);
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     ctx.strokeText(`${l.n} Chain`, x, y);
-    ctx.fillStyle = l.n >= 5 ? '#FFC65C' : (l.n >= 3 ? '#8FD8FF' : '#FFFFFF');
+    ctx.fillStyle = chainLabelFill(ctx, l.n, x, ctx.measureText(`${l.n} Chain`).width);
     ctx.fillText(`${l.n} Chain`, x, y);
     ctx.restore();
   });

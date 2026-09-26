@@ -36,6 +36,7 @@ import { renderEnemyBadges } from './enemy-badges.js';
 import { playPartyAttacks } from './party-motion.js';
 import { createChanceBoard, isAllClear } from './chance.js';
 import { baseActions, finalActions } from './damage.js';
+import { chainBanner } from './chain-style.js';
 import { createEncounter, attachEncounter, combatEnemy, encounterCleared, retarget, tickEncounter, summonClones, damageTarget } from './encounter.js';
 import { bossTransition, bossDialogue } from './raid-presentation.js';
 import { renderPlayerBadges } from './player-badges.js';
@@ -747,7 +748,7 @@ async function resolveTurn() {
     turnHeal += stepHeal;
     if (actions.length) anyAction = true;
 
-    let html = `<span class="chain">${chain} COMBO</span>`;
+    let html = chainBanner(chain);
     if (stepDamage > 0) html += ` <span class="dmg">基礎ダメージ +${Math.round(stepDamage)}</span>`;
     if (stepHeal > 0) html += ` <span class="heal">基礎回復 +${Math.round(stepHeal)}</span>`;
     if (groups.length > 1) html += ` <span class="simul">同時${groups.length}消し</span>`;
@@ -803,7 +804,7 @@ async function resolveTurn() {
     shake($('enemyRoster'));
   }
   if (turnDamage > 0 || turnHeal > 0 || outcome.blocked || outcome.absorbed) {
-    let html = `<span class="chain">${chain} COMBO</span>`;
+    let html = chainBanner(chain);
     if (turnDamage > 0) html += ` <span class="dmg">${turnDamage} ダメージ</span>`;
     if (turnHeal > 0) html += ` <span class="heal">+${turnHeal} 回復</span>`;
     if (outcome.blocked) html += ' ダメージ無効';

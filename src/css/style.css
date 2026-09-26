@@ -738,6 +738,10 @@ button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:non
 }
 #banner.show{opacity:1;transform:translateY(-50%);}
 #banner .chain{color:var(--accent);}
+#banner .chain.chain-rainbow{color:#FFE879;}
+@supports (background-clip:text) or (-webkit-background-clip:text){
+  #banner .chain.chain-rainbow{background:linear-gradient(90deg,#FF809D,#FFB968,#FFE879,#85F5AF,#80E8FF,#AAA0FF,#F4A0FF);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 1px 2px #000);}
+}
 #banner .dmg{color:#FFD9A8;}
 #banner .heal{color:var(--c3);}
 #banner .simul{color:var(--accent-3);font-size:11px;}
