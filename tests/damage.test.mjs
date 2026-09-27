@@ -26,3 +26,11 @@ test('representative uniform chains remain below previous x3 per-wave damage',()
     assert.ok(next<old);
   }
 });
+test('aura weakness reduces only the selected aura before final chain multipliers',()=>{
+  const weakened={...run,enemyEffects:{binds:[0,0,0],weakens:{0:{percent:50,turns:2},3:{percent:25,turns:2}}}};
+  const actions=baseActions([group(0),group(1),group(3)],weakened);
+  assert.ok(Math.abs(actions.find(a=>a.aura===0).value-55)<1e-9);
+  assert.ok(Math.abs(actions.find(a=>a.aura===1).value-110)<1e-9);
+  assert.equal(actions.find(a=>a.aura===3).value,180);
+  assert.equal(finalActions(actions,2,mods).find(a=>a.aura===0).value,88);
+});

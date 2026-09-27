@@ -1,6 +1,6 @@
 // Enemy effects count completed player turns. Apply new enemy effects after ticking.
 export function createEnemyEffects(size) {
-  return { binds: Array(size).fill(0), auraBinds: {}, time: null, recovery: null, poison: null,
+  return { binds: Array(size).fill(0), auraBinds: {}, jam: null, curses: {}, weakens: {}, time: null, recovery: null, poison: null,
     defenses: [], attackMult: 1, resolve: null };
 }
 
@@ -11,7 +11,7 @@ export function enterEnemy(effects, skills = {}) {
   for (const effect of skills.passives || []) applyEnemyEffect(effects, effect, []);
 }
 
-export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
+export function applyEnemyEffect(s, effect, cooldowns, random = Math.random, board = null) {
   let affected = [];
   const turns = effect.turns ?? Infinity;
   const targets = () => {
@@ -26,6 +26,26 @@ export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
     case 'bind': affected = targets(); affected.forEach(i => { s.binds[i] = Math.max(s.binds[i], turns); }); break;
     case 'skillDelay': affected = targets(); affected.forEach(i => { cooldowns[i] += effect.turns; }); break;
     case 'auraBind': s.auraBinds[effect.aura] = Math.max(s.auraBinds[effect.aura] || 0, turns); break;
+    case 'auraJam': {
+      const candidates = [];
+      for (let r = 0; r < (board?.length || 0); r++)
+        for (let c = 0; c < board[r].length; c++) if (board[r][c] >= 0) candidates.push([r, c]);
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      const count = Math.min(16, Math.max(0, Math.floor(Number(effect.count) || 0)));
+      s.jam = turns > 0 && count ? { cells: candidates.slice(0, count), turns } : null;
+      break;
+    }
+    case 'auraCurse': case 'auraWeaken': {
+      const aura = Number(effect.aura), percent = Math.min(100, Math.max(0, Number(effect.percent) || 0));
+      const active = effect.type === 'auraCurse' ? (s.curses ||= {}) : (s.weakens ||= {});
+      if (Number.isInteger(aura) && aura >= 0 && aura <= 4 && turns > 0 && percent > 0)
+        active[aura] = { percent, turns };
+      break;
+    }
+    case 'boardShuffle': case 'auraCorrupt': break; // Immediate board changes are handled by battle.js.
     case 'timeReduce': case 'timeFixed': s.time = { ...effect, turns }; break;
     case 'recoveryReduce': {
       const percent = Math.min(100, Math.max(0, Number(effect.percent) || 0));
@@ -50,6 +70,9 @@ export function applyEnemyEffect(s, effect, cooldowns, random = Math.random) {
 export function tickEnemyEffects(s) {
   s.binds = s.binds.map(n => Math.max(0, n - 1));
   for (const aura of Object.keys(s.auraBinds)) if (--s.auraBinds[aura] <= 0) delete s.auraBinds[aura];
+  if (s.jam && --s.jam.turns <= 0) s.jam = null;
+  for (const effects of [s.curses || {}, s.weakens || {}])
+    for (const aura of Object.keys(effects)) if (--effects[aura].turns <= 0) delete effects[aura];
   if (s.time && --s.time.turns <= 0) s.time = null;
   if (s.recovery && --s.recovery.turns <= 0) s.recovery = null;
   if (s.poison && --s.poison.turns <= 0) s.poison = null;
@@ -60,6 +83,21 @@ export function tickEnemyEffects(s) {
 export function poisonDamage(effects, maxHP) {
   if (!effects?.poison || effects.poison.turns <= 0 || !(maxHP > 0)) return 0;
   return Math.max(1, Math.round(maxHP * effects.poison.percent / 100));
+}
+
+/** Each cursed aura deals damage once per player turn, even if it clears in several chains. */
+export function curseDamage(effects, groups, maxHP) {
+  if (!(maxHP > 0)) return 0;
+  const cleared = new Set(groups.map(group => group.color));
+  return [...cleared].reduce((total, aura) => {
+    const curse = effects?.curses?.[aura];
+    return total + (curse?.turns > 0 ? Math.max(1, Math.round(maxHP * curse.percent / 100)) : 0);
+  }, 0);
+}
+
+export function auraWeakenMultiplier(effects, aura) {
+  const weaken = effects?.weakens?.[aura];
+  return weaken?.turns > 0 ? 1 - weaken.percent / 100 : 1;
 }
 
 export function effectiveTime(baseMs, bonusMs, maxMs, effects) {
@@ -129,6 +167,9 @@ export function effectLabels(s) {
   });
   if (s.recovery) labels.push(`回復力${s.recovery.percent}%減少${duration(s.recovery.turns)}`);
   if (s.poison) labels.push(`毒：最大HPの${s.poison.percent}%ダメージ${duration(s.poison.turns)}`);
+  if (s.jam?.cells.length) labels.push(`盤面ジャミング：${s.jam.cells.length}マス${duration(s.jam.turns)}`);
+  for (const [a,e] of Object.entries(s.curses || {})) labels.push(`${aura[a]}の呪い：消去した手番に最大HPの${e.percent}%ダメージ${duration(e.turns)}`);
+  for (const [a,e] of Object.entries(s.weakens || {})) labels.push(`${aura[a]}の衰弱：攻撃・回復${e.percent}%減少${duration(e.turns)}`);
   for (const [a,n] of Object.entries(s.auraBinds)) labels.push(`${aura[a]}消去不可${duration(n)}`);
   if (s.time) labels.push(`操作時間${s.time.type === 'timeFixed' ? '' : '−'}${s.time.seconds}秒${s.time.type === 'timeFixed' ? '固定' : ''}${duration(s.time.turns)}`);
   if (s.attackMult > 1) labels.push('敵攻撃力2倍');

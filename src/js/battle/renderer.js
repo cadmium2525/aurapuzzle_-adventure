@@ -263,17 +263,47 @@ function drawBoundAura(x, y, radius) {
   ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
 }
 
+function drawJammedAura(x, y, radius, t) {
+  ctx.save();
+  ctx.beginPath();ctx.arc(x,y,radius*1.04,0,Math.PI*2);
+  ctx.fillStyle='#101322f2';ctx.fill();
+  ctx.strokeStyle='#a8cbff';ctx.lineWidth=Math.max(1.5,radius*.1);ctx.stroke();
+  ctx.beginPath();ctx.arc(x,y,radius*.73,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(166,204,255,${.5+.3*Math.sin(t/250)})`;
+  ctx.setLineDash([radius*.24,radius*.15]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#e1edff';ctx.font=`900 ${Math.round(radius*1.05)}px system-ui`;
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('?',x,y+1);
+  ctx.restore();
+}
+
+function drawAuraMark(x,y,radius,type,t) {
+  const curse=type==='curse';
+  ctx.save();
+  ctx.beginPath();ctx.arc(x,y,radius*.92,0,Math.PI*2);
+  ctx.lineWidth=Math.max(2,radius*.12);
+  ctx.strokeStyle=curse?'#ff7bbd':'#b9b2ff';
+  ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=4+2*Math.sin(t/300);ctx.stroke();
+  ctx.shadowBlur=0;ctx.font=`900 ${Math.round(radius*.72)}px system-ui`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.lineWidth=3;ctx.strokeStyle='#130b21';
+  ctx.strokeText(curse?'呪':'↓',x,y+radius*.08);
+  ctx.fillStyle=curse?'#ffe1f0':'#eeeaff';ctx.fillText(curse?'呪':'↓',x,y+radius*.08);
+  ctx.restore();
+}
+
 /** 同オーラの隣接オーブを繋ぐ「ねっとり」した帯 */
-function drawBridges(board, t, selected, floatPos, dragging) {
+function drawBridges(board, t, selected, floatPos, dragging, jammed = new Set()) {
   const radius = CELL * 0.42;
   const pulse = 0.5 + 0.5 * Math.sin(t / 520);
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const val = board[r][c];
     if (val === -1) continue;
+    if (jammed.has(`${r},${c}`)) continue;
     const isDraggedCell = dragging && selected && selected.r === r && selected.c === c;
     for (const [nr, nc] of [[r, c + 1], [r + 1, c]]) {
       if (nr >= ROWS || nc >= COLS) continue;
       if (board[nr][nc] !== val) continue;
+      if (jammed.has(`${nr},${nc}`)) continue;
       const isDraggedNeighbor = dragging && selected && selected.r === nr && selected.c === nc;
       let p1 = cellCenter(r, c), p2 = cellCenter(nr, nc);
       if (isDraggedCell && floatPos) p1 = floatPos;
@@ -462,7 +492,9 @@ function drawBoardFuse(remainMs, totalMs) {
  */
 export function drawBoard(v) {
   const { board, t, selected, floatPos, dragging, clearingCells, clearT = 0,
-          chainLabels, remainMs = null, totalMs = 0, swapHint = null, auraBinds = {} } = v;
+          chainLabels, remainMs = null, totalMs = 0, swapHint = null, auraBinds = {}, jam = null,
+          curses = {}, weakens = {} } = v;
+  const jammed = new Set((jam?.cells || []).map(([r,c]) => `${r},${c}`));
   ctx.clearRect(0, 0, CELL * COLS, CELL * ROWS);
 
   // 背景の市松模様
@@ -477,7 +509,7 @@ export function drawBoard(v) {
 
   if (dragging && selected) drawSelectionCell(selected.r, selected.c, t);
 
-  drawBridges(board, t, selected, floatPos, dragging);
+  drawBridges(board, t, selected, floatPos, dragging, jammed);
 
   const radius = CELL * 0.42;
   const isClearing = (r, c) => clearingCells.some(([cr, cc]) => cr === r && cc === c);
@@ -508,6 +540,14 @@ export function drawBoard(v) {
   drawConversion(board,t);
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const val = board[r][c];
+    if (val < 0 || isClearing(r,c) || (dragging && selected && selected.r === r && selected.c === c)) continue;
+    const {x,y}=cellCenter(r,c);
+    if (jammed.has(`${r},${c}`)) drawJammedAura(x,y,radius,t);
+    else if (curses[val]) drawAuraMark(x,y,radius,'curse',t);
+    else if (weakens[val]) drawAuraMark(x,y,radius,'weaken',t);
+  }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const val = board[r][c];
     if (val < 0 || !auraBinds[val] || isClearing(r, c)) continue;
     if (dragging && selected && selected.r === r && selected.c === c) continue;
     const { x, y } = cellCenter(r, c);
@@ -524,6 +564,9 @@ export function drawBoard(v) {
     ctx.stroke();
     ctx.restore();
     drawOrb(floatPos.x, floatPos.y, radius * 1.12, val, { glowing: true });
+    if (jammed.has(`${selected.r},${selected.c}`)) drawJammedAura(floatPos.x,floatPos.y,radius*1.12,t);
+    else if (curses[val]) drawAuraMark(floatPos.x,floatPos.y,radius*1.12,'curse',t);
+    else if (weakens[val]) drawAuraMark(floatPos.x,floatPos.y,radius*1.12,'weaken',t);
     if (auraBinds[val]) drawBoundAura(floatPos.x, floatPos.y, radius * 1.12);
     if (remainMs !== null) drawDragTimer(floatPos, radius * 1.12, remainMs, totalMs);
   }

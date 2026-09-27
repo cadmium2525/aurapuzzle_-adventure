@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, matchesShape, enemyAction, poisonDamage, effectLabels } from '../src/js/battle/enemy-skills.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, matchesShape, enemyAction, poisonDamage, curseDamage, auraWeakenMultiplier, effectLabels } from '../src/js/battle/enemy-skills.js';
+import { applyBoardDisruption } from '../src/js/battle/board-disruption.js';
+import { playerStatuses } from '../src/js/battle/player-badges.js';
 
 const hit = (effects, options = {}) => damageEnemy({ hp: 100, maxHP: 100, effects, hits: [{ aura: 0, value: 150 }], ...options });
 test('bind selects distinct members, lasts full turns and persists across floors', () => {
@@ -52,6 +54,54 @@ test('time reduction allows bonus, fixed time ignores bonus and expiry restores 
   assert.equal(effectiveTime(10000, 5000, 20000, s), 4000);
   tickEnemyEffects(s);
   assert.equal(effectiveTime(10000, 5000, 20000, s), 15000);
+});
+test('jam selects distinct occupied cells, hides no game data, and expires', () => {
+  const board=Array.from({length:8},(_,r)=>Array.from({length:7},(_,c)=>(r+c)%4));
+  const before=structuredClone(board),s=createEnemyEffects(4);
+  applyEnemyEffect(s,{type:'auraJam',count:6,turns:2},[],()=>0,board);
+  assert.equal(s.jam.cells.length,6);
+  assert.equal(new Set(s.jam.cells.map(p=>p.join(','))).size,6);
+  assert.deepEqual(board,before);
+  assert.match(effectLabels(s).join(''),/6マス/);
+  const badge=playerStatuses({party:{members:[]},enemyEffects:s,buffs:{},turnTimeBonusMs:0}).global;
+  assert.equal(badge.find(e=>e.type==='auraJam').turns,2);
+  tickEnemyEffects(s);assert.equal(s.jam.turns,1);
+  tickEnemyEffects(s);assert.equal(s.jam,null);
+});
+test('curses trigger once per cleared aura each turn and last exactly their duration', () => {
+  const s=createEnemyEffects(0);
+  applyEnemyEffect(s,{type:'auraCurse',aura:0,percent:8,turns:2},[]);
+  applyEnemyEffect(s,{type:'auraCurse',aura:2,percent:5,turns:2},[]);
+  assert.equal(curseDamage(s,[{color:0},{color:0},{color:1}],1000),80);
+  assert.equal(curseDamage(s,[{color:0},{color:2}],1000),130);
+  assert.equal(curseDamage(s,[{color:1}],1000),0);
+  tickEnemyEffects(s);assert.equal(curseDamage(s,[{color:0}],1000),80);
+  tickEnemyEffects(s);assert.equal(curseDamage(s,[{color:0}],1000),0);
+  assert.deepEqual(s.curses,{});
+});
+test('aura weakness is per color, replaceable, and expires', () => {
+  const s=createEnemyEffects(0);
+  applyEnemyEffect(s,{type:'auraWeaken',aura:3,percent:35,turns:2},[]);
+  assert.equal(auraWeakenMultiplier(s,3),.65);
+  assert.equal(auraWeakenMultiplier(s,0),1);
+  applyEnemyEffect(s,{type:'auraWeaken',aura:3,percent:100,turns:1},[]);
+  assert.equal(auraWeakenMultiplier(s,3),0);
+  tickEnemyEffects(s);assert.equal(auraWeakenMultiplier(s,3),1);
+});
+test('shuffle retains aura counts; corruption changes only the requested number', () => {
+  const board=Array.from({length:8},(_,r)=>Array.from({length:7},(_,c)=>(r+c)%4));
+  const before=board.flat().sort();
+  applyBoardDisruption(board,{type:'boardShuffle'});
+  assert.deepEqual(board.flat().sort(),before);
+  const changed=applyBoardDisruption(board,{type:'auraCorrupt',aura:4,count:5});
+  assert.equal(changed.length,5);
+  assert.equal(board.flat().filter(x=>x===4).length,5);
+  assert.equal(applyBoardDisruption(board,{type:'auraCorrupt',aura:99,count:5}).length,0);
+});
+test('old saved enemy effect shapes still tick without new fields', () => {
+  const legacy={binds:[],auraBinds:{},time:null,recovery:null,poison:null,defenses:[]};
+  assert.doesNotThrow(()=>tickEnemyEffects(legacy));
+  assert.doesNotThrow(()=>effectLabels(legacy));
 });
 test('poison deals max-HP damage for exactly the configured number of turns', () => {
   const s = createEnemyEffects(4);

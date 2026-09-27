@@ -87,6 +87,30 @@ export const ENEMY_EFFECTS = [
       { key: 'aura', label: 'オーラ', aura: true, def: 0 },
       { key: 'turns', label: '続くターン', min: 1, max: 10, def: 2 }
     ] },
+  { type: 'auraJam', label: '盤面ジャミング',
+    desc: '盤面のランダムなマスの色を隠す。位置は固定で、オーラの移動・消去は可能。先制行動と通常行動で使用', args: [
+      { key: 'count', label: '隠すマス数', min: 1, max: 16, def: 6 },
+      { key: 'turns', label: '続くターン', min: 1, max: 20, def: 3 }
+    ] },
+  { type: 'auraCurse', label: 'オーラの呪い',
+    desc: '指定オーラを消した手番の終了時に最大HPの指定%ダメージ。同じ色を複数連鎖しても1回。先制行動と通常行動で使用', args: [
+      { key: 'aura', label: '呪うオーラ', aura: true, def: 0 },
+      { key: 'percent', label: '最大HPへのダメージ(%)', min: 1, max: 100, def: 8 },
+      { key: 'turns', label: '続くターン', min: 1, max: 20, def: 3 }
+    ] },
+  { type: 'auraWeaken', label: 'オーラ衰弱',
+    desc: '指定オーラの消去で発生する攻撃・回復を指定%減少。先制行動と通常行動で使用', args: [
+      { key: 'aura', label: '弱めるオーラ', aura: true, def: 0 },
+      { key: 'percent', label: '減らす割合(%)', min: 1, max: 100, def: 35 },
+      { key: 'turns', label: '続くターン', min: 1, max: 20, def: 3 }
+    ] },
+  { type: 'boardShuffle', label: '盤面シャッフル',
+    desc: '盤面のオーラを同じ個数のまま並べ替える。先制行動と通常行動で使用する単発効果', args: [] },
+  { type: 'auraCorrupt', label: 'オーラ汚染',
+    desc: 'ランダムなマスを指定オーラに変える。先制行動と通常行動で使用する単発効果', args: [
+      { key: 'aura', label: '変換先オーラ', aura: true, def: 4 },
+      { key: 'count', label: '変換するマス数', min: 1, max: 20, def: 5 }
+    ] },
   { type: 'skillDelay', label: 'スキル遅延',
     desc: 'スキルの再使用までを延ばす', args: [
       { key: 'count', label: '人数', min: 1, max: 4, def: 2 },
@@ -123,10 +147,10 @@ export function describeEffect(effect) {
   if (effect.aura != null) parts.push(AURA_NAME[effect.aura] || `オーラ${effect.aura}`);
   if (effect.shape) parts.push(effect.shape);
   if (effect.chains != null) parts.push(`${effect.chains}チェイン`);
-  if (effect.count != null) parts.push(`${effect.count}体`);
+  if (effect.count != null) parts.push(`${effect.count}${effect.type === 'auraJam' || effect.type === 'auraCorrupt' ? 'マス' : '体'}`);
   if (effect.seconds != null) parts.push(`${effect.seconds}秒`);
   if (effect.threshold != null) parts.push(`${effect.threshold}%`);
-  if (effect.percent != null) parts.push(effect.type === 'poison' ? `最大HPの${effect.percent}%` : `${effect.percent}%減少`);
+  if (effect.percent != null) parts.push(['poison','auraCurse'].includes(effect.type) ? `最大HPの${effect.percent}%` : `${effect.percent}%減少`);
   if (effect.turns != null) parts.push(`${effect.turns}ターン`);
   return parts.length ? `${label}(${parts.join(' / ')})` : label;
 }

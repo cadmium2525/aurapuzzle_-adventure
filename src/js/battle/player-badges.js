@@ -1,6 +1,6 @@
 import { toast } from '../core/ui.js';
 
-export const BADGE_ORDER = ['timeReduce','timeFixed','timeExtend','bind','auraBind','attack','guard','skillDelay','poison'];
+export const BADGE_ORDER = ['timeReduce','timeFixed','timeExtend','bind','auraBind','attack','guard','skillDelay','poison','auraJam','auraCurse','auraWeaken'];
 const AURAS=['火','水','木','癒','闇'];
 const COLORS=['#ff795b','#58d7ff','#66eca2','#ff94d2','#b28aff'];
 
@@ -9,8 +9,14 @@ export function playerStatuses(run) {
   const time=run.enemyEffects.time;
   const recovery=run.enemyEffects.recovery;
   const poison=run.enemyEffects.poison;
+  const jam=run.enemyEffects.jam;
   if(recovery)global.push({type:'recoveryReduce',turns:recovery.turns,label:`味方全体の回復力${recovery.percent}%減少（癒オーラによる回復が対象。最大HP割合の回復スキルは影響なし）`});
   if(poison)global.push({type:'poison',turns:poison.turns,label:`毒：手番終了時に最大HPの${poison.percent}%ダメージ（軽減不可）`});
+  if(jam?.cells?.length)global.push({type:'auraJam',turns:jam.turns,label:`盤面ジャミング：${jam.cells.length}マスのオーラが見えない（移動・消去は可能）`});
+  for(const [aura,effect] of Object.entries(run.enemyEffects.curses||{}))
+    global.push({type:'auraCurse',aura:Number(aura),turns:effect.turns,label:`${AURAS[aura]}の呪い：消去した手番に最大HPの${effect.percent}%ダメージ（連鎖しても1回）`});
+  for(const [aura,effect] of Object.entries(run.enemyEffects.weakens||{}))
+    global.push({type:'auraWeaken',aura:Number(aura),turns:effect.turns,label:`${AURAS[aura]}の衰弱：消去による攻撃・回復${effect.percent}%減少`});
   if(time)global.push({type:time.type,turns:time.turns,label:`操作時間${time.type==='timeFixed'?`${time.seconds}秒固定`:`${time.seconds}秒減少`}`});
   if(run.turnTimeBonusMs>0)global.push({type:'timeExtend',turns:1,label:`操作時間${run.turnTimeBonusMs/1000}秒延長${time?.type==='timeFixed'?'（固定中は延長無効）':''}`});
   for(const [aura,turns] of Object.entries(run.enemyEffects.auraBinds))global.push({type:'auraBind',aura:Number(aura),turns,label:`${AURAS[aura]}オーラ消去不可`});

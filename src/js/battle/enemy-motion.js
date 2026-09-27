@@ -28,7 +28,8 @@ export function playEnemyMotion(events, board = []) {
      その回に出すもののうち いちばん長いものへ合わせる。
        時計  操作時間をいじられたことは盤面を見ても分からないので長めに置く
        モヤ  飛んでいく様子を目で追えるだけの時間が要る */
-  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250, recoveryReduce: 1400, poison: 1450 };
+  const HOLD = { timeReduce: 1600, timeFixed: 1600, bind: 1250, recoveryReduce: 1400, poison: 1450,
+    auraJam: 1100, auraCurse: 1250, auraWeaken: 1100, boardShuffle: 1100, auraCorrupt: 1100 };
   const duration = reduced ? 180 : Math.max(720, ...events.map(e => HOLD[e.type] || 0));
   const ring = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,Math.max(1,r),0,Math.PI*2); ctx.stroke(); };
   const text = (value,x,y,size=22) => { ctx.font = `bold ${size}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(value,x,y); };
@@ -132,6 +133,29 @@ export function playEnemyMotion(events, board = []) {
               const size=8+8*(1-p);
               ring(x,y,size+5);line(x-size,y-size,x+size,y+size);line(x+size,y-size,x-size,y+size);
             }break;
+          case 'auraJam': case 'boardShuffle': case 'auraCorrupt': {
+            ctx.strokeStyle=ctx.fillStyle=e.type==='auraCorrupt'?(COLORS[e.aura]||'#b28aff'):'#a8cbff';
+            const cells=e.type==='boardShuffle'
+              ? board.flatMap((row,r)=>row.map((_,c)=>[r,c])) : (e.cells||[]);
+            for(const [r,c] of cells){
+              const x=field.x-field.w/2+(c+.5)*field.w/7;
+              const y=field.y-field.h/2+(r+.5)*field.h/8;
+              const radius=(e.type==='boardShuffle'?5:12)*(1-p*.45);
+              ring(x,y,radius);
+              if(e.type==='auraJam')text('?',x,y,17);
+            }
+            break;
+          }
+          case 'auraCurse': case 'auraWeaken': {
+            const curse=e.type==='auraCurse';
+            ctx.strokeStyle=ctx.fillStyle=curse?'#ff7bbd':'#b9b2ff';
+            for(let r=0;r<board.length;r++)for(let c=0;c<board[r].length;c++)if(board[r][c]===e.aura){
+              const x=field.x-field.w/2+(c+.5)*field.w/7;
+              const y=field.y-field.h/2+(r+.5)*field.h/8;
+              ring(x,y,7+p*10);if(p>.55)text(curse?'呪':'↓',x,y,17);
+            }
+            break;
+          }
           /* 操作時間をいじられたことは盤面を見ても分からないので、
              盤面いっぱいの時計を魔法陣のように重ねて見せる。
              短縮は針が反時計回りに巻き戻り、固定は針が止まる。 */

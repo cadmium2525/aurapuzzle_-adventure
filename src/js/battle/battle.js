@@ -29,7 +29,8 @@ import {
 } from './board.js';
 import { buildParty } from './party.js';
 import { initRenderer, resizeBoard, drawBoard, animateConversion, clearConversion, CELL } from './renderer.js';
-import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, poisonDamage } from './enemy-skills.js';
+import { createEnemyEffects, enterEnemy, applyEnemyEffect, tickEnemyEffects, effectiveTime, damageEnemy, enemyAction, poisonDamage, curseDamage } from './enemy-skills.js';
+import { applyBoardDisruption } from './board-disruption.js';
 import { playEnemyMotion } from './enemy-motion.js';
 import { renderEnemyShield } from './enemy-shield.js';
 import { renderEnemyBadges } from './enemy-badges.js';
@@ -116,7 +117,8 @@ function loop(t) {
       board, t, selected, floatPos, dragging: bstate === 'dragging',
       clearingCells, clearT, chainLabels, remainMs: dragging ? remain : null, totalMs: total,
       swapHint: run.chanceActive ? run.chanceHint : null,
-      auraBinds: run.enemyEffects.auraBinds
+      auraBinds: run.enemyEffects.auraBinds, jam: run.enemyEffects.jam,
+      curses: run.enemyEffects.curses, weakens: run.enemyEffects.weakens
     });
     // 時間内なら指を離しても手番は終わらず、別のオーブを掴み直して操作を続けられる
     if (dragging && remain <= 0) endTurnNow();
@@ -222,7 +224,8 @@ function persistRun() {
     // 味方にかかっている妨害。enemyEffects のうち敵側の値は敵ごとに持っている
     playerEffects: {
       binds: run.enemyEffects.binds, auraBinds: run.enemyEffects.auraBinds, time: run.enemyEffects.time,
-      recovery: run.enemyEffects.recovery, poison: run.enemyEffects.poison
+      recovery: run.enemyEffects.recovery, poison: run.enemyEffects.poison,
+      jam: run.enemyEffects.jam, curses: run.enemyEffects.curses, weakens: run.enemyEffects.weakens
     },
     stats: run.stats,
     board
@@ -283,6 +286,9 @@ export function resumeDungeonRun() {
   run.enemyEffects.time = pe.time ?? null;
   run.enemyEffects.recovery = pe.recovery ?? null;
   run.enemyEffects.poison = pe.poison ?? null;
+  run.enemyEffects.jam = pe.jam ?? null;
+  run.enemyEffects.curses = pe.curses ?? {};
+  run.enemyEffects.weakens = pe.weakens ?? {};
   for (let i = 0; i < party.members.length; i++) run.enemyEffects.binds[i] = pe.binds?.[i] || 0;
   attachEncounter(run);
   resetFoeCards();
@@ -826,9 +832,13 @@ async function resolveTurn() {
   // 継続毒はプレイヤーの手番終了時に発生する。敵を倒した手番でも、
   // すでに受けている毒からは逃れられない。
   const poisonDmg = poisonDamage(run.enemyEffects, run.maxHP);
-  if (poisonDmg > 0) {
-    run.playerHP = Math.max(0, run.playerHP - poisonDmg);
-    showBanner(`<span class="dmg">毒 ${poisonDmg} ダメージ</span>`);
+  const curseDmg = curseDamage(run.enemyEffects, clearedGroups, run.maxHP);
+  if (poisonDmg + curseDmg > 0) {
+    run.playerHP = Math.max(0, run.playerHP - poisonDmg - curseDmg);
+    showBanner(`<span class="dmg">${[
+      poisonDmg && `毒 ${poisonDmg}`,
+      curseDmg && `オーラの呪い ${curseDmg}`
+    ].filter(Boolean).join(' / ')} ダメージ</span>`);
     updateHPUI(false, true);
     shake($('partyBox'));
     await sleep(420);
@@ -924,13 +934,17 @@ async function executeEnemyAction(action, preemptive = false) {
   const motions = [];
   for (const effect of action.effects || []) {
     if(effect.type==='summonClones'){summonClones(run,combatEnemy(run));labels.push('分身体が出現');continue;}
-    const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns);
+    const boardAction = effect.type === 'boardShuffle' || effect.type === 'auraCorrupt';
+    const before = boardAction ? board.map(row => row.slice()) : null;
+    const changed = boardAction ? applyBoardDisruption(board, effect) : [];
+    if (changed.length) animateConversion(before, board);
+    const targets = applyEnemyEffect(run.enemyEffects, effect, run.cooldowns, Math.random, board);
     if(effect.type==='skillDelay'){
       run.skillDelayDebt ||= run.party.members.map(()=>0);
       targets.forEach(i=>{run.skillDelayDebt[i]+=effect.turns;});
     }
-    motions.push({ ...effect, targets });
-    labels.push(({ recoveryReduce: '回復力減少', poison: '毒', bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
+    motions.push({ ...effect, targets, cells: effect.type === 'auraJam' ? run.enemyEffects.jam?.cells : changed });
+    labels.push(({ recoveryReduce: '回復力減少', poison: '毒', bind: 'バインド', skillDelay: 'スキルターン遅延', comboGuard: 'コンボガード', shapeGuard: '形状指定', auraBind: 'オーラバインド', auraJam: '盤面ジャミング', auraCurse: 'オーラの呪い', auraWeaken: 'オーラ衰弱', boardShuffle: '盤面シャッフル', auraCorrupt: 'オーラ汚染', timeReduce: '操作時間短縮', timeFixed: '操作時間固定', auraAbsorb: 'オーラ吸収', buildUp: 'ビルドアップ', resolve: '根性' })[effect.type]);
   }
   if (action.attack) {
     let dmg = Math.max(1, Math.round((run.enemyAtk + randInt(-2, 4)) * run.enemyEffects.attackMult));
