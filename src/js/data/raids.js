@@ -53,11 +53,13 @@ function buildCustomRaid(raw) {
     f.dialogue ? { dialogue: f.dialogue } : {}
   )).filter(f => f.enemies.length);
   if (!floors.length) return null;
+  const isEvent = raw.category === 'event' || raw.category === 'eventRaid';
+  const isRaid = raw.category !== 'event'; // Category-free older registrations remain raids.
   return {
     stamina: 30, coinReward: 9000, orbReward: 0, expReward: 180, charExpReward: 600,
     auras: [0, 1, 2, 3, 4], dropAura: 4, shardRate: .35, crystalBase: 8,
     ...raw,
-    raid: raw.category !== 'event', event: raw.category === 'event', dropType: raw.category === 'event' ? 'event' : 'raid', floors
+    raid: isRaid, event: isEvent, dropType: isEvent ? 'event' : 'raid', floors
   };
 }
 
@@ -73,5 +75,6 @@ export function raidDropRate(stage, own) {
   return Math.min(1, (stage.characterDrop?.rate || 0) + own.reduce((sum, m) => sum + (m.awakenMods?.dropRate || 0), 0));
 }
 export function rollRaidCharacter(stage, own, random = Math.random) {
-  return stage.raid && random() < raidDropRate(stage, own) ? stage.characterDrop.id : null;
+  return stage.raid && stage.characterDrop?.id && random() < raidDropRate(stage, own)
+    ? stage.characterDrop.id : null;
 }

@@ -446,7 +446,7 @@ export function renderDungeon(options = {}) {
 
   if (dungeonMode === 'daily') { renderDailyList(); return; }
   if (dungeonMode === 'raid') {
-    const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES.filter(s=>s.raid && isAvailable(s)));return;
+    const list=$('stageList');list.innerHTML='';renderStageCards(list,RAID_STAGES.filter(s=>s.raid && !s.event && isAvailable(s)));return;
   }
 
   const series = SERIES[dungeonMode];

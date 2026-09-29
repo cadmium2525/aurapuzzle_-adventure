@@ -185,6 +185,117 @@ export const CUSTOM_ENEMIES = [
       ],
       "random": false
     }
+  },
+  {
+    "id": "hw_witch",
+    "name": "ウィッチ・メルヴェイユ",
+    "emoji": "🧙‍♀️",
+    "boss": true,
+    "sprite": "assets/chars/hw_witch_1.webp",
+    "forms": [
+      {
+        "id": "hw_witch",
+        "name": "宵祭のウィッチ・メルヴェイユ",
+        "sprite": "assets/chars/hw_witch_1.webp",
+        "emoji": "🧙‍♀️",
+        "hp": 18000,
+        "atk": 110,
+        "interval": 1,
+        "intro": "warning",
+        "dialogue": "ようこそ、今夜だけの魔法のお茶会へ！　ごちそうは、あなたの勇気かしら？",
+        "enemySkills": {
+          "preemptive": {
+            "effects": [
+              {
+                "type": "auraCorrupt",
+                "aura": 4,
+                "count": 5
+              }
+            ]
+          },
+          "actions": [
+            {
+              "attack": true,
+              "dialogue": "いたずらのおまじない、かけちゃうわ！",
+              "effects": [
+                {
+                  "type": "auraJam",
+                  "count": 5,
+                  "turns": 2
+                }
+              ]
+            },
+            {
+              "attack": true,
+              "dialogue": "そのオーラ、南瓜色に染めてあげる。",
+              "effects": [
+                {
+                  "type": "auraCorrupt",
+                  "aura": 0,
+                  "count": 4
+                }
+              ]
+            }
+          ],
+          "random": true
+        }
+      },
+      {
+        "id": "hw_witch",
+        "name": "月蝕の大魔女・メルヴェイユ",
+        "sprite": "assets/chars/hw_witch_2.webp",
+        "emoji": "🧙‍♀️",
+        "hp": 29000,
+        "atk": 135,
+        "interval": 1,
+        "intro": "evolution",
+        "dialogue": "お茶会はここからが本番。月が隠れるまで、わたしと踊ってくれる？",
+        "enemySkills": {
+          "preemptive": {
+            "effects": [
+              {
+                "type": "comboGuard",
+                "chains": 5,
+                "turns": 5
+              },
+              {
+                "type": "auraJam",
+                "count": 6,
+                "turns": 2
+              }
+            ]
+          },
+          "actions": [
+            {
+              "attack": true,
+              "dialogue": "甘い魔法には、ちょっぴり毒があるの。",
+              "effects": [
+                {
+                  "type": "auraCurse",
+                  "aura": 0,
+                  "percent": 6,
+                  "turns": 2
+                }
+              ]
+            },
+            {
+              "attack": true,
+              "dialogue": "さあ、オーラも踊りましょう！",
+              "effects": [
+                {
+                  "type": "boardShuffle"
+                }
+              ]
+            },
+            {
+              "attack": true,
+              "dialogue": "最後の一口まで、楽しんでね。"
+            }
+          ],
+          "random": true
+        }
+      }
+    ]
   }
 ];
 
@@ -642,6 +753,113 @@ export const CUSTOM_RAIDS = [
       "id": "dk_kyuko",
       "rate": 0.5
     }
+  },
+  {
+    "id": 3104,
+    "name": "ウィッチ降臨",
+    "bgm": "battle",
+    "stamina": 35,
+    "category": "eventRaid",
+    "eventId": "halloween_2026",
+    "enabled": true,
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "currencyDrop": {
+      "id": "mt_halloween_candy",
+      "amount": 60
+    },
+    "banner": "assets/promo/hw_witch_raid.webp",
+    "battleBackground": "assets/ui/halloween_battle.webp",
+    "coinReward": 5000,
+    "orbReward": 0,
+    "expReward": 140,
+    "charExpReward": 500,
+    "auras": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "dropAura": 4,
+    "shardRate": 0.25,
+    "crystalBase": 5,
+    "floors": [
+      {
+        "enemies": [
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": 0.85,
+            "sprite": "assets/enemy/hw_gost.webp"
+          },
+          {
+            "id": "mycol",
+            "form": 0,
+            "mult": 0.7,
+            "sprite": "assets/enemy/hw_mycol.webp"
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "vespar",
+            "form": 0,
+            "mult": 0.8,
+            "sprite": "assets/enemy/hw_vespar.webp"
+          },
+          {
+            "id": "gost",
+            "form": 0,
+            "mult": 1,
+            "sprite": "assets/enemy/hw_gost.webp"
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "magdoll",
+            "form": 0,
+            "mult": 0.9,
+            "sprite": "assets/enemy/hw_magdoll.webp"
+          },
+          {
+            "id": "valgas",
+            "form": 0,
+            "mult": 0.8,
+            "sprite": "assets/enemy/hw_valgas.webp"
+          }
+        ]
+      },
+      {
+        "enemies": [
+          {
+            "id": "hw_witch",
+            "form": 0,
+            "mult": 1
+          }
+        ],
+        "intro": "warning",
+        "dialogue": "ようこそ、今夜だけの魔法のお茶会へ！　ごちそうは、あなたの勇気かしら？"
+      },
+      {
+        "enemies": [
+          {
+            "id": "hw_witch",
+            "form": 1,
+            "mult": 1
+          }
+        ],
+        "intro": "evolution",
+        "dialogue": "お茶会はここからが本番。月が隠れるまで、わたしと踊ってくれる？"
+      }
+    ],
+    "characterDrop": {
+      "id": "dk_hw_witch",
+      "rate": 0.5
+    }
   }
 ];
 
@@ -922,6 +1140,47 @@ export const CUSTOM_CHARACTERS = [
     ],
     "evoName": "百鬼甘宴の九尾姫・キュウコ",
     "evoJob": "百鬼甘宴の九尾姫"
+  },
+  {
+    "id": "dk_hw_witch",
+    "name": "メルヴェイユ",
+    "job": "宵祭のウィッチ",
+    "portrait": "🧙‍♀️",
+    "aura": 4,
+    "rarity": 3,
+    "role": "balance",
+    "leaderSkillId": "ls_hw_witch",
+    "skillId": "sk_hw_witch",
+    "atk": 24,
+    "hp": 40,
+    "rcv": 13,
+    "raidDrop": true,
+    "giftOnly": true,
+    "enabled": true,
+    "eventId": "halloween_2026",
+    "availableFrom": "2026-10-01T00:00:00+09:00",
+    "availableUntil": "2026-11-01T00:00:00+09:00",
+    "flavor": "年に一度の夜祭を仕切る魔女。敵にもお菓子を勧めるが、その包み紙には奇妙な呪文が書かれている。",
+    "artStages": [
+      {
+        "star": 3,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_witch_1_icon.webp",
+        "full": "assets/chars/hw_witch_1.webp",
+        "label": "通常"
+      },
+      {
+        "star": 4,
+        "minLevel": 1,
+        "icon": "assets/chars/hw_witch_2_icon.webp",
+        "full": "assets/chars/hw_witch_2.webp",
+        "label": "進化"
+      }
+    ],
+    "evoName": "メルヴェイユ",
+    "evoJob": "月蝕の大魔女",
+    "evoLeaderSkillId": "ls_hw_witch_evo",
+    "evoSkillId": "sk_hw_witch_evo"
   }
 ];
 
@@ -1032,6 +1291,29 @@ export const CUSTOM_SKILLS = [
     },
     "cooldown": 10,
     "desc": "このターンの操作時間+3.0秒・ランダム10個を火オーラに変化"
+  },
+  {
+    "id": "sk_hw_witch",
+    "name": "トリック・オア・シャドウ",
+    "cooldown": 10,
+    "spawn": {
+      "to": "c4",
+      "count": 7
+    },
+    "healPct": 0.2,
+    "desc": "ランダム7個を闇オーラに変化・最大HPの20%を回復"
+  },
+  {
+    "id": "sk_hw_witch_evo",
+    "name": "月蝕のキャンディ・スペル",
+    "cooldown": 9,
+    "spawn": {
+      "to": "c4",
+      "count": 10
+    },
+    "healPct": 0.3,
+    "timeThisTurn": 2,
+    "desc": "ランダム10個を闇オーラに変化・最大HPの30%を回復・操作時間+2秒"
   }
 ];
 
@@ -1114,6 +1396,25 @@ export const CUSTOM_LEADER_SKILLS = [
     },
     "hp": 1.25,
     "desc": "火オーラ2倍・最大HP1.25倍"
+  },
+  {
+    "id": "ls_hw_witch",
+    "name": "夜祭の招待状",
+    "auraAtk": {
+      "c4": 1.7
+    },
+    "time": 1.5,
+    "desc": "闇オーラ1.7倍・操作時間+1.5秒"
+  },
+  {
+    "id": "ls_hw_witch_evo",
+    "name": "月蝕の大茶会",
+    "auraAtk": {
+      "c4": 2
+    },
+    "allAtk": 1.15,
+    "time": 2.5,
+    "desc": "闇オーラ2倍・全オーラ1.15倍・操作時間+2.5秒"
   }
 ];
 
@@ -1152,7 +1453,12 @@ export const CUSTOM_SETTINGS = {
         "name": "ハロウィンガチャ",
         "enabled": true,
         "pickupRate": 0.5,
-        "pickupIds": ["hw_kai", "hw_mio", "hw_noa", "hw_rune"]
+        "pickupIds": [
+          "hw_kai",
+          "hw_mio",
+          "hw_noa",
+          "hw_rune"
+        ]
       },
       "currency": {
         "id": "mt_halloween_candy",

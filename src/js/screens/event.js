@@ -5,6 +5,7 @@ import { activeEvents, isAvailable } from '../data/availability.js';
 import { RAID_STAGES } from '../data/raids.js';
 import { CHARACTERS } from '../data/characters.js';
 import { eventCurrencyBonusAmount } from '../data/event-drops.js';
+import { raidDropSummaryHTML } from '../data/raid-rewards.js';
 import { gachaCampaignsAt } from '../data/gacha-campaigns.js';
 import { openSortie } from './dungeon.js';
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -19,12 +20,16 @@ export function renderEvent() {
     const gacha=gachaCampaignsAt().find(c=>c.id===e.id);
     const boosters=CHARACTERS.filter(c=>c.eventId===e.id && c.eventDropBonusChance && !c.giftOnly);
     const rates=[...new Set(boosters.map(c=>Math.round(c.eventDropBonusChance*100)))];
+    const stageButton=s=>`<button class="btn block mt8" data-stage="${s.id}">${esc(s.name)}<br>⚡${s.stamina} ・ ${s.floors.length}フロア${s.currencyDrop?.amount ? ` ・ 🍬${s.currencyDrop.amount}個確定${boosters.length ? ` ・ 特効成功で+${eventCurrencyBonusAmount(s)}/人` : ''}` : ''}${s.raid ? `<br>${raidDropSummaryHTML(s)}` : ''}${state.progress[s.id]?.normal ? ' ✓' : ''}</button>`;
+    const regular=stages.filter(s=>!s.raid);
+    const raids=stages.filter(s=>s.raid);
     card.innerHTML=`${e.banner ? `<img src="${esc(e.banner)}" alt="${esc(e.name)}" style="width:100%;border-radius:16px">` : ''}
       <h2>${esc(e.name)}</h2><p>${esc(e.description)}</p>
       <p>終了：${new Date(e.availableUntil).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})}（日本時間）</p>
       <p>${itemIcon(e.currency.id)} ${esc(e.currency.name)}：${state.materials[e.currency.id] || 0}</p>
       ${boosters.length ? `<p>🍬 限定ガチャ衣装の特効：自陣に編成した1人ごとに${rates.length===1 ? `${rates[0]}%` : '個別の確率'}で追加ドロップ（サポートは対象外）。</p>` : ''}
-      <div class="event-stages">${stages.map(s=>`<button class="btn block mt8" data-stage="${s.id}">${esc(s.name)}<br>⚡${s.stamina} ・ ${s.floors.length}フロア ・ 🍬${s.currencyDrop?.amount || 0}個確定${boosters.length ? ` ・ 特効成功で+${eventCurrencyBonusAmount(s)}/人` : ''}${state.progress[s.id]?.normal ? ' ✓' : ''}</button>`).join('')}</div>
+      <div class="event-stages"><h3>イベントダンジョン</h3>${regular.map(stageButton).join('')}
+        ${raids.length ? `<h3 style="margin-top:20px">降臨ダンジョン</h3>${raids.map(s=>`${s.banner ? `<img src="${esc(s.banner)}" alt="${esc(s.name)}" style="width:100%;border-radius:14px;margin-top:8px">` : ''}${stageButton(s)}`).join('')}` : ''}</div>
       <button class="btn secondary block mt8" data-shop>キャンディ交換所へ</button>${gacha ? `<button class="btn secondary block mt8" data-gacha>${esc(gacha.name)}へ</button>` : ''}`;
     card.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>openSortie(stages.find(s=>String(s.id)===b.dataset.stage))));
     card.querySelector('[data-shop]').onclick=()=>showScreen('shop');

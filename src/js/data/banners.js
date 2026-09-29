@@ -24,7 +24,7 @@ export function homeBanners() {
   const list = [];
 
   // 降臨は最後に足したものを「いま開催中」と見なす
-  const raid = RAID_STAGES.filter(s=>s.raid && isAvailable(s)).at(-1);
+  const raid = RAID_STAGES.filter(s=>s.raid && !s.event && isAvailable(s)).at(-1);
   if (raid && raid.banner) {
     list.push({
       key: `raid-${raid.id}`,

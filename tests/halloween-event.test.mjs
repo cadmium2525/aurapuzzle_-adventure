@@ -10,7 +10,9 @@ import { CHAR_ATLAS } from '../src/js/data/char-atlas.js';
 import { state,addCharacter,addMaterials,resolveOwned,shopRemaining,recordShopPurchase } from '../src/js/core/state.js';
 const event=eventCatalog().find(e=>e.id==='halloween_2026');
 const start=Date.parse('2026-10-01T00:00:00+09:00'),end=Date.parse('2026-11-01T00:00:00+09:00');
-const costumes=CHARACTERS.filter(c=>c.eventId===event.id);
+const costumes=CHARACTERS.filter(c=>c.eventId===event.id && !c.raidDrop);
+const regularStages=()=>RAID_STAGES.filter(s=>s.eventId===event.id && !s.raid);
+const witchStage=()=>RAID_STAGES.find(s=>s.id===3104);
 test('published Halloween registration has five costumes and all twenty atlas-backed assets',()=>{
   assert.equal(costumes.length,5);
   for(const c of costumes){
@@ -32,7 +34,7 @@ test('exactly four costumes enter gacha at JST start and leave at end; exchange 
   }
 });
 test('three event-only dungeons reward increasing candy and never drop raid characters',()=>{
-  const stages=RAID_STAGES.filter(s=>s.eventId===event.id);
+  const stages=regularStages();
   assert.equal(stages.length,3);
   assert.deepEqual(stages.map(s=>s.currencyDrop.amount),[10,25,50]);
   assert.deepEqual(stages.map(s=>s.floors.length),[3,4,5]);
@@ -45,7 +47,7 @@ test('three event-only dungeons reward increasing candy and never drop raid char
   }
 });
 test('four gacha costumes grant independent candy bonus rolls; exchange Kyuko and support do not',()=>{
-  const stages=RAID_STAGES.filter(s=>s.eventId===event.id);
+  const stages=regularStages();
   assert.deepEqual(stages.map(eventCurrencyBonusAmount),[2,5,10]);
   const own=['hw_kai','hw_mio','hw_noa'].map(id=>resolveCharacter(id,5,1));
   const support=resolveCharacter('hw_rune',5,1);
@@ -77,7 +79,7 @@ test('a dungeon appearance override preserves the enemy master and its combat be
   assert.deepEqual(costumed.enemySkills,regular.enemySkills);
 });
 test('every Halloween encounter uses its costume and every floor uses the event arena',()=>{
-  const stages=RAID_STAGES.filter(s=>s.eventId===event.id);
+  const stages=regularStages();
   const background='assets/ui/halloween_battle.webp';
   assert.ok(existsSync(background));
   for(const stage of stages){
@@ -87,6 +89,35 @@ test('every Halloween encounter uses its costume and every floor uses the event 
       assert.ok(existsSync(enemy.sprite));
     }
   }
+});
+test('Halloween Witch raid is event-only, five floors, and drops a playable evolved boss',()=>{
+  const stage=witchStage();
+  assert.ok(stage);assert.equal(stage.category,'eventRaid');
+  assert.equal(stage.event,true);assert.equal(stage.raid,true);
+  assert.equal(stage.floors.length,5);
+  assert.equal(stage.currencyDrop.amount,60);
+  assert.equal(stage.characterDrop.id,'dk_hw_witch');
+  assert.equal(stage.characterDrop.rate,.5);
+  assert.equal(rollRaidCharacter(stage,[],()=>.49),'dk_hw_witch');
+  assert.equal(rollRaidCharacter(stage,[],()=>.5),null);
+  assert.equal(isAvailable(stage,start-1),false);
+  assert.equal(isAvailable(stage,start),true);
+  assert.equal(isAvailable(stage,end),false);
+  assert.ok(existsSync(stage.banner));
+  assert.equal(stage.battleBackground,'assets/ui/halloween_battle.webp');
+  assert.equal(stage.floors[3].enemies[0].name,'宵祭のウィッチ・メルヴェイユ');
+  assert.equal(stage.floors[4].enemies[0].name,'月蝕の大魔女・メルヴェイユ');
+  for(const floor of stage.floors) for(const enemy of floor.enemies) {
+    assert.ok(existsSync(enemy.sprite));
+    assert.equal(isBossEnemy(enemy.id),enemy.id==='hw_witch');
+  }
+  const witch=CHARACTERS.find(c=>c.id==='dk_hw_witch');
+  assert.equal(witch.rarity,3);assert.equal(witch.aura,4);
+  assert.equal(witch.raidDrop,true);assert.equal(witch.giftOnly,true);
+  assert.equal(canEvolveChar(witch,3),true);
+  assert.equal(resolveCharacter(witch.id,4,1).evoJob,'月蝕の大魔女');
+  assert.equal(gachaPoolAt(start).some(c=>c.id===witch.id),false);
+  for(const art of witch.artStages){assert.ok(existsSync(art.full));assert.ok(existsSync(art.icon));assert.ok(CHAR_ATLAS[art.icon]);}
 });
 test('event exchange has validated finite limits and persistent material/owned masters',()=>{
   const items=eventShopItems().filter(i=>i.eventId===event.id);
